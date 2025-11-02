@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "jsx": "react-jsx", "lib": ["es2023", "dom"] },
+  "include": ["src"]
+}

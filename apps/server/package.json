@@ -1,0 +1,45 @@
+{
+  "name": "@sitli/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "build": "tsdown",
+    "start": "node dist/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "auth:generate": "pnpm dlx auth@latest generate --config src/auth/auth.ts --output ../../packages/db/src/schema/auth.ts --yes"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "catalog:",
+    "@better-auth/drizzle-adapter": "catalog:",
+    "@date-fns/tz": "catalog:",
+    "@hono/node-server": "catalog:",
+    "@hono/zod-openapi": "catalog:",
+    "@sitli/core": "workspace:*",
+    "@sitli/db": "workspace:*",
+    "@sitli/emails": "workspace:*",
+    "@sitli/shared": "workspace:*",
+    "better-auth": "catalog:",
+    "date-fns": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "libphonenumber-js": "catalog:",
+    "nodemailer": "catalog:",
+    "pg": "catalog:",
+    "pg-boss": "catalog:",
+    "pino": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "pino-pretty": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

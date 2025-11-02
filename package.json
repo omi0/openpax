@@ -1,0 +1,24 @@
+{
+  "name": "sitli",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hostable restaurant booking platform: embeddable widget + staff dashboard",
+  "packageManager": "pnpm@12.3.4",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "db:generate": "pnpm --filter @sitli/db generate",
+    "db:migrate": "pnpm --filter @sitli/db migrate",
+    "auth:generate": "pnpm --filter @sitli/server auth:generate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}
