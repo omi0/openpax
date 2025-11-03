@@ -1,3 +1,3 @@
-export default function authenticate(req, res, next) {
+module.exports = function authenticate(req, res, next) {
     // JWT
 };
