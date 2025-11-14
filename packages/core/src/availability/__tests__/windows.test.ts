@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveServiceWindows, windowToMinutes } from "../windows.js";
-import { FRIDAY, dinner, lunch } from "./fixtures.js";
+import { dinner, FRIDAY, lunch } from "./fixtures.js";
 
 describe("resolveServiceWindows", () => {
   it("uses weekly hours by default", () => {
@@ -23,7 +23,12 @@ describe("resolveServiceWindows", () => {
   it("lets a service-specific exception beat a restaurant-wide one", () => {
     const ex = [
       { serviceId: null, date: FRIDAY, closed: true, windows: null },
-      { serviceId: "dinner", date: FRIDAY, closed: false, windows: [{ start: "20:00", end: "21:00" }] },
+      {
+        serviceId: "dinner",
+        date: FRIDAY,
+        closed: false,
+        windows: [{ start: "20:00", end: "21:00" }],
+      },
     ];
     expect(resolveServiceWindows(dinner, FRIDAY, ex)).toEqual({
       closed: false,
@@ -34,10 +39,15 @@ describe("resolveServiceWindows", () => {
 
   it("falls back to weekly hours for an open exception without windows", () => {
     const ex = [{ serviceId: null, date: FRIDAY, closed: false, windows: null }];
-    expect(resolveServiceWindows(dinner, FRIDAY, ex).windows).toEqual([{ startMin: 1140, endMin: 1320 }]);
+    expect(resolveServiceWindows(dinner, FRIDAY, ex).windows).toEqual([
+      { startMin: 1140, endMin: 1320 },
+    ]);
   });
 
   it("extends windows that cross midnight", () => {
-    expect(windowToMinutes({ start: "22:00", end: "01:00" })).toEqual({ startMin: 1320, endMin: 1500 });
+    expect(windowToMinutes({ start: "22:00", end: "01:00" })).toEqual({
+      startMin: 1320,
+      endMin: 1500,
+    });
   });
 });

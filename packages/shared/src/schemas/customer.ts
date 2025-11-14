@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { emailSchema, idSchema, instantSchema, localeSchema, paginationQuerySchema, phoneSchema } from "./common.js";
+import {
+  emailSchema,
+  idSchema,
+  instantSchema,
+  localeSchema,
+  paginationQuerySchema,
+  phoneSchema,
+} from "./common.js";
 
 export const customerDtoSchema = z.object({
   id: idSchema,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkDatePolicy, checkPartyPolicy, checkServiceParty, checkSlotTiming } from "../policy.js";
-import { FRIDAY, TZ, at, dinner, policy } from "./fixtures.js";
+import {
+  checkDatePolicy,
+  checkPartyPolicy,
+  checkServiceParty,
+  checkSlotTiming,
+} from "../policy.js";
+import { at, dinner, FRIDAY, policy, TZ } from "./fixtures.js";
 
 describe("policy checks", () => {
   it("rejects past dates and dates beyond the booking horizon", () => {

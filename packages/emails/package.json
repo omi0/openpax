@@ -11,9 +11,11 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@date-fns/tz": "catalog:",
+    "@sitli/shared": "workspace:*",
+    "date-fns": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:",
-    "react-email": "catalog:"
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",

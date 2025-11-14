@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { idSchema, instantSchema, localDateSchema, localTimeSchema, partySizeSchema } from "./common.js";
+import {
+  idSchema,
+  instantSchema,
+  localDateSchema,
+  localTimeSchema,
+  partySizeSchema,
+} from "./common.js";
 
 export const UNAVAILABLE_REASONS = [
   "closed",

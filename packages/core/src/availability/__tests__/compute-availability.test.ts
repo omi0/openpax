@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError } from "../../errors.js";
 import { assertSlotBookable, computeAvailability } from "../compute-availability.js";
-import { FRIDAY, TZ, at, baseInput, booking, dinner, everyDay, late, lunch } from "./fixtures.js";
+import { at, baseInput, booking, dinner, everyDay, FRIDAY, late, lunch } from "./fixtures.js";
 
 describe("computeAvailability", () => {
   it("lists every slot of every open service, sorted by time", () => {
@@ -38,21 +38,29 @@ describe("computeAvailability", () => {
     const result = computeAvailability(baseInput({ partySize: 14 }));
     expect(result.reasons).toEqual(["party_too_large"]);
     expect(result.slots.length).toBeGreaterThan(0);
-    expect(result.slots.every((s) => s.available === false && s.reason === "party_too_large")).toBe(true);
+    expect(result.slots.every((s) => s.available === false && s.reason === "party_too_large")).toBe(
+      true,
+    );
   });
 
   it("applies lead time relative to now in the restaurant timezone", () => {
     const result = computeAvailability(baseInput({ now: at(FRIDAY, "18:30"), services: [dinner] }));
     const byTime = Object.fromEntries(result.slots.map((s) => [s.startLocal, s.reason ?? "ok"]));
     expect(byTime).toMatchObject({ "19:00": "outside_lead_time", "19:30": "ok", "22:00": "ok" });
-    const lunchToday = computeAvailability(baseInput({ now: at(FRIDAY, "18:30"), services: [lunch] }));
+    const lunchToday = computeAvailability(
+      baseInput({ now: at(FRIDAY, "18:30"), services: [lunch] }),
+    );
     expect(lunchToday.slots.every((s) => s.reason === "in_past")).toBe(true);
   });
 
   it("uses the restaurant timezone for 'today' even when UTC has moved on", () => {
     const nyDinner = { ...dinner, weeklyHours: everyDay([{ start: "19:00", end: "21:00" }]) };
     const result = computeAvailability(
-      baseInput({ timezone: "America/New_York", now: new Date("2026-06-12T23:30:00Z"), services: [nyDinner] }),
+      baseInput({
+        timezone: "America/New_York",
+        now: new Date("2026-06-12T23:30:00Z"),
+        services: [nyDinner],
+      }),
     );
     // 23:30Z = 19:30 in New York on the same date
     const byTime = Object.fromEntries(result.slots.map((s) => [s.startLocal, s.reason ?? "ok"]));
@@ -77,11 +85,21 @@ describe("computeAvailability", () => {
       maxBookings: null,
       maxPartySize: null,
     };
-    const existing = [booking("dinner", FRIDAY, "19:00", 6, 120), booking("dinner", FRIDAY, "19:30", 4, 120)];
+    const existing = [
+      booking("dinner", FRIDAY, "19:00", 6, 120),
+      booking("dinner", FRIDAY, "19:30", 4, 120),
+    ];
     const result = computeAvailability(
-      baseInput({ services: [dinner], capacityRules: [rule], existingBookings: existing, partySize: 2 }),
+      baseInput({
+        services: [dinner],
+        capacityRules: [rule],
+        existingBookings: existing,
+        partySize: 2,
+      }),
     );
-    const byTime = Object.fromEntries(result.slots.map((s) => [s.startLocal, [s.available, s.remainingCovers]]));
+    const byTime = Object.fromEntries(
+      result.slots.map((s) => [s.startLocal, [s.available, s.remainingCovers]]),
+    );
     expect(byTime["19:00"]).toEqual([false, 0]);
     expect(byTime["20:00"]).toEqual([false, 0]);
     expect(byTime["20:30"]).toEqual([false, 0]);
@@ -98,12 +116,18 @@ describe("computeAvailability", () => {
   });
 
   it("stays consistent across DST transitions", () => {
-    const spring = computeAvailability(baseInput({ date: "2026-03-29", now: at("2026-03-20", "10:00"), services: [dinner] }));
+    const spring = computeAvailability(
+      baseInput({ date: "2026-03-29", now: at("2026-03-20", "10:00"), services: [dinner] }),
+    );
     expect(spring.slots[0]?.startsAt.toISOString()).toBe("2026-03-29T17:00:00.000Z"); // 19:00 +02:00
-    expect(spring.slots.every((s) => s.endsAt.getTime() - s.startsAt.getTime() === 120 * 60_000)).toBe(true);
+    expect(
+      spring.slots.every((s) => s.endsAt.getTime() - s.startsAt.getTime() === 120 * 60_000),
+    ).toBe(true);
 
     const bar = { ...late, weeklyHours: everyDay([{ start: "22:00", end: "03:00" }]) };
-    const fall = computeAvailability(baseInput({ date: "2026-10-24", now: at("2026-10-20", "10:00"), services: [bar] }));
+    const fall = computeAvailability(
+      baseInput({ date: "2026-10-24", now: at("2026-10-20", "10:00"), services: [bar] }),
+    );
     const instants = fall.slots.map((s) => s.startsAt.getTime());
     expect(new Set(instants).size).toBe(instants.length);
     for (let i = 1; i < instants.length; i += 1) {
@@ -112,7 +136,9 @@ describe("computeAvailability", () => {
   });
 
   it("ignores inactive services", () => {
-    const result = computeAvailability(baseInput({ services: [{ ...dinner, active: false }, lunch] }));
+    const result = computeAvailability(
+      baseInput({ services: [{ ...dinner, active: false }, lunch] }),
+    );
     expect(result.slots.every((s) => s.serviceId === "lunch")).toBe(true);
   });
 
@@ -124,30 +150,43 @@ describe("computeAvailability", () => {
 
 describe("assertSlotBookable", () => {
   it("accepts a valid slot and returns the end time", () => {
-    const verdict = assertSlotBookable(baseInput(), { serviceId: "dinner", startsAt: at(FRIDAY, "20:00") });
+    const verdict = assertSlotBookable(baseInput(), {
+      serviceId: "dinner",
+      startsAt: at(FRIDAY, "20:00"),
+    });
     expect(verdict.ok).toBe(true);
     if (verdict.ok) expect(verdict.endsAt.toISOString()).toBe("2026-06-12T20:00:00.000Z");
   });
 
   it("rejects off-grid times, unknown services and full slots", () => {
-    expect(assertSlotBookable(baseInput(), { serviceId: "dinner", startsAt: at(FRIDAY, "20:10") })).toEqual({
+    expect(
+      assertSlotBookable(baseInput(), { serviceId: "dinner", startsAt: at(FRIDAY, "20:10") }),
+    ).toEqual({
       ok: false,
       reason: "not_a_slot",
     });
-    expect(assertSlotBookable(baseInput(), { serviceId: "brunch", startsAt: at(FRIDAY, "20:00") })).toEqual({
+    expect(
+      assertSlotBookable(baseInput(), { serviceId: "brunch", startsAt: at(FRIDAY, "20:00") }),
+    ).toEqual({
       ok: false,
       reason: "no_service",
     });
     const packed = baseInput({ existingBookings: [booking("dinner", FRIDAY, "20:00", 20, 120)] });
-    expect(assertSlotBookable(packed, { serviceId: "dinner", startsAt: at(FRIDAY, "20:00") })).toEqual({
+    expect(
+      assertSlotBookable(packed, { serviceId: "dinner", startsAt: at(FRIDAY, "20:00") }),
+    ).toEqual({
       ok: false,
       reason: "full",
     });
   });
 
   it("reports date-level reasons for a slot on a closed day", () => {
-    const input = baseInput({ exceptions: [{ serviceId: null, date: FRIDAY, closed: true, windows: null }] });
-    expect(assertSlotBookable(input, { serviceId: "dinner", startsAt: at(FRIDAY, "20:00") })).toEqual({
+    const input = baseInput({
+      exceptions: [{ serviceId: null, date: FRIDAY, closed: true, windows: null }],
+    });
+    expect(
+      assertSlotBookable(input, { serviceId: "dinner", startsAt: at(FRIDAY, "20:00") }),
+    ).toEqual({
       ok: false,
       reason: "closed",
     });

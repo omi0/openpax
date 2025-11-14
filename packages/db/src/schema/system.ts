@@ -24,9 +24,7 @@ export const outboxEvent = pgTable(
     lastError: text(),
   },
   (t) => [
-    index("outbox_event_unpublished_idx")
-      .on(t.occurredAt)
-      .where(sql`${t.publishedAt} is null`),
+    index("outbox_event_unpublished_idx").on(t.occurredAt).where(sql`${t.publishedAt} is null`),
   ],
 );
 

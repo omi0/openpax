@@ -125,7 +125,12 @@ export function evaluateCapacity(
   let full = false;
 
   if (service.maxCoversPerSlot !== null || (service.maxBookingsPerSlot ?? null) !== null) {
-    const arrivals = arrivalsInSlot(bookings, service.id, slot.startsAt, service.slotIntervalMinutes);
+    const arrivals = arrivalsInSlot(
+      bookings,
+      service.id,
+      slot.startsAt,
+      service.slotIntervalMinutes,
+    );
     if (service.maxCoversPerSlot !== null) {
       const left = Math.max(0, service.maxCoversPerSlot - arrivals.covers);
       remaining = tighten(remaining, left);
@@ -159,5 +164,7 @@ export function evaluateCapacity(
     }
   }
 
-  return full ? { ok: false, reason: "full", remainingCovers: remaining } : { ok: true, remainingCovers: remaining };
+  return full
+    ? { ok: false, reason: "full", remainingCovers: remaining }
+    : { ok: true, remainingCovers: remaining };
 }

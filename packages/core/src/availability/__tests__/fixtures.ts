@@ -12,7 +12,15 @@ import type {
 export const TZ = "Europe/Rome";
 
 export function everyDay(windows: TimeWindow[]): WeeklyHours {
-  return { mon: windows, tue: windows, wed: windows, thu: windows, fri: windows, sat: windows, sun: windows };
+  return {
+    mon: windows,
+    tue: windows,
+    wed: windows,
+    thu: windows,
+    fri: windows,
+    sat: windows,
+    sun: windows,
+  };
 }
 
 export const lunch: ServiceDef = {

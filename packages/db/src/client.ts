@@ -11,7 +11,12 @@ export interface CreateDbOptions {
 
 export function createDb(connectionString: string, options: CreateDbOptions = {}) {
   const pool = new pg.Pool({ connectionString, max: options.max ?? 10 });
-  const db = drizzle({ client: pool, schema, casing: "snake_case", logger: options.logger ?? false });
+  const db = drizzle({
+    client: pool,
+    schema,
+    casing: "snake_case",
+    logger: options.logger ?? false,
+  });
   return { pool, db };
 }
 

@@ -25,7 +25,12 @@ export const notificationSettingDtoSchema = z.object({
   audience: notificationAudienceSchema,
   enabled: z.boolean(),
   /** Reminder only: minutes before arrival. */
-  offsetMinutes: z.number().int().min(15).max(60 * 24 * 7).nullable(),
+  offsetMinutes: z
+    .number()
+    .int()
+    .min(15)
+    .max(60 * 24 * 7)
+    .nullable(),
 });
 export type NotificationSettingDto = z.infer<typeof notificationSettingDtoSchema>;
 
@@ -58,7 +63,13 @@ export type ProviderDescriptorDto = z.infer<typeof providerDescriptorDtoSchema>;
 
 /** A secret as returned by the API: never the value itself. */
 export const maskedSecretSchema = z.object({ set: z.boolean(), last4: z.string().optional() });
-export const providerConfigValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null(), maskedSecretSchema]);
+export const providerConfigValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  maskedSecretSchema,
+]);
 
 export const providerConfigDtoSchema = z.object({
   channel: notificationChannelSchema,

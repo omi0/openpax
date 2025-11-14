@@ -71,12 +71,20 @@ export const capacityRuleDtoSchema = upsertCapacityRuleInputSchema.extend({
 export type CapacityRuleDto = z.infer<typeof capacityRuleDtoSchema>;
 
 export const bookingPolicyDtoSchema = z.object({
-  minLeadMinutes: z.number().int().min(0).max(60 * 24 * 30),
+  minLeadMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(60 * 24 * 30),
   maxAdvanceDays: z.number().int().min(0).max(730),
   minPartySize: z.number().int().min(1).max(100),
   maxPartySize: z.number().int().min(1).max(100),
   autoConfirm: z.boolean(),
-  cancellationCutoffMinutes: z.number().int().min(0).max(60 * 24 * 30),
+  cancellationCutoffMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(60 * 24 * 30),
   largePartyThreshold: z.number().int().min(1).max(100).nullable(),
 });
 export type BookingPolicyDto = z.infer<typeof bookingPolicyDtoSchema>;

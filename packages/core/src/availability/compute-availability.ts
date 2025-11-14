@@ -51,7 +51,10 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
     const serviceParty = checkServiceParty(input.partySize, service);
     for (const candidate of enumerateSlots(service, windows, input.date, input.timezone)) {
       let reason: UnavailableReason | null =
-        dateReason ?? partyReason ?? serviceParty ?? checkSlotTiming(candidate.startsAt, input.now, input.policy);
+        dateReason ??
+        partyReason ??
+        serviceParty ??
+        checkSlotTiming(candidate.startsAt, input.now, input.policy);
       let remainingCovers: number | null = null;
 
       const capacity = evaluateCapacity(
@@ -90,7 +93,10 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
  * Re-check one requested slot with exactly the same logic the guest saw.
  * Used inside the booking transaction with fresh `existingBookings`.
  */
-export function assertSlotBookable(input: AvailabilityInput, request: SlotRequest): BookabilityVerdict {
+export function assertSlotBookable(
+  input: AvailabilityInput,
+  request: SlotRequest,
+): BookabilityVerdict {
   const service = input.services.find((s) => s.id === request.serviceId);
   if (!service || service.active === false) return { ok: false, reason: "no_service" };
 
