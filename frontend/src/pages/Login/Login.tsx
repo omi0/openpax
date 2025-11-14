@@ -1,57 +1,44 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../components/Auth/useAuth';
 import './Login.css';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    restaurantName: '',
-    phone: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
+    const { login } = useAuth();
+    const [isLogin, setIsLogin] = useState(true);
+    const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', restaurantName: '',});
+    const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match");
-      setIsLoading(false);
-      return;
-    }
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setIsLoading(true);
+        
+        if (!isLogin && formData.password !== formData.confirmPassword) {
+            alert("Passwords don't match");
+            setIsLoading(false);
+            return;
+        }
 
-    // Simulate API call
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(isLogin ? 'Login attempt:' : 'Register attempt:', formData);
-      // Add your authentication logic here
-    } catch (error) {
-      console.error(isLogin ? 'Login error:' : 'Register error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        try {
+            await login(formData.email, formData.password);
+        } catch (error) {
+        console.error(isLogin ? 'Login error:' : 'Register error:', error);
+        } finally {
+        setIsLoading(false);
+        }
+    };
 
-  const switchMode = () => {
-    setIsLogin(!isLogin);
-    setFormData({
-      email: '',
-      password: '',
-      confirmPassword: '',
-      restaurantName: '',
-      phone: ''
-    });
-  };
+    const switchMode = () => {
+        setIsLogin(!isLogin);
+        setFormData({email: '', password: '', confirmPassword: '', restaurantName: ''});
+    };
 
   return (
     <div className="login-container">
@@ -89,21 +76,6 @@ export default function Login() {
               required
             />
           </div>
-
-          {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="phone">Phone Number</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="+1 (555) 123-4567"
-                required={!isLogin}
-              />
-            </div>
-          )}
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
