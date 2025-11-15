@@ -1,39 +1,73 @@
-# Restaurant management software
+# React + TypeScript + Vite
 
-#Gestione prenotazioni e tavoli
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
--Creazione/modifica/cancellazione di prenotazioni in tempo reale. 
--Visualizzazione della pianta della sala (tavoli, posti) e ottimizzazione degli spazi. 
--Calendario del locale, controllo occupazione (coperti, orari di punta) e gestione disponibilità tavoli. 
+Currently, two official plugins are available:
 
-#Anti no-show e garanzia prenotazioni
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
--Pre-autorizzazione della carta di credito per garantire la prenotazione. 
--Previsione dei no-show (algoritmo predittivo che segnala quali prenotazioni sono a rischio). 
--Politica anti no-show: ad esempio, sospensione account utenti serialmente 
+## React Compiler
 
-#Gestione dell’occupazione, performance e yield management
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
--Analisi delle performance del ristorante (coperti, ricavi, tassi occupazione) e strumenti di “yield” o revenue management (come tariffe variabili, incentivi, ottimizzazione tavoli). 
+## Expanding the ESLint configuration
 
-#Integrazione dispositivo mobile e UX semplice
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
--App mobile o UI ottimizzata per smartphone/tablet per gestire prenotazioni, tavoli, modifiche rapide. 
--Notifiche in tempo reale (su prenotazioni, cancellazioni, richieste speciali). 
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-#Marketing, visibilità online e integrazione social
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
--Strumenti di marketing integrati (campagne Google/Meta, visibilità, promozioni) direttamente dalla piattaforma.
--Condivisione recensioni sui social, integrazione con Instagram e altri canali. 
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
 
-#Widget prenotazione / sito web e canale diretto
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
--Modulo/prenotazione integrabile nel sito web del ristorante, widget che consente al cliente di prenotare direttamente. 
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-#Analytics e reportistica
-
--Dashboard con dati storici e previsionali: prenotazioni, canali di acquisizione, andamento tendenze. 
-
-
-
-
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
