@@ -1,7 +1,33 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { User, RefreshToken, PasswordReset, EmailVerification } = require('./models/User');
+const { User, RefreshToken, PasswordReset } = require('../models/User');
+
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const ACCESS_TOKEN_EXPIRY = '15m';      // 15 minutes
+const REFRESH_TOKEN_EXPIRY = '7d';      // 7 days
+const BCRYPT_ROUNDS = 13;               // Bcrypt salt rounds
+
+// Cookie options
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production', // Only HTTPS in production
+  sameSite: 'strict',
+  path: '/'
+};
+
+const ACCESS_COOKIE_OPTIONS = {
+  ...COOKIE_OPTIONS,
+  maxAge: 15 * 60 * 1000 // 15 minutes in milliseconds
+};
+
+const REFRESH_COOKIE_OPTIONS = {
+  ...COOKIE_OPTIONS,
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+};
+
 
 /**
  * Generate Access and Refresh Tokens
@@ -33,7 +59,7 @@ exports.register = async (req, res) => {
     if (!email || !password || !name || !surname) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Email, password, and name are required' 
+        message: 'Email, password, and full name are required' 
       });
     }
 
@@ -71,12 +97,13 @@ exports.register = async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       name,
+      surname,
       emailVerified: false
     });
 
     // Generate email verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    await EmailVerification.create(userId, verificationToken);
+    //await EmailVerification.create(userId, verificationToken);
 
     // TODO: Send verification email
     // await sendVerificationEmail(email, verificationToken);
@@ -164,6 +191,10 @@ exports.login = async (req, res) => {
     // Update last login
     await User.updateLastLogin(user.id);
 
+    // Set cookies
+    res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -173,9 +204,7 @@ exports.login = async (req, res) => {
           email: user.email,
           name: user.name,
           emailVerified: user.emailVerified
-        },
-        accessToken,
-        refreshToken
+        }
       }
     });
 
@@ -193,7 +222,8 @@ exports.login = async (req, res) => {
  */
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Read refresh token from cookie instead of body
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ 
@@ -238,10 +268,13 @@ exports.refreshToken = async (req, res) => {
     await RefreshToken.revoke(refreshToken);
     await RefreshToken.create(user.id, tokens.refreshToken);
 
+    // Set new cookies
+    res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+
     res.json({
       success: true,
-      message: 'Token refreshed successfully',
-      data: tokens
+      message: 'Token refreshed successfully'
     });
 
   } catch (error) {
@@ -258,11 +291,16 @@ exports.refreshToken = async (req, res) => {
  */
 exports.logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Read refresh token from cookie
+    const refreshToken = req.cookies.refreshToken;
 
     if (refreshToken) {
       await RefreshToken.revoke(refreshToken);
     }
+
+    // Clear cookies
+    res.clearCookie('accessToken', COOKIE_OPTIONS);
+    res.clearCookie('refreshToken', COOKIE_OPTIONS);
 
     res.json({
       success: true,
