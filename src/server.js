@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -13,12 +14,24 @@ app.use(cors({
   credentials: true
 }));
 
+
+//Cookie Parser Middleware
+app.use(cookieParser());
+
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+
+app.post('/test-body', (req, res) => {
+  console.log('Body received:', req.body);
+  res.json({
+    message: 'Body parser is working!',
+    body: req.body
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
