@@ -1,13 +1,15 @@
 const jwt = require('jsonwebtoken');
-const { RateLimiter } = require('./utils/rateLimiter');
+const { RateLimiter } = require('../utils/rateLimiter');
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 
 /**
- * Verify JWT access token
+ * Verify JWT access token from HttpOnly cookie
  */
 exports.authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    // Read token from cookie instead of Authorization header
+    const token = req.cookies.accessToken;
 
     if (!token) {
       return res.status(401).json({ 
@@ -58,8 +60,8 @@ exports.authenticateToken = async (req, res, next) => {
  */
 exports.optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Read token from cookie
+    const token = req.cookies.accessToken;
 
     if (!token) {
       req.user = null;
@@ -102,7 +104,7 @@ exports.rateLimitPasswordReset = RateLimiter({
 
 exports.rateLimitRegister = RateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  maxAttempts: 1,
+  maxAttempts: 100,
   message: 'Too many registration attempts. Please try again later.',
   keyGenerator: (req) => req.ip
 });
