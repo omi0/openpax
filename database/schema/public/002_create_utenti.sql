@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.utenti (
 
     -- Verification Tokens
     verification_token VARCHAR(255),
-    verificationExpires TIMESTAMP,
+    verification_expires TIMESTAMP,
     
     -- Security - Account lockout
     tentativi_falliti INTEGER DEFAULT 0,
