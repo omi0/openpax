@@ -1,51 +1,84 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { User, RefreshToken, PasswordReset } = require('../models/User');
+const { User, RefreshToken } = require('../models/User');
+const { sendEmail } = require('../utils/emailService');
 
+// Environment variables
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret-in-production';
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_TOKEN_EXPIRY = '15m';      // 15 minutes
-const REFRESH_TOKEN_EXPIRY = '7d';      // 7 days
-const BCRYPT_ROUNDS = 13;               // Bcrypt salt rounds
-
-// Cookie options
+// Cookie configuration
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // Only HTTPS in production
-  sameSite: 'strict',
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
   path: '/'
 };
 
 const ACCESS_COOKIE_OPTIONS = {
   ...COOKIE_OPTIONS,
-  maxAge: 15 * 60 * 1000 // 15 minutes in milliseconds
+  maxAge: 15 * 60 * 1000 // 15 minutes
 };
 
 const REFRESH_COOKIE_OPTIONS = {
   ...COOKIE_OPTIONS,
-  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/api/auth' // Restrict refresh token to auth endpoints
 };
-
 
 /**
  * Generate Access and Refresh Tokens
  */
 const generateTokens = (userId, email) => {
+  const tokenId = crypto.randomBytes(16).toString('hex');
+  
   const accessToken = jwt.sign(
-    { userId, email, type: 'access' },
+    { 
+      userId, 
+      email, 
+      type: 'access',
+      tokenId,
+      iat: Math.floor(Date.now() / 1000)
+    },
     JWT_ACCESS_SECRET,
-    { expiresIn: ACCESS_TOKEN_EXPIRY }
+    { 
+      expiresIn: ACCESS_TOKEN_EXPIRY,
+      issuer: 'auth-service',
+      audience: 'api'
+    }
   );
 
   const refreshToken = jwt.sign(
-    { userId, type: 'refresh' },
+    { 
+      userId, 
+      type: 'refresh',
+      tokenId,
+      iat: Math.floor(Date.now() / 1000)
+    },
     JWT_REFRESH_SECRET,
-    { expiresIn: REFRESH_TOKEN_EXPIRY }
+    { 
+      expiresIn: REFRESH_TOKEN_EXPIRY,
+      issuer: 'auth-service',
+      audience: 'auth'
+    }
   );
 
   return { accessToken, refreshToken };
+};
+
+/**
+ * Extract client info from request
+ */
+const getClientInfo = (req) => {
+  return {
+    userAgent: req.get('user-agent') || 'unknown',
+    ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
+  };
 };
 
 /**
@@ -53,76 +86,74 @@ const generateTokens = (userId, email) => {
  */
 exports.register = async (req, res) => {
   try {
-    const { email, password, name, surname } = req.body;
-
-    // Validation
-    if (!email || !password || !name || !surname) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email, password, and full name are required' 
-      });
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid email format' 
-      });
-    }
-
-    // Password strength validation
-    if (password.length < 8) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password must be at least 8 characters long' 
-      });
-    }
+    const { email, password, nome, cognome, telefono } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(409).json({ 
         success: false, 
-        message: 'User with this email already exists' 
+        message: 'An account with this email already exists',
+        code: 'EMAIL_EXISTS'
       });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    // Create user
-    const userId = await User.create({
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      name,
-      surname,
-      emailVerified: false
+    // Create user with verification token
+    const { user, verificationToken } = await User.create({
+      email,
+      password_hash: hashedPassword,
+      nome,
+      cognome,
+      telefono
     });
 
-    // Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    //await EmailVerification.create(userId, verificationToken);
-
-    // TODO: Send verification email
-    // await sendVerificationEmail(email, verificationToken);
+    // Send verification email
+    try {
+      const verificationUrl = `${FRONTEND_URL}/verify-email?token=${verificationToken}`;
+      await sendEmail({
+        to: email,
+        subject: 'Verify Your Email',
+        html: `
+          <h2>Welcome ${nome}!</h2>
+          <p>Please verify your email address by clicking the link below:</p>
+          <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
+          <p>Or copy this link: ${verificationUrl}</p>
+          <p>This link will expire in 24 hours.</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Continue with registration even if email fails
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully. Please verify your email.',
+      message: 'Registration successful. Please check your email to verify your account.',
       data: {
-        userId,
-        email: email.toLowerCase(),
-        name
+        userId: user.id,
+        email: user.email,
+        nome: user.nome
       }
     });
 
   } catch (error) {
     console.error('Registration error:', error);
+    
+    if (error.message === 'Email already exists') {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'An account with this email already exists',
+        code: 'EMAIL_EXISTS'
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during registration' 
+      message: 'Registration failed. Please try again.',
+      code: 'REGISTRATION_ERROR'
     });
   }
 };
@@ -133,63 +164,71 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const clientInfo = getClientInfo(req);
 
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({ 
+    // Find user
+    const user = await User.findByEmail(email);
+    if (!user) {
+      // Generic error to prevent user enumeration
+      return res.status(401).json({ 
         success: false, 
-        message: 'Email and password are required' 
+        message: 'Invalid email or password',
+        code: 'INVALID_CREDENTIALS'
       });
     }
 
-    // Find user
-    const user = await User.findByEmail(email.toLowerCase());
-    if (!user) {
-      return res.status(401).json({ 
+    // Check if account is active
+    if (!user.attivo) {
+      return res.status(403).json({ 
         success: false, 
-        message: 'Invalid email or password' 
+        message: 'Your account has been deactivated. Please contact support.',
+        code: 'ACCOUNT_DEACTIVATED'
       });
     }
 
     // Check if account is locked
-    if (user.accountLocked && user.lockUntil > Date.now()) {
-      const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
+    if (user.bloccato_fino && new Date(user.bloccato_fino) > new Date()) {
+      const remainingTime = Math.ceil((new Date(user.bloccato_fino) - new Date()) / 1000 / 60);
       return res.status(423).json({ 
         success: false, 
-        message: `Account is locked. Try again in ${remainingTime} minutes.` 
+        message: `Account is temporarily locked. Please try again in ${remainingTime} minutes.`,
+        code: 'ACCOUNT_LOCKED',
+        retryAfter: remainingTime * 60
       });
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
-      await User.incrementFailedLogins(user.id);
+      // Increment failed login attempts
+      const lockInfo = await User.incrementFailedLogins(user.id);
+      
+      let message = 'Invalid email or password';
+      if (lockInfo && lockInfo.tentativi_falliti >= 3) {
+        message = `Invalid credentials. ${5 - lockInfo.tentativi_falliti} attempts remaining before account lock.`;
+      }
+      
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid email or password' 
-      });
-    }
-
-    // Reset failed login attempts on successful login
-    await User.resetFailedLogins(user.id);
-
-    // Check if email is verified (optional)
-    if (!user.emailVerified) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Please verify your email before logging in' 
+        message,
+        code: 'INVALID_CREDENTIALS'
       });
     }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user.id, user.email);
 
-    // Store refresh token
-    await RefreshToken.create(user.id, refreshToken);
+    // Store refresh token with client info
+    await RefreshToken.create(
+      user.id, 
+      refreshToken,
+      clientInfo.userAgent,
+      clientInfo.ipAddress
+    );
 
-    // Update last login
-    await User.updateLastLogin(user.id);
+    // Update user login info
+    await User.updateLastLogin(user.id, clientInfo.ipAddress);
 
     // Set cookies
     res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
@@ -202,8 +241,9 @@ exports.login = async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
-          emailVerified: user.emailVerified
+          nome: user.nome,
+          cognome: user.cognome,
+          emailVerified: user.email_verificato
         }
       }
     });
@@ -212,7 +252,8 @@ exports.login = async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during login' 
+      message: 'Login failed. Please try again.',
+      code: 'LOGIN_ERROR'
     });
   }
 };
@@ -222,51 +263,53 @@ exports.login = async (req, res) => {
  */
 exports.refreshToken = async (req, res) => {
   try {
-    // Read refresh token from cookie instead of body
-    const refreshToken = req.cookies.refreshToken;
+    const { refreshToken } = req.cookies;
+    const clientInfo = getClientInfo(req);
 
     if (!refreshToken) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Refresh token is required' 
+        message: 'Refresh token required',
+        code: 'NO_REFRESH_TOKEN'
       });
     }
 
-    // Verify refresh token
+    // Verify refresh token structure
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
+        issuer: 'auth-service',
+        audience: 'auth'
+      });
     } catch (error) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid or expired refresh token' 
+        message: 'Invalid or expired refresh token',
+        code: 'INVALID_REFRESH_TOKEN'
       });
     }
 
     // Check if refresh token exists in database
-    const tokenExists = await RefreshToken.findByToken(refreshToken);
-    if (!tokenExists) {
+    const tokenData = await RefreshToken.findByToken(refreshToken);
+    if (!tokenData) {
+      // Token might have been revoked or doesn't exist
       return res.status(401).json({ 
         success: false, 
-        message: 'Refresh token not found or revoked' 
-      });
-    }
-
-    // Get user
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User not found' 
+        message: 'Refresh token not found or has been revoked',
+        code: 'TOKEN_REVOKED'
       });
     }
 
     // Generate new tokens
-    const tokens = generateTokens(user.id, user.email);
+    const tokens = generateTokens(tokenData.user_id, tokenData.email);
 
-    // Store new refresh token and revoke old one
-    await RefreshToken.revoke(refreshToken);
-    await RefreshToken.create(user.id, tokens.refreshToken);
+    // Rotate refresh token
+    await RefreshToken.rotate(
+      refreshToken,
+      tokens.refreshToken,
+      clientInfo.userAgent,
+      clientInfo.ipAddress
+    );
 
     // Set new cookies
     res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
@@ -281,7 +324,8 @@ exports.refreshToken = async (req, res) => {
     console.error('Token refresh error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during token refresh' 
+      message: 'Failed to refresh token',
+      code: 'REFRESH_ERROR'
     });
   }
 };
@@ -291,16 +335,16 @@ exports.refreshToken = async (req, res) => {
  */
 exports.logout = async (req, res) => {
   try {
-    // Read refresh token from cookie
-    const refreshToken = req.cookies.refreshToken;
+    const { refreshToken } = req.cookies;
 
     if (refreshToken) {
+      // Revoke the refresh token
       await RefreshToken.revoke(refreshToken);
     }
 
     // Clear cookies
     res.clearCookie('accessToken', COOKIE_OPTIONS);
-    res.clearCookie('refreshToken', COOKIE_OPTIONS);
+    res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
 
     res.json({
       success: true,
@@ -309,9 +353,13 @@ exports.logout = async (req, res) => {
 
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error during logout' 
+    // Still clear cookies even if revocation fails
+    res.clearCookie('accessToken', COOKIE_OPTIONS);
+    res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
+    
+    res.json({
+      success: true,
+      message: 'Logout successful'
     });
   }
 };
@@ -323,77 +371,65 @@ exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email is required' 
-      });
-    }
-
-    const user = await User.findByEmail(email.toLowerCase());
-    
     // Always return success to prevent email enumeration
-    if (!user) {
-      return res.json({
-        success: true,
-        message: 'If the email exists, a password reset link has been sent'
-      });
+    const user = await User.findByEmail(email);
+    
+    if (user && user.attivo) {
+      // Generate reset token
+      const resetInfo = await User.createPasswordReset(user.id);
+      
+      if (resetInfo) {
+        // Send password reset email
+        try {
+          const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetInfo.resetToken}`;
+          await sendEmail({
+            to: resetInfo.email,
+            subject: 'Password Reset Request',
+            html: `
+              <h2>Password Reset Request</h2>
+              <p>You requested to reset your password. Click the link below to proceed:</p>
+              <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+              <p>Or copy this link: ${resetUrl}</p>
+              <p>This link will expire in 1 hour.</p>
+              <p>If you didn't request this, please ignore this email.</p>
+            `
+          });
+        } catch (emailError) {
+          console.error('Failed to send password reset email:', emailError);
+        }
+      }
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    
-    await PasswordReset.create(user.id, hashedToken);
-
-    // TODO: Send password reset email
-    // await sendPasswordResetEmail(email, resetToken);
-
+    // Always return the same response
     res.json({
       success: true,
-      message: 'If the email exists, a password reset link has been sent'
+      message: 'If an account exists with this email, a password reset link has been sent.'
     });
 
   } catch (error) {
     console.error('Password reset request error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error' 
+      message: 'Failed to process password reset request',
+      code: 'RESET_REQUEST_ERROR'
     });
   }
 };
 
 /**
- * Reset password
+ * Reset password with token
  */
 exports.resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    if (!token || !newPassword) {
+    // Find user with valid reset token
+    const user = await User.findByResetToken(token);
+    if (!user) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Token and new password are required' 
-      });
-    }
-
-    // Password strength validation
-    if (newPassword.length < 8) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password must be at least 8 characters long' 
-      });
-    }
-
-    // Hash the token to compare with database
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-    // Find valid reset token
-    const resetRecord = await PasswordReset.findValidToken(hashedToken);
-    if (!resetRecord) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid or expired reset token' 
+        message: 'Invalid or expired reset token',
+        code: 'INVALID_RESET_TOKEN'
       });
     }
 
@@ -401,13 +437,29 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
     // Update password
-    await User.updatePassword(resetRecord.userId, hashedPassword);
-
-    // Delete used reset token
-    await PasswordReset.delete(hashedToken);
+    const updated = await User.updatePassword(user.id, hashedPassword);
+    if (!updated) {
+      throw new Error('Failed to update password');
+    }
 
     // Revoke all refresh tokens for security
-    await RefreshToken.revokeAllForUser(resetRecord.userId);
+    await RefreshToken.revokeAllForUser(user.id);
+
+    // Send confirmation email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Changed Successfully',
+        html: `
+          <h2>Password Changed</h2>
+          <p>Hi ${user.nome},</p>
+          <p>Your password has been successfully changed.</p>
+          <p>If you didn't make this change, please contact support immediately.</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send password change confirmation:', emailError);
+    }
 
     res.json({
       success: true,
@@ -418,92 +470,73 @@ exports.resetPassword = async (req, res) => {
     console.error('Password reset error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during password reset' 
+      message: 'Failed to reset password',
+      code: 'RESET_ERROR'
     });
   }
 };
 
 /**
- * Verify email
+ * Verify email with token
  */
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
 
-    if (!token) {
+    const user = await User.verifyEmail(token);
+    
+    if (!user) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Verification token is required' 
+        message: 'Invalid or expired verification token',
+        code: 'INVALID_VERIFICATION_TOKEN'
       });
     }
-
-    // Find verification record
-    const verification = await EmailVerification.findByToken(token);
-    if (!verification) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid or expired verification token' 
-      });
-    }
-
-    // Verify email
-    await User.verifyEmail(verification.userId);
-
-    // Delete verification token
-    await EmailVerification.delete(token);
 
     res.json({
       success: true,
-      message: 'Email verified successfully'
+      message: 'Email verified successfully. You can now login.',
+      data: {
+        email: user.email,
+        nome: user.nome
+      }
     });
 
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during email verification' 
+      message: 'Failed to verify email',
+      code: 'VERIFICATION_ERROR'
     });
   }
 };
 
 /**
- * Change password (for authenticated users)
+ * Change password for authenticated user
  */
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.userId; // From auth middleware
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Current and new password are required' 
-      });
-    }
-
-    // Password strength validation
-    if (newPassword.length < 8) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password must be at least 8 characters long' 
-      });
-    }
+    const userId = req.user.userId;
 
     // Get user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: 'User not found' 
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
       });
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Current password is incorrect' 
+        message: 'Current password is incorrect',
+        code: 'INVALID_CURRENT_PASSWORD'
       });
     }
 
@@ -513,19 +546,194 @@ exports.changePassword = async (req, res) => {
     // Update password
     await User.updatePassword(userId, hashedPassword);
 
-    // Revoke all refresh tokens for security
+    // Revoke all refresh tokens except current session
+    const currentRefreshToken = req.cookies.refreshToken;
     await RefreshToken.revokeAllForUser(userId);
+    
+    // Re-create current session token if it exists
+    if (currentRefreshToken) {
+      const clientInfo = getClientInfo(req);
+      const { refreshToken } = generateTokens(userId, user.email);
+      await RefreshToken.create(
+        userId,
+        refreshToken,
+        clientInfo.userAgent,
+        clientInfo.ipAddress
+      );
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+    }
+
+    // Send confirmation email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Changed Successfully',
+        html: `
+          <h2>Password Changed</h2>
+          <p>Hi ${user.nome},</p>
+          <p>Your password has been successfully changed.</p>
+          <p>If you didn't make this change, please contact support immediately.</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send password change confirmation:', emailError);
+    }
 
     res.json({
       success: true,
-      message: 'Password changed successfully. Please login again.'
+      message: 'Password changed successfully'
     });
 
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Internal server error during password change' 
+      message: 'Failed to change password',
+      code: 'PASSWORD_CHANGE_ERROR'
+    });
+  }
+};
+
+/**
+ * Get user profile
+ */
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        nome: user.nome,
+        cognome: user.cognome,
+        telefono: user.telefono,
+        emailVerified: user.email_verificato,
+        createdAt: user.created_at,
+        lastLogin: user.ultimo_accesso
+      }
+    });
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to retrieve profile',
+      code: 'PROFILE_ERROR'
+    });
+  }
+};
+
+/**
+ * Update user profile
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { nome, cognome, telefono } = req.body;
+
+    const updatedUser = await User.updateProfile(userId, {
+      nome,
+      cognome,
+      telefono
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        nome: updatedUser.nome,
+        cognome: updatedUser.cognome,
+        telefono: updatedUser.telefono
+      }
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update profile',
+      code: 'UPDATE_PROFILE_ERROR'
+    });
+  }
+};
+
+/**
+ * Get active sessions
+ */
+exports.getSessions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const sessions = await RefreshToken.getActiveSessions(userId);
+    
+    res.json({
+      success: true,
+      data: {
+        sessions: sessions.map(session => ({
+          id: session.id,
+          userAgent: session.user_agent,
+          ipAddress: session.ip_address,
+          createdAt: session.created_at,
+          expiresAt: session.expires_at
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to retrieve sessions',
+      code: 'SESSIONS_ERROR'
+    });
+  }
+};
+
+/**
+ * Revoke all sessions
+ */
+exports.revokeAllSessions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    await RefreshToken.revokeAllForUser(userId);
+    
+    // Clear current session cookies
+    res.clearCookie('accessToken', COOKIE_OPTIONS);
+    res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
+    
+    res.json({
+      success: true,
+      message: 'All sessions have been revoked. Please login again.'
+    });
+
+  } catch (error) {
+    console.error('Revoke sessions error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to revoke sessions',
+      code: 'REVOKE_SESSIONS_ERROR'
     });
   }
 };
