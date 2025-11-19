@@ -1,14 +1,14 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { User, RefreshToken } = require('../models/User');
+const { User } = require('../models/User');
+const RefreshToken = require('../models/refreshToken'); // Note: Capital R
+const { getSessionMetadata } = require('../utils/fingerprint');
 const { sendEmail } = require('../utils/emailService');
 
 // Environment variables
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret-in-production';
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
-const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -32,17 +32,15 @@ const REFRESH_COOKIE_OPTIONS = {
 };
 
 /**
- * Generate Access and Refresh Tokens
+ * Generate Access Token (JWT)
+ * Note: Refresh tokens are now random strings, not JWTs
  */
-const generateTokens = (userId, email) => {
-  const tokenId = crypto.randomBytes(16).toString('hex');
-  
-  const accessToken = jwt.sign(
+const generateAccessToken = (userId, email) => {
+  return jwt.sign(
     { 
       userId, 
       email, 
       type: 'access',
-      tokenId,
       iat: Math.floor(Date.now() / 1000)
     },
     JWT_ACCESS_SECRET,
@@ -52,33 +50,6 @@ const generateTokens = (userId, email) => {
       audience: 'api'
     }
   );
-
-  const refreshToken = jwt.sign(
-    { 
-      userId, 
-      type: 'refresh',
-      tokenId,
-      iat: Math.floor(Date.now() / 1000)
-    },
-    JWT_REFRESH_SECRET,
-    { 
-      expiresIn: REFRESH_TOKEN_EXPIRY,
-      issuer: 'auth-service',
-      audience: 'auth'
-    }
-  );
-
-  return { accessToken, refreshToken };
-};
-
-/**
- * Extract client info from request
- */
-const getClientInfo = (req) => {
-  return {
-    userAgent: req.get('user-agent') || 'unknown',
-    ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
-  };
 };
 
 /**
@@ -164,7 +135,6 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const clientInfo = getClientInfo(req);
 
     // Find user
     const user = await User.findByEmail(email);
@@ -216,23 +186,26 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email);
+    // Get session metadata (fingerprint, IP, user agent)
+    const sessionMetadata = getSessionMetadata(req);
 
-    // Store refresh token with client info
-    await RefreshToken.create(
-      user.id, 
-      refreshToken,
-      clientInfo.userAgent,
-      clientInfo.ipAddress
-    );
+    // Generate access token (JWT)
+    const accessToken = generateAccessToken(user.id, user.email);
+
+    // Generate and store refresh token (secure random string)
+    const refreshTokenString = RefreshToken.generateToken();
+    await RefreshToken.create(user.id, refreshTokenString, {
+      userAgent: sessionMetadata.userAgent,
+      ipAddress: sessionMetadata.ipAddress,
+      fingerprint: sessionMetadata.fingerprint
+    });
 
     // Update user login info
-    await User.updateLastLogin(user.id, clientInfo.ipAddress);
+    await User.updateLastLogin(user.id, sessionMetadata.ipAddress);
 
     // Set cookies
     res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
-    res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.cookie('refreshToken', refreshTokenString, REFRESH_COOKIE_OPTIONS);
 
     res.json({
       success: true,
@@ -260,70 +233,93 @@ exports.login = async (req, res) => {
 
 /**
  * Refresh access token
+ * Uses token rotation for enhanced security
  */
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.cookies;
-    const clientInfo = getClientInfo(req);
+    const oldRefreshToken = req.cookies.refreshToken;
 
-    if (!refreshToken) {
-      return res.status(400).json({ 
-        success: false, 
+    if (!oldRefreshToken) {
+      return res.status(401).json({
+        success: false,
         message: 'Refresh token required',
         code: 'NO_REFRESH_TOKEN'
       });
     }
 
-    // Verify refresh token structure
-    let decoded;
-    try {
-      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
-        issuer: 'auth-service',
-        audience: 'auth'
+    // Get session metadata for validation
+    const sessionMetadata = getSessionMetadata(req);
+
+    // Generate new refresh token
+    const newRefreshTokenString = RefreshToken.generateToken();
+
+    // Rotate token (revoke old, create new) with fingerprint validation
+    const rotateResult = await RefreshToken.rotate(
+      oldRefreshToken,
+      newRefreshTokenString,
+      {
+        userAgent: sessionMetadata.userAgent,
+        ipAddress: sessionMetadata.ipAddress,
+        fingerprint: sessionMetadata.fingerprint
+      }
+    );
+
+    // Get user data
+    const user = await User.findById(rotateResult.userId);
+    if (!user || !user.attivo) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or deactivated',
+        code: 'INVALID_USER'
       });
-    } catch (error) {
-      return res.status(401).json({ 
-        success: false, 
+    }
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user.id, user.email);
+
+    // Update cookies
+    res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', newRefreshTokenString, REFRESH_COOKIE_OPTIONS);
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          nome: user.nome,
+          cognome: user.cognome,
+          emailVerified: user.email_verificato
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Refresh token error:', error);
+
+    // Clear invalid refresh token
+    res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
+
+    // Handle specific errors
+    if (error.message === 'INVALID_REFRESH_TOKEN') {
+      return res.status(401).json({
+        success: false,
         message: 'Invalid or expired refresh token',
         code: 'INVALID_REFRESH_TOKEN'
       });
     }
 
-    // Check if refresh token exists in database
-    const tokenData = await RefreshToken.findByToken(refreshToken);
-    if (!tokenData) {
-      // Token might have been revoked or doesn't exist
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Refresh token not found or has been revoked',
-        code: 'TOKEN_REVOKED'
+    if (error.message === 'FINGERPRINT_MISMATCH') {
+      return res.status(401).json({
+        success: false,
+        message: 'Session validation failed. Please login again.',
+        code: 'FINGERPRINT_MISMATCH'
       });
     }
 
-    // Generate new tokens
-    const tokens = generateTokens(tokenData.user_id, tokenData.email);
-
-    // Rotate refresh token
-    await RefreshToken.rotate(
-      refreshToken,
-      tokens.refreshToken,
-      clientInfo.userAgent,
-      clientInfo.ipAddress
-    );
-
-    // Set new cookies
-    res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
-    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully'
-    });
-
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to refresh token',
       code: 'REFRESH_ERROR'
     });
@@ -335,11 +331,15 @@ exports.refreshToken = async (req, res) => {
  */
 exports.logout = async (req, res) => {
   try {
-    const { refreshToken } = req.cookies;
+    const refreshToken = req.cookies.refreshToken;
 
     if (refreshToken) {
-      // Revoke the refresh token
-      await RefreshToken.revoke(refreshToken);
+      try {
+        await RefreshToken.revoke(refreshToken);
+      } catch (error) {
+        console.error('Token revocation failed:', error);
+        // Continue with logout even if revocation fails
+      }
     }
 
     // Clear cookies
@@ -353,7 +353,7 @@ exports.logout = async (req, res) => {
 
   } catch (error) {
     console.error('Logout error:', error);
-    // Still clear cookies even if revocation fails
+    // Still clear cookies even on error
     res.clearCookie('accessToken', COOKIE_OPTIONS);
     res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
     
@@ -371,39 +371,42 @@ exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Always return success to prevent email enumeration
+    // Always return success to prevent user enumeration
     const user = await User.findByEmail(email);
     
-    if (user && user.attivo) {
+    if (user) {
       // Generate reset token
-      const resetInfo = await User.createPasswordReset(user.id);
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
       
-      if (resetInfo) {
-        // Send password reset email
-        try {
-          const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetInfo.resetToken}`;
-          await sendEmail({
-            to: resetInfo.email,
-            subject: 'Password Reset Request',
-            html: `
-              <h2>Password Reset Request</h2>
-              <p>You requested to reset your password. Click the link below to proceed:</p>
-              <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
-              <p>Or copy this link: ${resetUrl}</p>
-              <p>This link will expire in 1 hour.</p>
-              <p>If you didn't request this, please ignore this email.</p>
-            `
-          });
-        } catch (emailError) {
-          console.error('Failed to send password reset email:', emailError);
-        }
+      // Store token with expiry (1 hour)
+      await User.createPasswordResetToken(user.id, hashedToken);
+
+      // Send reset email
+      try {
+        const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+        await sendEmail({
+          to: email,
+          subject: 'Password Reset Request',
+          html: `
+            <h2>Password Reset</h2>
+            <p>Hi ${user.nome},</p>
+            <p>You requested to reset your password. Click the link below:</p>
+            <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+            <p>Or copy this link: ${resetUrl}</p>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
       }
     }
 
-    // Always return the same response
+    // Always return success (security best practice)
     res.json({
       success: true,
-      message: 'If an account exists with this email, a password reset link has been sent.'
+      message: 'If the email exists, a password reset link has been sent.'
     });
 
   } catch (error) {
@@ -417,14 +420,18 @@ exports.requestPasswordReset = async (req, res) => {
 };
 
 /**
- * Reset password with token
+ * Reset password using token
  */
 exports.resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
+    // Hash the token to match database
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
     // Find user with valid reset token
-    const user = await User.findByResetToken(token);
+    const user = await User.findByPasswordResetToken(hashedToken);
+    
     if (!user) {
       return res.status(400).json({ 
         success: false, 
@@ -481,7 +488,7 @@ exports.resetPassword = async (req, res) => {
  */
 exports.verifyEmail = async (req, res) => {
   try {
-    const { token } = req.body;
+    const token = req.body.token || req.params.token;
 
     const user = await User.verifyEmail(token);
     
@@ -552,15 +559,16 @@ exports.changePassword = async (req, res) => {
     
     // Re-create current session token if it exists
     if (currentRefreshToken) {
-      const clientInfo = getClientInfo(req);
-      const { refreshToken } = generateTokens(userId, user.email);
-      await RefreshToken.create(
-        userId,
-        refreshToken,
-        clientInfo.userAgent,
-        clientInfo.ipAddress
-      );
-      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      const sessionMetadata = getSessionMetadata(req);
+      const newRefreshToken = RefreshToken.generateToken();
+      
+      await RefreshToken.create(userId, newRefreshToken, {
+        userAgent: sessionMetadata.userAgent,
+        ipAddress: sessionMetadata.ipAddress,
+        fingerprint: sessionMetadata.fingerprint
+      });
+      
+      res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
     }
 
     // Send confirmation email
@@ -679,24 +687,30 @@ exports.updateProfile = async (req, res) => {
 };
 
 /**
- * Get active sessions
+ * Get active sessions with enhanced device info
  */
 exports.getSessions = async (req, res) => {
   try {
     const userId = req.user.userId;
     
     const sessions = await RefreshToken.getActiveSessions(userId);
+    const stats = await RefreshToken.getSessionStats(userId);
     
     res.json({
       success: true,
       data: {
         sessions: sessions.map(session => ({
           id: session.id,
+          deviceType: session.device_type,
+          browser: session.browser,
+          status: session.status,
           userAgent: session.user_agent,
           ipAddress: session.ip_address,
+          lastUsedAt: session.last_used_at,
           createdAt: session.created_at,
           expiresAt: session.expires_at
-        }))
+        })),
+        stats
       }
     });
 
@@ -711,29 +725,104 @@ exports.getSessions = async (req, res) => {
 };
 
 /**
- * Revoke all sessions
+ * Revoke a specific session by ID
+ */
+exports.revokeSession = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { sessionId } = req.params;
+
+    const revoked = await RefreshToken.revokeById(sessionId, userId);
+
+    if (!revoked) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found',
+        code: 'SESSION_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Session revoked successfully'
+    });
+
+  } catch (error) {
+    console.error('Revoke session error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to revoke session',
+      code: 'REVOKE_SESSION_ERROR'
+    });
+  }
+};
+
+/**
+ * Revoke all sessions (logout from all devices)
  */
 exports.revokeAllSessions = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const currentRefreshToken = req.cookies.refreshToken;
+
+    // Get count before revoking
+    const sessions = await RefreshToken.getActiveSessions(userId);
     
+    // Revoke all
     await RefreshToken.revokeAllForUser(userId);
     
-    // Clear current session cookies
-    res.clearCookie('accessToken', COOKIE_OPTIONS);
-    res.clearCookie('refreshToken', { ...COOKIE_OPTIONS, path: '/api/auth' });
+    // Re-create current session if token exists
+    if (currentRefreshToken) {
+      const sessionMetadata = getSessionMetadata(req);
+      const newRefreshToken = RefreshToken.generateToken();
+      
+      await RefreshToken.create(userId, newRefreshToken, {
+        userAgent: sessionMetadata.userAgent,
+        ipAddress: sessionMetadata.ipAddress,
+        fingerprint: sessionMetadata.fingerprint
+      });
+
+      res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
+    }
     
     res.json({
       success: true,
-      message: 'All sessions have been revoked. Please login again.'
+      message: `${Math.max(0, sessions.length - 1)} other sessions revoked successfully`,
+      data: {
+        revokedCount: Math.max(0, sessions.length - 1)
+      }
     });
 
   } catch (error) {
-    console.error('Revoke sessions error:', error);
-    res.status(500).json({ 
-      success: false, 
+    console.error('Revoke all sessions error:', error);
+    res.status(500).json({
+      success: false,
       message: 'Failed to revoke sessions',
       code: 'REVOKE_SESSIONS_ERROR'
+    });
+  }
+};
+
+/**
+ * Check for suspicious activity
+ */
+exports.checkSecurity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const securityCheck = await RefreshToken.detectSuspiciousActivity(userId);
+
+    res.json({
+      success: true,
+      data: securityCheck
+    });
+
+  } catch (error) {
+    console.error('Security check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check security',
+      code: 'SECURITY_CHECK_ERROR'
     });
   }
 };

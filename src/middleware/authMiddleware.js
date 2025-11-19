@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { RateLimiter, ProgressiveRateLimiter } = require('../utils/rateLimiter');
 const { User } = require('../models/User');
+const { attachFingerprint } = require('../utils/fingerprint');
 
 // Environment variables with defaults
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production';
@@ -288,3 +289,5 @@ exports.requestLogger = (req, res, next) => {
   
   next();
 };
+
+exports.attachFingerprint = attachFingerprint;

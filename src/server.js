@@ -9,7 +9,7 @@ const authRoutes = require('./routes/auth');
 const { testConnection } = require('./config/database');
 const { testEmailConfiguration } = require('./utils/emailService');
 const { cleanup: cleanupRateLimiter } = require('./utils/rateLimiter');
-const { RefreshToken } = require('./models/User');
+const { initializeCronJobs, stopCronJobs } = require('./utils/cronJobs'); // NEW!
 const {
   securityHeaders,
   requestLogger
@@ -18,7 +18,7 @@ const {
 // Validate required environment variables
 const requiredEnvVars = [
   'JWT_ACCESS_SECRET',
-  'JWT_REFRESH_SECRET',
+  // 'JWT_REFRESH_SECRET', // REMOVED - no longer needed!
   'DB_NAME',
   'DB_USER',
   'DB_PASSWORD'
@@ -237,25 +237,11 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================================================
-// CLEANUP TASKS
-// ============================================================================
-
-// Schedule cleanup of expired refresh tokens (runs every hour)
-setInterval(async () => {
-  try {
-    const deleted = await RefreshToken.cleanupExpired();
-    console.log(`Cleaned up ${deleted} expired refresh tokens`);
-  } catch (error) {
-    console.error('Failed to cleanup refresh tokens:', error);
-  }
-}, 60 * 60 * 1000); // 1 hour
-
-// ============================================================================
 // SERVER STARTUP
 // ============================================================================
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || 'localhost';
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Initialize database connection
 testConnection()
@@ -280,7 +266,7 @@ testConnection()
 const server = app.listen(PORT, HOST, () => {
   console.log(`
 ╔══════════════════════════════════════════════════╗
-║                AUTH SERVER STARTED                ║
+║            AUTH SERVER STARTED                   ║
 ╠══════════════════════════════════════════════════╣
 ║  Environment: ${process.env.NODE_ENV || 'development'}
 ║  Server:      http://${HOST}:${PORT}
@@ -288,6 +274,9 @@ const server = app.listen(PORT, HOST, () => {
 ║  API Base:    http://${HOST}:${PORT}/api/auth
 ╚══════════════════════════════════════════════════╝
   `);
+  
+  // Initialize cron jobs for token cleanup and monitoring
+  initializeCronJobs();
 });
 
 // ============================================================================
@@ -303,6 +292,10 @@ Received ${signal}. Starting graceful shutdown...`);
     console.log('HTTP server closed');
     
     try {
+      // Stop cron jobs
+      stopCronJobs();
+      console.log('Cron jobs stopped');
+      
       // Cleanup rate limiter
       await cleanupRateLimiter();
       console.log('Rate limiter cleaned up');
