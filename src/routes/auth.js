@@ -185,6 +185,18 @@ router.get(
 );
 
 /**
+ * @route   DELETE /api/auth/sessions/:sessionId
+ * @desc    Revoke a specific session by ID
+ * @access  Private
+ */
+router.delete(
+  '/sessions/:sessionId',
+  authenticateToken,
+  rateLimitStrict,
+  authController.revokeSession
+);
+
+/**
  * @route   POST /api/auth/sessions/revoke-all
  * @desc    Revoke all sessions for current user
  * @access  Private
