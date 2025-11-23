@@ -154,13 +154,14 @@ class Restaurant {
         ordine INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
+      )
     `);
 
     // 3. Tavoli (tables)
     await client.query(`
       CREATE TABLE IF NOT EXISTS ${schemaName}.tavoli (
         id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        sala_id INTEGER REFERENCES sale(id) ON DELETE CASCADE,
+        sala_id INTEGER REFERENCES ${schemaName}.sale(id) ON DELETE CASCADE,
         numero VARCHAR(20) NOT NULL,
         posti_min INTEGER NOT NULL DEFAULT 2,
         posti_max INTEGER NOT NULL DEFAULT 4,
@@ -260,15 +261,15 @@ class Restaurant {
     await client.query(`
       CREATE TABLE IF NOT EXISTS ${schemaName}.prenotazioni (
         id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL,
+        cliente_id INTEGER REFERENCES ${schemaName}.clienti(id) ON DELETE SET NULL,
         data DATE NOT NULL,
         ora TIME NOT NULL,
         numero_persone INTEGER NOT NULL CHECK (numero_persone > 0),
         durata INTEGER DEFAULT 90,
         nome_servizio VARCHAR(50),
-        tavolo_id INTEGER REFERENCES tavoli(id) ON DELETE SET NULL,
+        tavolo_id INTEGER REFERENCES ${schemaName}.tavoli(id) ON DELETE SET NULL,
         tavoli_ids INTEGER[],
-        sala_id INTEGER REFERENCES sale(id) ON DELETE SET NULL,
+        sala_id INTEGER REFERENCES ${schemaName}.sale(id) ON DELETE SET NULL,
         assegnazione_stato VARCHAR(20) DEFAULT 'pending' 
             CHECK (assegnazione_stato IN ('pending', 'proposed', 'confirmed', 'manual')),
         assegnazione_proposta_at TIMESTAMP,
@@ -310,49 +311,6 @@ class Restaurant {
         descrizione TEXT,
         updated_at TIMESTAMPTZ DEFAULT now()
       )
-
-
-      INSERT INTO impostazioni (chiave, valore, categoria, descrizione) VALUES
-        ('max_persone_prenotazione', '12'::jsonb, 'booking', 'Maximum guests per single booking'),
-        ('min_persone_prenotazione', '1'::jsonb, 'booking', 'Minimum guests per booking'),
-        ('anticipo_minimo_ore', '2'::jsonb, 'booking', 'Minimum hours in advance to book'),
-        ('anticipo_massimo_giorni', '60'::jsonb, 'booking', 'Maximum days in advance to book'),
-        ('consenti_stesso_giorno', 'true'::jsonb, 'booking', 'Allow same-day bookings'),
-        ('modalita_assegnazione_tavoli', '"semi_automatic"'::jsonb, 'table_management', 'Table assignment mode: automatic, semi_automatic, manual'),
-        ('algoritmo_assegnazione', '"optimal_fit"'::jsonb, 'table_management', 'Assignment algorithm: optimal_fit, first_available, largest_table'),
-        ('consenti_unione_tavoli', 'true'::jsonb, 'table_management', 'Allow combining multiple tables for large groups'),
-        ('max_tavoli_unione', '3'::jsonb, 'table_management', 'Maximum tables that can be combined'),
-        ('conferma_automatica', 'true'::jsonb, 'booking', 'Automatically confirm bookings without manual approval'),
-        ('richiedi_deposito', 'false'::jsonb, 'booking', 'Require deposit for large groups'),
-        ('deposito_da_persone', '8'::jsonb, 'booking', 'Require deposit for bookings with X or more people'),
-        ('importo_deposito_per_persona', '10.00'::jsonb, 'booking', 'Deposit amount per person (in restaurant currency)'),
-        ('promemoria_attivo', 'true'::jsonb, 'notification', 'Send booking reminders to customers'),
-        ('promemoria_ore_prima', '24'::jsonb, 'notification', 'Hours before booking to send reminder'),
-        ('email_notifiche', '""'::jsonb, 'notification', 'Restaurant email for booking notifications'),
-        ('telefono_notifiche', '""'::jsonb, 'notification', 'Restaurant phone for SMS notifications'),
-        ('notifica_nuova_prenotazione', 'true'::jsonb, 'notification', 'Notify restaurant on new booking'),
-        ('widget_attivo', 'true'::jsonb, 'widget', 'Enable public booking widget'),
-        ('widget_colore_primario', '"#e63946"'::jsonb, 'widget', 'Widget primary color (hex)'),
-        ('widget_colore_secondario', '"#ffffff"'::jsonb, 'widget', 'Widget secondary color (hex)'),
-        ('widget_logo_url', '""'::jsonb, 'widget', 'Logo image URL for widget'),
-        ('widget_messaggio_benvenuto', '"Prenota il tuo tavolo"'::jsonb, 'widget', 'Welcome message in widget'),
-        ('widget_mostra_tavoli', 'false'::jsonb, 'widget', 'Show table selection in public widget'),
-        ('widget_richiedi_email', 'true'::jsonb, 'widget', 'Require email in booking form'),
-        ('widget_richiedi_note', 'false'::jsonb, 'widget', 'Show notes/special requests field'),
-        ('timezone', '"Europe/Rome"'::jsonb, 'business', 'Restaurant timezone'),
-        ('lingua_default', '"it"'::jsonb, 'business', 'Default language (it, en, es, fr, de)'),
-        ('valuta', '"EUR"'::jsonb, 'business', 'Currency code (EUR, USD, GBP)'),
-        ('nome_visualizzato', '""'::jsonb, 'business', 'Display name (if different from registered name)'),
-        ('website', '""'::jsonb, 'business', 'Restaurant website URL'),
-        ('descrizione', '""'::jsonb, 'business', 'Short description for public pages'),
-        ('gestione_sale_attiva', 'true'::jsonb, 'features', 'Enable multi-room management'),
-        ('crm_attivo', 'true'::jsonb, 'features', 'Enable customer CRM tracking'),
-        ('tracciamento_vip', 'true'::jsonb, 'features', 'Track and highlight VIP customers'),
-        ('blocco_no_show', 'false'::jsonb, 'features', 'Auto-block customers after repeated no-shows'),
-        ('max_no_show_consentiti', '3'::jsonb, 'features', 'Maximum no-shows before auto-blocking customer'),
-        ('ip_rate_limit_attivo', 'true'::jsonb, 'security', 'Enable IP-based rate limiting'),
-        ('ip_rate_limit_max_prenotazioni', '3'::jsonb, 'security', 'Max bookings per IP per day')
-        ON CONFLICT (chiave) DO NOTHING;
     `);
 
     // 8. Notifiche template
@@ -385,31 +343,81 @@ class Restaurant {
     `);
 
     // Create indexes for better performance
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_data ON ${schemaName}.prenotazioni(data)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_stato ON ${schemaName}.prenotazioni(stato)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_clienti_email ON ${schemaName}.clienti(email)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_clienti_telefono ON ${schemaName}.clienti(telefono)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_sale_attivo ON ${schemaName}.sale(attivo)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_sale_ordine ON ${schemaName}.sale(ordine)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_tavoli_sala ON ${schemaName}.tavoli(sala_id)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_tavoli_attivo ON ${schemaName}.tavoli(attivo)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_tavoli_posti ON ${schemaName}.tavoli(posti_min, posti_max)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_orario_giorno_attivo ON ${schemaName}.orario(giorno_settimana, attivo)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_orario_servizio ON ${schemaName}.orario(nome_servizio)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_orario_eccezioni ON ${schemaName}.orario_eccezioni(data_inizio, data_fine)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_orario_eccezioni_tipo ON ${schemaName}.orario_eccezioni(tipo_eccezione, attivo)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_orario_eccezioni_ricorrente ON ${schemaName}.orario_eccezioni(ricorrente, attivo)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_data_ora ON ${schemaName}.prenotazioni(data, ora)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_data_stato ON ${schemaName}.prenotazioni(data, stato)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_cliente ON ${schemaName}.prenotazioni(cliente_id)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_tavolo ON ${schemaName}.prenotazioni(tavolo_id)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_stato ON ${schemaName}.prenotazioni(stato)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_assegnazione ON ${schemaName}.prenotazioni(assegnazione_stato)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_servizio_data ON ${schemaName}.prenotazioni(nome_servizio, data)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_telefono ON ${schemaName}.prenotazioni(telefono)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_email ON ${schemaName}.prenotazioni(email)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_prenotazioni_utente_creatore ON ${schemaName}.prenotazioni(utente_creatore_id)`);
-    await client.query(`CREATE INDEX idx_${schemaName}_impostazioni_categoria ON ${schemaName}.impostazioni(categoria)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_clienti_email ON ${schemaName}.clienti(email)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_clienti_telefono ON ${schemaName}.clienti(telefono)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_sale_attivo ON ${schemaName}.sale(attivo)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_sale_ordine ON ${schemaName}.sale(ordine)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_sala ON ${schemaName}.tavoli(sala_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_attivo ON ${schemaName}.tavoli(attivo)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_posti ON ${schemaName}.tavoli(posti_min, posti_max)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_giorno_attivo ON ${schemaName}.orario(giorno_settimana, attivo)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_servizio ON ${schemaName}.orario(nome_servizio)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_eccezioni_date ON ${schemaName}.orario_eccezioni(data_inizio, data_fine)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_eccezioni_tipo ON ${schemaName}.orario_eccezioni(tipo_eccezione, attivo)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_eccezioni_ricorrente ON ${schemaName}.orario_eccezioni(ricorrente, attivo)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_data_ora ON ${schemaName}.prenotazioni(data, ora)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_data_stato ON ${schemaName}.prenotazioni(data, stato)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_cliente ON ${schemaName}.prenotazioni(cliente_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_tavolo ON ${schemaName}.prenotazioni(tavolo_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_stato ON ${schemaName}.prenotazioni(stato)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_assegnazione ON ${schemaName}.prenotazioni(assegnazione_stato)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_servizio_data ON ${schemaName}.prenotazioni(nome_servizio, data)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_telefono ON ${schemaName}.prenotazioni(telefono)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_email ON ${schemaName}.prenotazioni(email)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_prenotazioni_utente_creatore ON ${schemaName}.prenotazioni(utente_creatore_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_ip_rate_limit_lookup ON ${schemaName}.ip_rate_limit(ip_address, data)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_ip_rate_limit_data ON ${schemaName}.ip_rate_limit(data)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_impostazioni_categoria ON ${schemaName}.impostazioni(categoria)`);
+     await client.query(`
+      INSERT INTO ${schemaName}.impostazioni (chiave, valore, categoria, descrizione) VALUES
+        ('max_persone_prenotazione', '12'::jsonb, 'booking', 'Maximum guests per single booking'),
+        ('min_persone_prenotazione', '1'::jsonb, 'booking', 'Minimum guests per booking'),
+        ('anticipo_minimo_ore', '2'::jsonb, 'booking', 'Minimum hours in advance to book'),
+        ('anticipo_massimo_giorni', '60'::jsonb, 'booking', 'Maximum days in advance to book'),
+        ('consenti_stesso_giorno', 'true'::jsonb, 'booking', 'Allow same-day bookings'),
+
+        ('modalita_assegnazione_tavoli', '"semi_automatic"'::jsonb, 'table_management', 'Table assignment mode: automatic, semi_automatic, manual'),
+        ('algoritmo_assegnazione', '"optimal_fit"'::jsonb, 'table_management', 'Assignment algorithm: optimal_fit, first_available, largest_table'),
+        ('consenti_unione_tavoli', 'true'::jsonb, 'table_management', 'Allow combining multiple tables for large groups'),
+        ('max_tavoli_unione', '3'::jsonb, 'table_management', 'Maximum tables that can be combined'),
+
+        ('conferma_automatica', 'true'::jsonb, 'booking', 'Automatically confirm bookings without manual approval'),
+        ('richiedi_deposito', 'false'::jsonb, 'booking', 'Require deposit for large groups'),
+        ('deposito_da_persone', '8'::jsonb, 'booking', 'Require deposit for bookings with X or more people'),
+        ('importo_deposito_per_persona', '"10.00"'::jsonb, 'booking', 'Deposit amount per person (in restaurant currency)'),
+
+        ('promemoria_attivo', 'true'::jsonb, 'notification', 'Send booking reminders to customers'),
+        ('promemoria_ore_prima', '24'::jsonb, 'notification', 'Hours before booking to send reminder'),
+        ('email_notifiche', '""'::jsonb, 'notification', 'Restaurant email for booking notifications'),
+        ('telefono_notifiche', '""'::jsonb, 'notification', 'Restaurant phone for SMS notifications'),
+        ('notifica_nuova_prenotazione', 'true'::jsonb, 'notification', 'Notify restaurant on new booking'),
+
+        ('widget_attivo', 'true'::jsonb, 'widget', 'Enable public booking widget'),
+        ('widget_colore_primario', '"#e63946"'::jsonb, 'widget', 'Widget primary color (hex)'),
+        ('widget_colore_secondario', '"#ffffff"'::jsonb, 'widget', 'Widget secondary color (hex)'),
+        ('widget_logo_url', '""'::jsonb, 'widget', 'Logo image URL for widget'),
+        ('widget_messaggio_benvenuto', '"Prenota il tuo tavolo"'::jsonb, 'widget', 'Welcome message in widget'),
+        ('widget_mostra_tavoli', 'false'::jsonb, 'widget', 'Show table selection in public widget'),
+        ('widget_richiedi_email', 'true'::jsonb, 'widget', 'Require email in booking form'),
+        ('widget_richiedi_note', 'false'::jsonb, 'widget', 'Show notes/special requests field'),
+
+        ('timezone', '"Europe/Rome"'::jsonb, 'business', 'Restaurant timezone'),
+        ('lingua_default', '"it"'::jsonb, 'business', 'Default language (it, en, es, fr, de)'),
+        ('valuta', '"EUR"'::jsonb, 'business', 'Currency code (EUR, USD, GBP)'),
+        ('nome_visualizzato', '""'::jsonb, 'business', 'Display name (if different from registered name)'),
+        ('website', '""'::jsonb, 'business', 'Restaurant website URL'),
+        ('descrizione', '""'::jsonb, 'business', 'Short description for public pages'),
+
+        ('gestione_sale_attiva', 'true'::jsonb, 'features', 'Enable multi-room management'),
+        ('crm_attivo', 'true'::jsonb, 'features', 'Enable customer CRM tracking'),
+        ('tracciamento_vip', 'true'::jsonb, 'features', 'Track and highlight VIP customers'),
+        ('blocco_no_show', 'false'::jsonb, 'features', 'Auto-block customers after repeated no-shows'),
+        ('max_no_show_consentiti', '3'::jsonb, 'features', 'Maximum no-shows before auto-blocking customer'),
+
+        ('ip_rate_limit_attivo', 'true'::jsonb, 'security', 'Enable IP-based rate limiting'),
+        ('ip_rate_limit_max_prenotazioni', '3'::jsonb, 'security', 'Max bookings per IP per day')
+      ON CONFLICT (chiave) DO NOTHING;
+    `);
   }
 
   /**
