@@ -505,3 +505,222 @@ exports.validateFileUpload = (options = {}) => {
     next();
   };
 };
+
+/**
+ * Middleware: Sanitize restaurant creation input
+ */
+exports.sanitizeRestaurantCreation = (req, res, next) => {
+  const errors = {};
+  
+  // Restaurant name validation
+  if (!req.body.nome_ristorante) {
+    errors.nome_ristorante = 'Restaurant name is required';
+  } else {
+    req.body.nome_ristorante = sanitizeString(req.body.nome_ristorante);
+    if (req.body.nome_ristorante.length < 2 || req.body.nome_ristorante.length > 255) {
+      errors.nome_ristorante = 'Restaurant name must be between 2 and 255 characters';
+    }
+  }
+  
+  // Email validation
+  if (!req.body.email) {
+    errors.email = 'Email is required';
+  } else {
+    const sanitizedEmail = sanitizeEmail(req.body.email);
+    if (!sanitizedEmail) {
+      errors.email = 'Invalid email format';
+    } else {
+      req.body.email = sanitizedEmail;
+    }
+  }
+  
+  // Phone validation (optional)
+  if (req.body.telefono) {
+    const validPhone = validatePhone(req.body.telefono);
+    if (!validPhone) {
+      errors.telefono = 'Invalid phone number format';
+    } else {
+      req.body.telefono = validPhone;
+    }
+  }
+  
+  // Address validation (optional)
+  if (req.body.indirizzo) {
+    req.body.indirizzo = sanitizeString(req.body.indirizzo);
+    if (req.body.indirizzo.length > 500) {
+      errors.indirizzo = 'Address must not exceed 500 characters';
+    }
+  }
+  
+  // City validation (optional)
+  if (req.body.citta) {
+    req.body.citta = sanitizeString(req.body.citta);
+    if (req.body.citta.length > 100) {
+      errors.citta = 'City must not exceed 100 characters';
+    }
+    if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(req.body.citta)) {
+      errors.citta = 'City contains invalid characters';
+    }
+  }
+  
+  // Postal code validation (optional)
+  if (req.body.cap) {
+    req.body.cap = sanitizeString(req.body.cap);
+    if (req.body.cap.length > 10) {
+      errors.cap = 'Postal code must not exceed 10 characters';
+    }
+    // Italian postal code format (5 digits) or generic alphanumeric
+    if (!/^[0-9A-Z\s\-]{3,10}$/.test(req.body.cap)) {
+      errors.cap = 'Invalid postal code format';
+    }
+  }
+  
+  // Country validation (optional, defaults to IT)
+  if (req.body.paese) {
+    req.body.paese = sanitizeString(req.body.paese).toUpperCase();
+    // ISO 3166-1 alpha-2 country code
+    if (!/^[A-Z]{2}$/.test(req.body.paese)) {
+      errors.paese = 'Country must be a valid 2-letter ISO code';
+    }
+  }
+  
+  // Return errors if any
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors
+    });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware: Sanitize restaurant update input
+ */
+exports.sanitizeRestaurantUpdate = (req, res, next) => {
+  const errors = {};
+  const allowedFields = ['nome_ristorante', 'email', 'telefono', 'indirizzo', 'citta', 'cap', 'paese'];
+  
+  // Remove any fields not in allowedFields
+  const bodyKeys = Object.keys(req.body);
+  for (const key of bodyKeys) {
+    if (!allowedFields.includes(key)) {
+      delete req.body[key];
+    }
+  }
+  
+  // Restaurant name validation (optional for update)
+  if (req.body.nome_ristorante !== undefined) {
+    if (!req.body.nome_ristorante) {
+      errors.nome_ristorante = 'Restaurant name cannot be empty';
+    } else {
+      req.body.nome_ristorante = sanitizeString(req.body.nome_ristorante);
+      if (req.body.nome_ristorante.length < 2 || req.body.nome_ristorante.length > 255) {
+        errors.nome_ristorante = 'Restaurant name must be between 2 and 255 characters';
+      }
+    }
+  }
+  
+  // Email validation (optional for update)
+  if (req.body.email !== undefined) {
+    if (!req.body.email) {
+      errors.email = 'Email cannot be empty';
+    } else {
+      const sanitizedEmail = sanitizeEmail(req.body.email);
+      if (!sanitizedEmail) {
+        errors.email = 'Invalid email format';
+      } else {
+        req.body.email = sanitizedEmail;
+      }
+    }
+  }
+  
+  // Phone validation (optional)
+  if (req.body.telefono !== undefined) {
+    if (req.body.telefono) {
+      const validPhone = validatePhone(req.body.telefono);
+      if (!validPhone) {
+        errors.telefono = 'Invalid phone number format';
+      } else {
+        req.body.telefono = validPhone;
+      }
+    } else {
+      req.body.telefono = null; // Allow clearing phone
+    }
+  }
+  
+  // Address validation (optional)
+  if (req.body.indirizzo !== undefined) {
+    if (req.body.indirizzo) {
+      req.body.indirizzo = sanitizeString(req.body.indirizzo);
+      if (req.body.indirizzo.length > 500) {
+        errors.indirizzo = 'Address must not exceed 500 characters';
+      }
+    } else {
+      req.body.indirizzo = null; // Allow clearing address
+    }
+  }
+  
+  // City validation (optional)
+  if (req.body.citta !== undefined) {
+    if (req.body.citta) {
+      req.body.citta = sanitizeString(req.body.citta);
+      if (req.body.citta.length > 100) {
+        errors.citta = 'City must not exceed 100 characters';
+      }
+      if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(req.body.citta)) {
+        errors.citta = 'City contains invalid characters';
+      }
+    } else {
+      req.body.citta = null; // Allow clearing city
+    }
+  }
+  
+  // Postal code validation (optional)
+  if (req.body.cap !== undefined) {
+    if (req.body.cap) {
+      req.body.cap = sanitizeString(req.body.cap);
+      if (req.body.cap.length > 10) {
+        errors.cap = 'Postal code must not exceed 10 characters';
+      }
+      if (!/^[0-9A-Z\s\-]{3,10}$/.test(req.body.cap)) {
+        errors.cap = 'Invalid postal code format';
+      }
+    } else {
+      req.body.cap = null; // Allow clearing postal code
+    }
+  }
+  
+  // Country validation (optional)
+  if (req.body.paese !== undefined) {
+    if (req.body.paese) {
+      req.body.paese = sanitizeString(req.body.paese).toUpperCase();
+      if (!/^[A-Z]{2}$/.test(req.body.paese)) {
+        errors.paese = 'Country must be a valid 2-letter ISO code';
+      }
+    } else {
+      req.body.paese = null; // Allow clearing country
+    }
+  }
+  
+  // Return errors if any
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors
+    });
+  }
+  
+  // Check if there are any fields to update
+  if (Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'No valid fields provided for update'
+    });
+  }
+  
+  next();
+};
