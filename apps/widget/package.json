@@ -12,8 +12,6 @@
   "dependencies": {
     "@preact/signals": "catalog:",
     "@sitli/shared": "workspace:*",
-    "date-fns": "catalog:",
-    "i18next": "catalog:",
     "preact": "catalog:"
   },
   "devDependencies": {
