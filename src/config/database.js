@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const logger = require('./logger');
 
 // Database configuration
 const pool = new Pool({
@@ -25,12 +26,20 @@ const query = async (text, params) => {
   try {
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Executed query', { text, duration, rows: result.rowCount });
+    // Only log slow queries in production
+    if (duration > 100 || process.env.NODE_ENV === 'development') {
+      logger.debug({ 
+        sql: text.substring(0, 100), // First 100 chars
+        duration, 
+        rows: result.rowCount 
+      }, 'Query executed');
     }
     return result;
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error({ 
+      err: error, 
+      sql: text.substring(0, 100) 
+    }, 'Database query error');
     throw error;
   }
 };
@@ -45,6 +54,7 @@ const transaction = async (callback) => {
     return result;
   } catch (error) {
     await client.query('ROLLBACK');
+    logger.error({ err: error }, 'Transaction rolled back');
     throw error;
   } finally {
     client.release();
@@ -55,10 +65,10 @@ const transaction = async (callback) => {
 const testConnection = async () => {
   try {
     const result = await query('SELECT NOW()');
-    console.log('Database connected successfully:', result.rows[0].now);
+    logger.info({ time: result.rows[0].now }, 'Database connected successfully');
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    logger.error({ err: error }, 'Database connection failed');
     return false;
   }
 };

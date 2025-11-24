@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { RateLimiter, ProgressiveRateLimiter } = require('../utils/rateLimiter');
 const { User } = require('../models/User');
 const { attachFingerprint } = require('../utils/fingerprint');
+const logger = require('../config/logger');
 
 // Environment variables with defaults
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'change-this-secret-in-production';
@@ -12,6 +13,8 @@ const CSRF_SECRET = process.env.CSRF_SECRET || 'change-this-csrf-secret-in-produ
  * Verify JWT access token from HttpOnly cookie
  */
 exports.authenticateToken = async (req, res, next) => {
+  const startTime = Date.now();
+  
   try {
     // Read token from cookie
     const token = req.cookies?.accessToken;
@@ -23,10 +26,14 @@ exports.authenticateToken = async (req, res, next) => {
         code: 'NO_TOKEN'
       });
     }
-
     // Verify token
     jwt.verify(token, JWT_ACCESS_SECRET, async (err, decoded) => {
       if (err) {
+        logger.warn({ 
+          error: err.name, 
+          ip: req.ip 
+        }, 'Token verification failed');
+        
         if (err.name === 'TokenExpiredError') {
           return res.status(401).json({ 
             success: false, 
@@ -47,8 +54,7 @@ exports.authenticateToken = async (req, res, next) => {
           code: 'VERIFICATION_FAILED'
         });
       }
-
-      // Verify token type and structure
+      //Verify token type and structure 
       if (!decoded.type || decoded.type !== 'access') {
         return res.status(403).json({ 
           success: false, 
@@ -56,10 +62,10 @@ exports.authenticateToken = async (req, res, next) => {
           code: 'INVALID_TOKEN_TYPE'
         });
       }
-
-      // Check if user still exists and is active
+      //Check if user still exists and is active
       const user = await User.findById(decoded.userId);
       if (!user) {
+        logger.warn({ userId: decoded.userId }, 'Token valid but user not found');
         return res.status(401).json({ 
           success: false, 
           message: 'User not found',
@@ -74,8 +80,7 @@ exports.authenticateToken = async (req, res, next) => {
           code: 'ACCOUNT_DEACTIVATED'
         });
       }
-
-      // Attach user to request
+      //Attach user to request 
       req.user = {
         userId: decoded.userId,
         email: decoded.email,
@@ -84,11 +89,16 @@ exports.authenticateToken = async (req, res, next) => {
         emailVerified: user.email_verificato
       };
       
+      logger.debug({ 
+        userId: req.user.userId, 
+        duration: Date.now() - startTime 
+      }, 'Token authenticated');
+      
       next();
     });
 
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error({ err: error, ip: req.ip }, 'Authentication error');
     res.status(500).json({ 
       success: false, 
       message: 'Authentication failed',
