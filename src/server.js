@@ -167,7 +167,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 
 // Restaurant routes
-app.use('/api/restaurant', restaurantRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 
 // Test endpoint (development only)
 if (process.env.NODE_ENV !== 'production') {
