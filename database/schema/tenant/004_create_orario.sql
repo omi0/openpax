@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS orario (
     ora_chiusura TIME NOT NULL,
     
     -- Booking strategy
-    modalita_prenotazione VARCHAR(20) DEFAULT 'slot' CHECK (modalita_prenotazione IN ('slot', 'continuous')),
+    modalita_prenotazione VARCHAR(20) DEFAULT 'continuous' CHECK (modalita_prenotazione IN ('slot', 'continuous')),
     
     -- Slot-based booking configuration
     durata_slot INTEGER, -- Minutes per time slot (30, 60, 90)
