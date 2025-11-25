@@ -189,7 +189,7 @@ class Restaurant {
         giorno_settimana INTEGER NOT NULL CHECK (giorno_settimana BETWEEN 0 AND 6),
         ora_apertura TIME NOT NULL,
         ora_chiusura TIME NOT NULL,
-        modalita_prenotazione VARCHAR(20) DEFAULT 'slot' CHECK (modalita_prenotazione IN ('slot', 'continuous')),
+        modalita_prenotazione VARCHAR(20) DEFAULT 'continuous' CHECK (modalita_prenotazione IN ('slot', 'continuous')),
         durata_slot INTEGER,
         max_prenotazioni_per_slot INTEGER,
         durata_prenotazione_default INTEGER DEFAULT 90,

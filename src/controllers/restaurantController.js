@@ -8,7 +8,7 @@ const logger = require('../config/logger');
 const authController = {
   /**
    * Create a new restaurant
-   * POST /api/restaurant/create
+   * POST /api/restaurants/create
    */
   async createRestaurant(req, res) {
     const startTime = Date.now();
@@ -80,7 +80,7 @@ const authController = {
 
   /**
    * Get all restaurants for authenticated user
-   * GET /api/restaurant/list
+   * GET /api/restaurants/list
    */
   async getUserRestaurants(req, res) {
     try {
@@ -126,7 +126,7 @@ const authController = {
 
   /**
    * Get specific restaurant details
-   * GET /api/restaurant/:id
+   * GET /api/restaurants/:id
    */
   async getRestaurant(req, res) {
     try {
@@ -209,7 +209,7 @@ const authController = {
 
   /**
    * Update restaurant details
-   * PUT /api/restaurant/:id
+   * PUT /api/restaurants/:id
    */
   async updateRestaurant(req, res) {
     try {
@@ -295,7 +295,7 @@ const authController = {
 
   /**
    * Deactivate restaurant
-   * DELETE /api/restaurant/:id
+   * DELETE /api/restaurants/:id
    */
   async deactivateRestaurant(req, res) {
     try {
@@ -358,7 +358,7 @@ const authController = {
 
   /**
    * Get restaurant by slug (public endpoint for booking widget)
-   * GET /api/restaurant/public/:slug
+   * GET /api/restaurants/public/:slug
    */
   async getRestaurantBySlug(req, res) {
     try {

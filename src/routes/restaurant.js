@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
+const orarioController = require('../controllers/orarioController');
 const { 
   authenticateToken,
   rateLimitAPI,
@@ -25,7 +26,7 @@ router.use(preventParameterPollution);
 // ============================================================================
 
 /**
- * @route   GET /api/restaurant/public/:slug
+ * @route   GET /api/restaurants/public/:slug
  * @desc    Get restaurant public info by slug (for booking widget)
  * @access  Public
  */
@@ -39,8 +40,14 @@ router.get(
 // PROTECTED ROUTES - Require authentication
 // ============================================================================
 
+
+
+// ============================================================================
+// Restaurant routes such as creating a restaurant, updating its settings...
+// ============================================================================
+
 /**
- * @route   POST /api/restaurant/create
+ * @route   POST /api/restaurants/create
  * @desc    Create a new restaurant
  * @access  Private
  */
@@ -54,7 +61,7 @@ router.post(
 );
 
 /**
- * @route   GET /api/restaurant/list
+ * @route   GET /api/restaurants/list
  * @desc    Get all restaurants for authenticated user
  * @access  Private
  */
@@ -66,7 +73,7 @@ router.get(
 );
 
 /**
- * @route   GET /api/restaurant/:id
+ * @route   GET /api/restaurants/:id
  * @desc    Get specific restaurant details
  * @access  Private (requires membership)
  */
@@ -78,7 +85,7 @@ router.get(
 );
 
 /**
- * @route   PUT /api/restaurant/:id
+ * @route   PUT /api/restaurants/:id
  * @desc    Update restaurant details
  * @access  Private (requires manager or owner role)
  */
@@ -92,7 +99,7 @@ router.put(
 );
 
 /**
- * @route   DELETE /api/restaurant/:id
+ * @route   DELETE /api/restaurants/:id
  * @desc    Deactivate restaurant
  * @access  Private (requires owner role)
  */
@@ -102,6 +109,100 @@ router.delete(
   rateLimitStrict,
   restaurantController.deactivateRestaurant
 );
+
+
+
+// ============================================================================
+// Orario routes such as creating an orario, updating it...
+// ============================================================================
+
+/**
+ * @route GET /api/restaurants/:id/time-settings/:orarioId
+ * @desc GET all existing orario for a restaurant
+ * @access Private (Requires only access to the restaurant, no owner/manager role)
+ */
+router.get(
+  '/:id/time-settings',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  orarioController.getRestaurantOrarios
+);
+
+/**
+ * @route POST /api/restaurants/:id/time-settings
+ * @desc Create time setting for a specific restaurant
+ * @access Private (requires manager or owner role)
+ */
+router.post(
+  '/:id/time-settings',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeOrarioCreation, //to add
+  orarioController.createOrario
+);
+
+
+/**
+ * @route PUT /api/restaurants/:id/time-settings (with giorno_settimana and nome_servizio in body)
+ * @desc Update an existing orario
+ * @access Private (requires manager or owner role)
+ */
+router.put(
+  '/:id/time-settings/',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeOrarioCreation, //to add
+  orarioController.updateOrario
+);
+
+
+/**
+ * @route PUT /api/restaurants/:id/time-settings/:orarioId
+ * @desc Update an existing orario
+ * @access Private (requires manager or owner role)
+ */
+router.put(
+  '/:id/time-settings/:orarioId',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeOrarioCreation, //to add
+  orarioController.updateOrario
+);
+
+/**
+ * @route DELETE /api/restaurants/:id/time-settings (with giorno_settimana and nome_servizio in body)
+ * @desc Delete an existing orario
+ * @access Private (requires manager or owner role)
+ */
+router.put(
+  '/:id/time-settings/',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeOrarioCreation, //to add
+  orarioController.updateOrario
+);
+
+/**
+ * @route DELETE /api/restaurants/:id/time-settings/:orarioId
+ * @desc Delete an existing orario
+ * @access Private (requires manager or owner role)
+ */
+router.put(
+  '/:id/time-settings/:orarioId',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeOrarioCreation, //to add
+  orarioController.updateOrario
+);
+
+
+
 
 // ============================================================================
 // HEALTH CHECK
