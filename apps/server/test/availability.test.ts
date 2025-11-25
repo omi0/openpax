@@ -105,5 +105,19 @@ describe("public availability", () => {
     );
     expect(res.body.openDates).toHaveLength(30);
     expect(res.body.openDates).not.toContain("2026-07-14");
+    // 30-day months must not build an invalid "-31" date
+    const sept = await api<{ openDates: string[] }>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/availability/month?month=2026-09`,
+    );
+    expect(sept.status).toBe(200);
+    expect(sept.body.openDates).toHaveLength(30);
+    const feb = await api<{ openDates: string[] }>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/availability/month?month=2028-02`,
+    );
+    expect(feb.body.openDates).toHaveLength(29);
   });
 });

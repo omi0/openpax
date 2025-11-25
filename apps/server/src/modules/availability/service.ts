@@ -10,12 +10,11 @@ import {
   resolveServiceWindows,
   type ScheduleExceptionDef,
   type ServiceDef,
-  weekdayOf,
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
 import { booking, bookingPolicy, capacityRule, scheduleException, service } from "@sitli/db";
 import type { AvailabilityResponse, MonthAvailabilityResponse } from "@sitli/shared";
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 
@@ -184,6 +183,8 @@ export async function getMonthAvailability(
   month: string,
 ): Promise<MonthAvailabilityResponse> {
   const first: LocalDate = `${month}-01`;
+  const [y, m] = month.split("-").map(Number);
+  const nextMonth: LocalDate = `${String(m === 12 ? (y ?? 0) + 1 : y).padStart(4, "0")}-${String(m === 12 ? 1 : (m ?? 0) + 1).padStart(2, "0")}-01`;
   const [services, exceptions] = await Promise.all([
     ctx.db
       .select()
@@ -196,7 +197,7 @@ export async function getMonthAvailability(
         and(
           eq(scheduleException.restaurantId, r.id),
           gte(scheduleException.date, first),
-          lte(scheduleException.date, `${month}-31`),
+          lt(scheduleException.date, nextMonth),
         ),
       ),
   ]);
@@ -211,7 +212,6 @@ export async function getMonthAvailability(
   );
   const openDates: LocalDate[] = [];
   for (let d = first; d.startsWith(month); d = addDaysToLocalDate(d, 1)) {
-    weekdayOf(d);
     if (defs.some((s) => !resolveServiceWindows(s, d, exDefs).closed)) openDates.push(d);
   }
   return { month, openDates };
