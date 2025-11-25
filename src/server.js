@@ -74,7 +74,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = process.env.ALLOWED_ORIGINS 
       ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-      : ['http://localhost:3000', 'http://localhost:3001'];
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'];
     
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -245,7 +245,7 @@ app.use((err, req, res, next) => {
 // ============================================================================
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || 'localhost';
 
 // Initialize database connection
 testConnection()
