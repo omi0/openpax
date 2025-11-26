@@ -3,6 +3,7 @@ const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
 const orarioController = require('../controllers/orarioController');
 const tableController = require('../controllers/tableController');
+const saleController = require('../controllers/saleController');
 const { 
   authenticateToken,
   rateLimitAPI,
@@ -285,6 +286,56 @@ router.delete(
   tableController.deleteSalaTables
 );
 
+
+// ============================================================================
+// Sala routes such as creating a sala, deleting it...
+// ============================================================================
+
+
+/**
+ * @route   GET /api/restaurants/:id/sale
+ * @desc    Get all sala of a restaurant
+ * @access  Private
+ */
+router.get(
+  '/:id/sale',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeRestaurantCreation,
+  saleController.getSale
+);
+
+
+
+/**
+ * @route   POST /api/restaurants/:id/sale
+ * @desc    Create a new sala
+ * @access  Private
+ */
+router.post(
+  '/:id/sale',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeRestaurantCreation,
+  saleController.createSala
+);
+
+
+/**
+ * @route   DELETE /api/restaurants/:id/sale/:salaId
+ * @desc    Delete a sala by its id
+ * @access  Private
+ */
+router.delete(
+  '/:id/sale/:salaId',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeRestaurantCreation,
+  saleController.deleteSala
+);
 
 
 // ============================================================================
