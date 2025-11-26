@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
 const orarioController = require('../controllers/orarioController');
+const tableController = require('../controllers/tableController');
 const { 
   authenticateToken,
   rateLimitAPI,
@@ -201,6 +202,88 @@ router.put(
   orarioController.updateOrario
 );
 
+
+// ============================================================================
+// Table routes such as creating a table, updating its settings...
+// ============================================================================
+
+/**
+ * @route   POST /api/restaurants/:id/tables
+ * @desc    Create a new table
+ * @access  Private
+ */
+router.post(
+  '/:id/tables',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeRestaurantCreation,
+  tableController.createTable
+);
+
+/**
+ * @route   GET /api/restaurants/:id/tables/:tableId
+ * @desc    Get specific table details using table id
+ * @access  Private
+ */
+router.get(
+  '/:id/tables/:tableId',
+  authenticateToken,
+  rateLimitAPI,
+  tableController.getTable
+);
+
+/**
+ * @route   GET /api/restaurants/:id/tables/:salaId
+ * @desc    Get all tables for a sala
+ * @access  Private
+ */
+router.get(
+  '/:id/tables/sala/:salaId',
+  authenticateToken,
+  rateLimitAPI,
+  tableController.getSalaTables
+);
+
+
+/**
+ * @route   PATCH /api/restaurants/:id/tables/:tableId
+ * @desc    Update table details
+ * @access  Private (requires manager or owner role)
+ */
+router.patch(
+  '/:id/tables/:tableId',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeTableUpdate,
+  tableController.updateTable
+);
+
+/**
+ * @route   DELETE /api/restaurants/:id/tables/:tableId
+ * @desc    Delete a table
+ * @access  Private (requires owner role)
+ */
+router.delete(
+  '/:id/tables/:tableId',
+  authenticateToken,
+  rateLimitStrict,
+  tableController.deleteTable
+);
+
+
+/**
+ * @route   DELETE /api/restaurants/:id/tables/
+ * @desc    Delete all tables of a sala !!
+ * @access  Private (requires owner role)
+ */
+router.delete(
+  '/:id/tables/sala/:salaId',
+  authenticateToken,
+  rateLimitStrict,
+  tableController.deleteSalaTables
+);
 
 
 
