@@ -223,41 +223,41 @@ router.post(
 
 /**
  * @route   GET /api/restaurants/:id/tables/:tableId
- * @desc    Get specific table details
+ * @desc    Get specific table details using table id
  * @access  Private
  */
 router.get(
   '/:id/tables/:tableId',
   authenticateToken,
   rateLimitAPI,
-  restaurantController.getTable
+  tableController.getTable
 );
 
 /**
- * @route   GET /api/restaurants/:id/tables
- * @desc    Get all tables for restaurant
+ * @route   GET /api/restaurants/:id/tables/:salaId
+ * @desc    Get all tables for a sala
  * @access  Private
  */
 router.get(
-  '/:id/tables',
+  '/:id/tables/sala/:salaId',
   authenticateToken,
   rateLimitAPI,
-  restaurantController.getRestaurantTables
+  tableController.getSalaTables
 );
 
 
 /**
- * @route   PUT /api/restaurants/:id/tables/:tableId
+ * @route   PATCH /api/restaurants/:id/tables/:tableId
  * @desc    Update table details
  * @access  Private (requires manager or owner role)
  */
-router.put(
+router.patch(
   '/:id/tables/:tableId',
   requireJSON,
   authenticateToken,
   rateLimitAPI,
   //sanitizeTableUpdate,
-  restaurantController.updateTable
+  tableController.updateTable
 );
 
 /**
@@ -275,14 +275,14 @@ router.delete(
 
 /**
  * @route   DELETE /api/restaurants/:id/tables/
- * @desc    Delete all tables of a sala !! MUST SPECIFY sala_id IN THE REQ BODY !!
+ * @desc    Delete all tables of a sala !!
  * @access  Private (requires owner role)
  */
 router.delete(
-  '/:id/tables/',
+  '/:id/tables/sala/:salaId',
   authenticateToken,
   rateLimitStrict,
-  tableController.deleteTable
+  tableController.deleteSalaTables
 );
 
 
