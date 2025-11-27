@@ -177,12 +177,12 @@ const saleController = {
       }
 
       if (isNaN(tableId)) {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid table ID',
-            code: 'INVALID_ID'
-          });
-        }
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid table ID',
+          code: 'INVALID_ID'
+        });
+      }
 
       const deleted = await Sale.delete(tableId, restaurant.schema_name);
 
