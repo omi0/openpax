@@ -7,6 +7,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
 const restaurantRoutes = require('./routes/restaurant');
+const settingsRoutes = require('./routes/settings');
 const { testConnection } = require('./config/database');
 const { testEmailConfiguration } = require('./utils/emailService');
 const { cleanup: cleanupRateLimiter } = require('./utils/rateLimiter');
@@ -168,6 +169,9 @@ app.use('/api/auth', authRoutes);
 
 // Restaurant routes
 app.use('/api/restaurants', restaurantRoutes);
+
+// Restaurant configuration routes
+app.use('/api/settings', settingsRoutes);
 
 // Test endpoint (development only)
 if (process.env.NODE_ENV !== 'production') {
