@@ -724,3 +724,91 @@ exports.sanitizeRestaurantUpdate = (req, res, next) => {
   
   next();
 };
+
+/**
+ * Settings Sanitization
+ * specific logic to ensure 'integers' are numbers and 'booleans' are true/false strings
+ * even though the DB stores them as text.
+ */
+exports.sanitizeSettingsUpdate = (req, res, next) => {
+  if (!req.body || typeof req.body !== 'object') {
+    return next();
+  }
+
+  const settings = req.body;
+  const sanitizedSettings = {};
+  const errors = [];
+
+  Object.keys(settings).forEach(key => {
+    let value = settings[key];
+
+    // INTEGER CHECKS
+    if (/^(max_|min_|deposito_da_|ip_rate_limit_max)/.test(key) || /(_ore|_giorni|_persone)$/.test(key)) {
+      const intVal = parseInt(value, 10);
+      if (isNaN(intVal) || intVal < 0) {
+        errors.push(`Setting '${key}' must be a positive integer`);
+      } else {
+        sanitizedSettings[key] = intVal.toString();
+      }
+    }
+
+    // Already passed in the correct format from frontend ?
+    
+    // // BOOLEAN CHECKS
+    // else if (/(_attivo|consenti_|richiedi_|notifica_|mostra_|blocco_)/.test(key)) {
+    //   if (value === 'true' || value === true || value === '1') {
+    //     sanitizedSettings[key] = 'true';
+    //   } else if (value === 'false' || value === false || value === '0') {
+    //     sanitizedSettings[key] = 'false';
+    //   } else {
+    //     errors.push(`Setting '${key}' must be a boolean (true/false)`);
+    //   }
+    // }
+
+    // // HEX COLOR CHECKS
+    // else if (key.includes('colore')) {
+    //   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value)) {
+    //     errors.push(`Setting '${key}' must be a valid Hex color code`);
+    //   } else {
+    //     sanitizedSettings[key] = value;
+    //   }
+    // }
+
+    // CURRENCY/FLOAT CHECKS
+    else if (key === 'importo_deposito_per_persona') {
+      const floatVal = parseFloat(value);
+      if (isNaN(floatVal) || floatVal < 0) {
+        errors.push(`Setting '${key}' must be a valid amount`);
+      } else {
+        sanitizedSettings[key] = floatVal.toFixed(2); // "10.00"
+      }
+    }
+
+    // 5. ENUM CHECK 
+    else if (key === 'lingua_default') {
+      const allowed = ['it', 'en', 'es', 'fr', 'de'];
+      if (!allowed.includes(value)) errors.push(`Invalid language code`);
+      else sanitizedSettings[key] = value;
+    }
+    
+    // 6. BASIC STRING TRIM
+    else {
+      if (typeof value === 'string') {
+        sanitizedSettings[key] = value.trim();
+      } else {
+        sanitizedSettings[key] = value;
+      }
+    }
+  });
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: errors,
+    });
+  }
+
+  req.body = sanitizedSettings;
+  next();
+};

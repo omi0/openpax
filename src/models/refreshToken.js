@@ -80,21 +80,24 @@ class RefreshToken {
     const hashedToken = this.hashToken(token);
 
     const sql = `
-      UPDATE refresh_tokens 
-      SET last_used_at = NOW() 
-      WHERE token = $1 
-        AND expires_at > NOW() 
-        AND revoked = false
-        ${fingerprint ? 'AND fingerprint = $2' : ''}
-      RETURNING 
-        rt.id,
-        rt.user_id,
-        rt.fingerprint,
-        rt.user_agent,
-        rt.ip_address,
-        rt.created_at,
-        rt.expires_at,
-        rt.last_used_at,
+      WITH updated_token AS (
+        UPDATE refresh_tokens 
+        SET last_used_at = NOW() 
+        WHERE token = $1 
+          AND expires_at > NOW() 
+          AND revoked = false
+          ${fingerprint ? 'AND fingerprint = $2' : ''}
+        RETURNING id, user_id, fingerprint, user_agent, ip_address, created_at, expires_at, last_used_at
+      )
+      SELECT 
+        ut.id,
+        ut.user_id,
+        ut.fingerprint,
+        ut.user_agent,
+        ut.ip_address,
+        ut.created_at,
+        ut.expires_at,
+        ut.last_used_at,
         u.id as user_id,
         u.email,
         u.nome,
@@ -102,8 +105,8 @@ class RefreshToken {
         u.ruolo,
         u.attivo as user_active,
         u.email_verificato
-      FROM refresh_tokens rt
-      JOIN utenti u ON rt.user_id = u.id
+      FROM updated_token ut
+      JOIN utenti u ON ut.user_id = u.id
       WHERE u.attivo = true
     `;
 
