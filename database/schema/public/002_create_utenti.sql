@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS public.utenti (
     -- Account status
     attivo BOOLEAN DEFAULT true,
     email_verificato BOOLEAN DEFAULT false,
+
+    -- Verification Tokens
+    verification_token VARCHAR(255),
+    verification_expires TIMESTAMP,
     
     -- Security - Account lockout
     tentativi_falliti INTEGER DEFAULT 0,

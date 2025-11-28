@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS tavoli (
     numero VARCHAR(20) NOT NULL, -- 'T1', '12', 'Patio-A'
     
     -- Seating capacity
-    posti_min INTEGER NOT NULL DEFAULT 2,
-    posti_max INTEGER NOT NULL DEFAULT 4,
+    posti INTEGER NOT NULL DEFAULT 2,
     
     -- Special rules (override global settings)
     solo_su_richiesta BOOLEAN DEFAULT false, -- Not bookable via widget
