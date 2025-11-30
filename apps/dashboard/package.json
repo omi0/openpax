@@ -11,15 +11,19 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@sitli/core": "workspace:*",
     "@sitli/shared": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
     "better-auth": "catalog:",
+    "clsx": "^2.1.1",
     "date-fns": "catalog:",
     "i18next": "catalog:",
+    "lucide-react": "^1.43.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-i18next": "catalog:",
+    "tailwind-merge": "^3.6.0",
     "zod": "catalog:"
   },
   "devDependencies": {

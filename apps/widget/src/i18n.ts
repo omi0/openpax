@@ -14,7 +14,13 @@ export function setLocale(value: string | null | undefined) {
 /** Tiny translator: `t("guestsMany", { n: 4 })`, nested keys via dots. */
 export function t(key: string, vars: Record<string, string | number> = {}): string {
   const dict: unknown = dictionaries[locale.value];
-  const raw = key.split(".").reduce<unknown>((acc, part) => (acc && typeof acc === "object" ? (acc as Record<string, unknown>)[part] : undefined), dict);
+  const raw = key
+    .split(".")
+    .reduce<unknown>(
+      (acc, part) =>
+        acc && typeof acc === "object" ? (acc as Record<string, unknown>)[part] : undefined,
+      dict,
+    );
   if (typeof raw !== "string") return key;
   return raw.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
 }

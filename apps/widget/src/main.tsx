@@ -10,7 +10,13 @@ function parseRoute(): Route {
   const slug = match?.[1] ?? params.get("slug") ?? "";
   const token = match?.[2] ?? params.get("token");
   const embedded = params.get("embed") === "1";
-  return { slug: decodeURIComponent(slug), token: token ? decodeURIComponent(token) : null, embedded, instanceId: params.get("id"), lang: params.get("lang") };
+  return {
+    slug: decodeURIComponent(slug),
+    token: token ? decodeURIComponent(token) : null,
+    embedded,
+    instanceId: params.get("id"),
+    lang: params.get("lang"),
+  };
 }
 
 const route = parseRoute();

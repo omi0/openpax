@@ -1,7 +1,18 @@
+import { ApiRequestError, api } from "../api.js";
 import { formatInstant } from "../dates.js";
 import { locale, t } from "../i18n.js";
-import { api, ApiRequestError } from "../api.js";
-import { config, guest, partySize, result, selectedServiceName, selectedSlot, slug, step, submitError, submitting } from "../state.js";
+import {
+  config,
+  guest,
+  partySize,
+  result,
+  selectedServiceName,
+  selectedSlot,
+  slug,
+  step,
+  submitError,
+  submitting,
+} from "../state.js";
 
 function idempotencyKey() {
   return `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -54,7 +65,9 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         </div>
         <div>
           <span>{t("guests")}</span>
-          <strong>{partySize.value === 1 ? t("guestsOne") : t("guestsMany", { n: partySize.value })}</strong>
+          <strong>
+            {partySize.value === 1 ? t("guestsOne") : t("guestsMany", { n: partySize.value })}
+          </strong>
         </div>
         {selectedServiceName.value ? (
           <div>
@@ -67,22 +80,52 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
       <h2>{t("yourDetails")}</h2>
       <div class="field">
         <label for="sitli-name">{t("name")}</label>
-        <input id="sitli-name" type="text" required autocomplete="name" value={g.name} onInput={(e) => update({ name: (e.target as HTMLInputElement).value })} />
+        <input
+          id="sitli-name"
+          type="text"
+          required
+          autocomplete="name"
+          value={g.name}
+          onInput={(e) => update({ name: (e.target as HTMLInputElement).value })}
+        />
       </div>
       <div class="field">
         <label for="sitli-email">{t("email")}</label>
-        <input id="sitli-email" type="email" required autocomplete="email" value={g.email} onInput={(e) => update({ email: (e.target as HTMLInputElement).value })} />
+        <input
+          id="sitli-email"
+          type="email"
+          required
+          autocomplete="email"
+          value={g.email}
+          onInput={(e) => update({ email: (e.target as HTMLInputElement).value })}
+        />
       </div>
       <div class="field">
         <label for="sitli-phone">{t("phone")}</label>
-        <input id="sitli-phone" type="tel" required={cfg.widget.requirePhone} autocomplete="tel" value={g.phone} onInput={(e) => update({ phone: (e.target as HTMLInputElement).value })} />
+        <input
+          id="sitli-phone"
+          type="tel"
+          required={cfg.widget.requirePhone}
+          autocomplete="tel"
+          value={g.phone}
+          onInput={(e) => update({ phone: (e.target as HTMLInputElement).value })}
+        />
       </div>
       <div class="field">
         <label for="sitli-notes">{t("notes")}</label>
-        <textarea id="sitli-notes" maxLength={1000} value={g.notes} onInput={(e) => update({ notes: (e.target as HTMLTextAreaElement).value })} />
+        <textarea
+          id="sitli-notes"
+          maxLength={1000}
+          value={g.notes}
+          onInput={(e) => update({ notes: (e.target as HTMLTextAreaElement).value })}
+        />
       </div>
       <label class="check">
-        <input type="checkbox" checked={g.marketing} onChange={(e) => update({ marketing: (e.target as HTMLInputElement).checked })} />
+        <input
+          type="checkbox"
+          checked={g.marketing}
+          onChange={(e) => update({ marketing: (e.target as HTMLInputElement).checked })}
+        />
         <span>{t("marketing")}</span>
       </label>
       {terms || privacy ? (

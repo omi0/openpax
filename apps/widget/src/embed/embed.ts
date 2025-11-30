@@ -14,7 +14,10 @@
   }
   const origin = new URL(script.src).origin;
   const id = `sitli-${Math.random().toString(36).slice(2, 10)}`;
-  const target = (script.dataset.target && document.querySelector(script.dataset.target)) || script.parentElement || document.body;
+  const target =
+    (script.dataset.target && document.querySelector(script.dataset.target)) ||
+    script.parentElement ||
+    document.body;
   const params = new URLSearchParams({ embed: "1", id });
   if (script.dataset.lang) params.set("lang", script.dataset.lang);
 

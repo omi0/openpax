@@ -10,57 +10,307 @@
   --sitli-radius: 10px;
   --sitli-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: transparent; }
-body { font-family: var(--sitli-font); color: var(--sitli-fg); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
-body.embedded { overflow: hidden; }
-.sitli { max-width: 520px; margin: 0 auto; padding: 16px; background: var(--sitli-bg); }
-.sitli.hosted { min-height: 100vh; padding-top: 32px; }
-.sitli h1 { font-size: 20px; margin: 0 0 4px; }
-.sitli h2 { font-size: 17px; margin: 20px 0 8px; }
-.sitli .sub { color: var(--sitli-muted); margin: 0 0 16px; }
-.sitli .welcome { background: var(--sitli-soft); border-radius: var(--sitli-radius); padding: 10px 14px; margin: 0 0 16px; }
-.sitli .label { display: block; font-size: 13px; font-weight: 600; color: var(--sitli-muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .02em; }
-.sitli .row { display: flex; flex-wrap: wrap; gap: 8px; }
-.sitli .chip { border: 1px solid var(--sitli-border); background: var(--sitli-bg); color: var(--sitli-fg); border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit; }
-.sitli .chip[aria-pressed="true"] { background: var(--sitli-primary); color: var(--sitli-primary-contrast); border-color: var(--sitli-primary); }
-.sitli .chip:disabled { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
-.sitli .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.sitli .cal-head strong { text-transform: capitalize; }
-.sitli .cal-nav { border: 1px solid var(--sitli-border); background: var(--sitli-bg); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; }
-.sitli .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.sitli .cal .wd { text-align: center; font-size: 12px; color: var(--sitli-muted); padding: 4px 0; }
-.sitli .cal button { aspect-ratio: 1; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; font: inherit; }
-.sitli .cal button.open { border-color: var(--sitli-border); }
-.sitli .cal button.selected { background: var(--sitli-primary); color: var(--sitli-primary-contrast); border-color: var(--sitli-primary); }
-.sitli .cal button:disabled { color: #c4c4c8; cursor: not-allowed; }
-.sitli .cal button.today:not(.selected) { font-weight: 700; }
-.sitli .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
-.sitli .slot { border: 1px solid var(--sitli-border); background: var(--sitli-bg); border-radius: 8px; padding: 10px 6px; cursor: pointer; font: inherit; font-weight: 600; }
-.sitli .slot.selected { background: var(--sitli-primary); color: var(--sitli-primary-contrast); border-color: var(--sitli-primary); }
-.sitli .slot:disabled { color: #c4c4c8; cursor: not-allowed; font-weight: 400; }
-.sitli .slot small { display: block; font-size: 11px; font-weight: 400; color: var(--sitli-muted); }
-.sitli .empty { color: var(--sitli-muted); padding: 12px 0; }
-.sitli .field { margin: 0 0 12px; }
-.sitli .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.sitli input[type="text"], .sitli input[type="email"], .sitli input[type="tel"], .sitli textarea { width: 100%; border: 1px solid var(--sitli-border); border-radius: 8px; padding: 10px 12px; font: inherit; background: var(--sitli-bg); color: var(--sitli-fg); }
-.sitli textarea { min-height: 72px; resize: vertical; }
-.sitli .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
-.sitli .actions { display: flex; gap: 10px; margin-top: 18px; }
-.sitli .btn { flex: 1; border: 0; border-radius: var(--sitli-radius); padding: 13px 16px; font: inherit; font-weight: 700; cursor: pointer; background: var(--sitli-primary); color: var(--sitli-primary-contrast); }
-.sitli .btn.secondary { background: var(--sitli-soft); color: var(--sitli-fg); flex: 0 0 auto; }
-.sitli .btn.danger { background: var(--sitli-danger); }
-.sitli .btn:disabled { opacity: .5; cursor: not-allowed; }
-.sitli .error { color: var(--sitli-danger); background: #fef2f2; border-radius: 8px; padding: 10px 12px; margin: 12px 0; }
-.sitli .summary { background: var(--sitli-soft); border-radius: var(--sitli-radius); padding: 12px 14px; margin: 8px 0 16px; }
-.sitli .summary div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
-.sitli .summary span:first-child { color: var(--sitli-muted); }
-.sitli .done { text-align: center; padding: 12px 0; }
-.sitli .done .icon { width: 56px; height: 56px; border-radius: 50%; background: var(--sitli-primary); color: var(--sitli-primary-contrast); display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 10px; }
-.sitli .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 22px; letter-spacing: .12em; }
-.sitli .powered { text-align: center; color: var(--sitli-muted); font-size: 12px; margin-top: 20px; }
-.sitli .powered a { color: inherit; }
-.sitli .lang { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; }
-.sitli .lang button { border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 12px; color: var(--sitli-muted); padding: 4px 6px; }
-.sitli .lang button[aria-pressed="true"] { color: var(--sitli-fg); font-weight: 700; }
-.sitli .status { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 13px; background: var(--sitli-soft); }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+body {
+  font-family: var(--sitli-font);
+  color: var(--sitli-fg);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+body.embedded {
+  overflow: hidden;
+}
+.sitli {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px;
+  background: var(--sitli-bg);
+}
+.sitli.hosted {
+  min-height: 100vh;
+  padding-top: 32px;
+}
+.sitli h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.sitli h2 {
+  font-size: 17px;
+  margin: 20px 0 8px;
+}
+.sitli .sub {
+  color: var(--sitli-muted);
+  margin: 0 0 16px;
+}
+.sitli .welcome {
+  background: var(--sitli-soft);
+  border-radius: var(--sitli-radius);
+  padding: 10px 14px;
+  margin: 0 0 16px;
+}
+.sitli .label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sitli-muted);
+  margin: 14px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.sitli .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sitli .chip {
+  border: 1px solid var(--sitli-border);
+  background: var(--sitli-bg);
+  color: var(--sitli-fg);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font: inherit;
+}
+.sitli .chip[aria-pressed="true"] {
+  background: var(--sitli-primary);
+  color: var(--sitli-primary-contrast);
+  border-color: var(--sitli-primary);
+}
+.sitli .chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.sitli .cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.sitli .cal-head strong {
+  text-transform: capitalize;
+}
+.sitli .cal-nav {
+  border: 1px solid var(--sitli-border);
+  background: var(--sitli-bg);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.sitli .cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.sitli .cal .wd {
+  text-align: center;
+  font-size: 12px;
+  color: var(--sitli-muted);
+  padding: 4px 0;
+}
+.sitli .cal button {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+.sitli .cal button.open {
+  border-color: var(--sitli-border);
+}
+.sitli .cal button.selected {
+  background: var(--sitli-primary);
+  color: var(--sitli-primary-contrast);
+  border-color: var(--sitli-primary);
+}
+.sitli .cal button:disabled {
+  color: #c4c4c8;
+  cursor: not-allowed;
+}
+.sitli .cal button.today:not(.selected) {
+  font-weight: 700;
+}
+.sitli .slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+.sitli .slot {
+  border: 1px solid var(--sitli-border);
+  background: var(--sitli-bg);
+  border-radius: 8px;
+  padding: 10px 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+.sitli .slot.selected {
+  background: var(--sitli-primary);
+  color: var(--sitli-primary-contrast);
+  border-color: var(--sitli-primary);
+}
+.sitli .slot:disabled {
+  color: #c4c4c8;
+  cursor: not-allowed;
+  font-weight: 400;
+}
+.sitli .slot small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--sitli-muted);
+}
+.sitli .empty {
+  color: var(--sitli-muted);
+  padding: 12px 0;
+}
+.sitli .field {
+  margin: 0 0 12px;
+}
+.sitli .field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.sitli input[type="text"],
+.sitli input[type="email"],
+.sitli input[type="tel"],
+.sitli textarea {
+  width: 100%;
+  border: 1px solid var(--sitli-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--sitli-bg);
+  color: var(--sitli-fg);
+}
+.sitli textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.sitli .check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+}
+.sitli .actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.sitli .btn {
+  flex: 1;
+  border: 0;
+  border-radius: var(--sitli-radius);
+  padding: 13px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--sitli-primary);
+  color: var(--sitli-primary-contrast);
+}
+.sitli .btn.secondary {
+  background: var(--sitli-soft);
+  color: var(--sitli-fg);
+  flex: 0 0 auto;
+}
+.sitli .btn.danger {
+  background: var(--sitli-danger);
+}
+.sitli .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sitli .error {
+  color: var(--sitli-danger);
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+}
+.sitli .summary {
+  background: var(--sitli-soft);
+  border-radius: var(--sitli-radius);
+  padding: 12px 14px;
+  margin: 8px 0 16px;
+}
+.sitli .summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+.sitli .summary span:first-child {
+  color: var(--sitli-muted);
+}
+.sitli .done {
+  text-align: center;
+  padding: 12px 0;
+}
+.sitli .done .icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--sitli-primary);
+  color: var(--sitli-primary-contrast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+.sitli .code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+.sitli .powered {
+  text-align: center;
+  color: var(--sitli-muted);
+  font-size: 12px;
+  margin-top: 20px;
+}
+.sitli .powered a {
+  color: inherit;
+}
+.sitli .lang {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+}
+.sitli .lang button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--sitli-muted);
+  padding: 4px 6px;
+}
+.sitli .lang button[aria-pressed="true"] {
+  color: var(--sitli-fg);
+  font-weight: 700;
+}
+.sitli .status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 13px;
+  background: var(--sitli-soft);
+}

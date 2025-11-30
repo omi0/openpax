@@ -1,6 +1,11 @@
 import { computed, signal } from "@preact/signals";
-import type { AvailabilityResponse, AvailabilitySlotDto, PublicBookingDto, PublicWidgetConfigDto } from "@sitli/shared";
-import { api, ApiRequestError } from "./api.js";
+import type {
+  AvailabilityResponse,
+  AvailabilitySlotDto,
+  PublicBookingDto,
+  PublicWidgetConfigDto,
+} from "@sitli/shared";
+import { ApiRequestError, api } from "./api.js";
 import { monthOf, todayLocal } from "./dates.js";
 import { setLocale } from "./i18n.js";
 
@@ -44,7 +49,10 @@ export async function loadConfig(value: string, lang?: string | null) {
     await setMonth(monthOf(t));
     await loadSlots();
   } catch (error) {
-    loadError.value = error instanceof ApiRequestError && error.status === 404 ? "errors.notFound" : "errors.generic";
+    loadError.value =
+      error instanceof ApiRequestError && error.status === 404
+        ? "errors.notFound"
+        : "errors.generic";
   }
 }
 

@@ -45,7 +45,12 @@ export function App({ route }: { route: Route }) {
     <div class={cls}>
       <div class="lang">
         {cfg.widget.locales.map((l) => (
-          <button key={l} type="button" aria-pressed={locale.value === l} onClick={() => setLocale(l)}>
+          <button
+            key={l}
+            type="button"
+            aria-pressed={locale.value === l}
+            onClick={() => setLocale(l)}
+          >
             {l.toUpperCase()}
           </button>
         ))}

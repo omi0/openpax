@@ -10,4 +10,3 @@ coverage/
 test-results/
 playwright-report/
 .DS_Store
-routeTree.gen.ts

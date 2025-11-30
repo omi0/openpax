@@ -13,7 +13,9 @@ export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; h
       <div class="summary" style={{ textAlign: "left" }}>
         <div>
           <span>{t("date")}</span>
-          <strong>{formatInstant(booking.startsAt, booking.restaurant.timezone, locale.value)}</strong>
+          <strong>
+            {formatInstant(booking.startsAt, booking.restaurant.timezone, locale.value)}
+          </strong>
         </div>
         <div>
           <span>{t("guests")}</span>
@@ -28,7 +30,13 @@ export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; h
         <button type="button" class="btn secondary" onClick={reset}>
           {t("newBooking")}
         </button>
-        <a class="btn" href={booking.manageUrl} target={hosted ? "_self" : "_blank"} rel="noreferrer" style={{ textDecoration: "none", textAlign: "center" }}>
+        <a
+          class="btn"
+          href={booking.manageUrl}
+          target={hosted ? "_self" : "_blank"}
+          rel="noreferrer"
+          style={{ textDecoration: "none", textAlign: "center" }}
+        >
           {t("manage")}
         </a>
       </div>

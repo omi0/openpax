@@ -9,7 +9,8 @@ export function SlotGrid() {
   if (data.slots.length === 0) return <p class="empty">{t("noSlots")}</p>;
 
   const byService = new Map<string, AvailabilitySlotDto[]>();
-  for (const s of data.slots) byService.set(s.serviceId, [...(byService.get(s.serviceId) ?? []), s]);
+  for (const s of data.slots)
+    byService.set(s.serviceId, [...(byService.get(s.serviceId) ?? []), s]);
   const showServiceNames = byService.size > 1;
 
   return (
@@ -20,7 +21,9 @@ export function SlotGrid() {
           {showServiceNames ? <h2>{data.services.find((s) => s.id === serviceId)?.name}</h2> : null}
           <div class="slots">
             {slots.map((slot) => {
-              const selected = selectedSlot.value?.startsAt === slot.startsAt && selectedSlot.value?.serviceId === slot.serviceId;
+              const selected =
+                selectedSlot.value?.startsAt === slot.startsAt &&
+                selectedSlot.value?.serviceId === slot.serviceId;
               return (
                 <button
                   key={`${slot.serviceId}-${slot.startsAt}`}
@@ -32,7 +35,9 @@ export function SlotGrid() {
                   }}
                 >
                   {slot.startLocal}
-                  {!slot.available && slot.reason ? <small>{t(`reasons.${slot.reason}`)}</small> : null}
+                  {!slot.available && slot.reason ? (
+                    <small>{t(`reasons.${slot.reason}`)}</small>
+                  ) : null}
                 </button>
               );
             })}

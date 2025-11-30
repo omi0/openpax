@@ -1,7 +1,7 @@
 import { useSignal } from "@preact/signals";
 import type { PublicBookingDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
-import { api, ApiRequestError } from "../api.js";
+import { ApiRequestError, api } from "../api.js";
 import { formatInstant } from "../dates.js";
 import { locale, setLocale, t } from "../i18n.js";
 
@@ -27,7 +27,10 @@ export function Manage({ token }: { token: string }) {
     try {
       booking.value = await api.cancel(token);
     } catch (e) {
-      error.value = e instanceof ApiRequestError && e.code === "cancellation_cutoff" ? t("cannotCancel") : t("errors.generic");
+      error.value =
+        e instanceof ApiRequestError && e.code === "cancellation_cutoff"
+          ? t("cannotCancel")
+          : t("errors.generic");
     } finally {
       busy.value = false;
     }
@@ -39,7 +42,12 @@ export function Manage({ token }: { token: string }) {
     <div>
       <div class="lang">
         {(["it", "en"] as const).map((l) => (
-          <button key={l} type="button" aria-pressed={locale.value === l} onClick={() => setLocale(l)}>
+          <button
+            key={l}
+            type="button"
+            aria-pressed={locale.value === l}
+            onClick={() => setLocale(l)}
+          >
             {l.toUpperCase()}
           </button>
         ))}
@@ -70,7 +78,12 @@ export function Manage({ token }: { token: string }) {
         <p>{t("cancelled")}</p>
       ) : b.canCancel ? (
         <div class="actions">
-          <button type="button" class="btn danger" disabled={busy.value} onClick={() => void cancel()}>
+          <button
+            type="button"
+            class="btn danger"
+            disabled={busy.value}
+            onClick={() => void cancel()}
+          >
             {t("cancel")}
           </button>
         </div>
