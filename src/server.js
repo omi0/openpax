@@ -11,7 +11,7 @@ const settingsRoutes = require('./routes/settings');
 const { testConnection } = require('./config/database');
 const { testEmailConfiguration } = require('./utils/emailService');
 const { cleanup: cleanupRateLimiter } = require('./utils/rateLimiter');
-const { initializeCronJobs, stopCronJobs } = require('./utils/cronJobs'); // NEW!
+const { initializeCronJobs, stopCronJobs } = require('./utils/cronJobs');
 const {
   securityHeaders,
   requestLogger
@@ -20,7 +20,6 @@ const {
 // Validate required environment variables
 const requiredEnvVars = [
   'JWT_ACCESS_SECRET',
-  // 'JWT_REFRESH_SECRET', // REMOVED - no longer needed!
   'DB_NAME',
   'DB_USER',
   'DB_PASSWORD'
