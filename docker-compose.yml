@@ -1,0 +1,39 @@
+# Production-style stack: Sitli + Postgres. Copy .env.example to .env first.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sitli
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sitli}
+      POSTGRES_DB: sitli
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sitli -d sitli"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: sitli:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://sitli:${POSTGRES_PASSWORD:-sitli}@db:5432/sitli
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      SECURE_COOKIES: ${SECURE_COOKIES:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+volumes:
+  pgdata:

@@ -1,0 +1,21 @@
+# Development dependencies only: run the apps with `pnpm dev`.
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: sitli
+      POSTGRES_PASSWORD: sitli
+      POSTGRES_DB: sitli
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # web UI
+
+volumes:
+  pgdata-dev:
