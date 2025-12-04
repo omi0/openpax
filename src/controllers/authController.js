@@ -100,13 +100,39 @@ exports.register = async (req, res) => {
       // Continue with registration even if email fails
     }
 
+        // Get session metadata (fingerprint, IP, user agent)
+    const sessionMetadata = getSessionMetadata(req);
+
+    // Generate access token (JWT)
+    const accessToken = generateAccessToken(user.id, user.email);
+
+    // Generate and store refresh token (secure random string)
+    const refreshTokenString = RefreshToken.generateToken();
+    await RefreshToken.create(user.id, refreshTokenString, {
+      userAgent: sessionMetadata.userAgent,
+      ipAddress: sessionMetadata.ipAddress,
+      fingerprint: sessionMetadata.fingerprint
+    });
+
+    // Update user login info
+    await User.updateLastLogin(user.id, sessionMetadata.ipAddress);
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', refreshTokenString, REFRESH_COOKIE_OPTIONS);
+
+
     res.status(201).json({
       success: true,
       message: 'Registration successful. Please check your email to verify your account.',
       data: {
-        userId: user.id,
-        email: user.email,
-        nome: user.nome
+        user: {
+          id: user.id,
+          email: user.email,
+          nome: user.nome,
+          cognome: user.cognome,
+          emailVerified: false
+        }
       }
     });
 
