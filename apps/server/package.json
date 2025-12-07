@@ -30,6 +30,8 @@
     "pg": "catalog:",
     "pg-boss": "catalog:",
     "pino": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

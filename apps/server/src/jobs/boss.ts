@@ -36,7 +36,8 @@ export async function registerJobs(
       expireInSeconds: 120,
     });
     if (!work) continue;
-    await boss.work(job.name, { pollingIntervalSeconds: 1, batchSize: 5 }, async (batch) => {
+    // one job per fetch so a failure only retries that job
+    await boss.work(job.name, { pollingIntervalSeconds: 1, batchSize: 1 }, async (batch) => {
       for (const item of batch) {
         try {
           await job.handler(item.data as never, ctx);

@@ -1,3 +1,5 @@
+/** @jsxRuntime automatic */
+/** @jsxImportSource react */
 import type { NotificationAudience } from "@sitli/shared";
 import { Button, Details, Layout } from "../components/layout.js";
 import type { CopyVars, EmailCopy } from "../i18n/copy.js";
