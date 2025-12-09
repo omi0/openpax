@@ -10,6 +10,9 @@
   "devDependencies": {
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "pg": "catalog:",
+    "@types/pg": "catalog:",
+    "tsx": "catalog:"
   }
 }

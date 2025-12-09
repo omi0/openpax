@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "description": "Self-hostable restaurant booking platform: embeddable widget + staff dashboard",
   "packageManager": "pnpm@12.3.4",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",

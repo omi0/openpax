@@ -102,4 +102,9 @@ export const bookingNotificationsQuery = (id: string, bookingId: string) =>
       api.get<NotificationLogDto[]>(
         `/api/v1/restaurants/${id}/bookings/${bookingId}/notifications`,
       ),
+    // sends happen asynchronously; keep polling while anything is still queued
+    refetchInterval: (query) => {
+      const rows = query.state.data;
+      return !rows || rows.length === 0 || rows.some((n) => n.status === "queued") ? 3_000 : false;
+    },
   });
