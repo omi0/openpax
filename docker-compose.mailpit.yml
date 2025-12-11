@@ -1,0 +1,16 @@
+# Optional override: catch every email in Mailpit instead of a real mail server.
+#   docker compose -f docker-compose.yml -f docker-compose.mailpit.yml up -d
+# Mailpit UI on port 8025 (bound to BIND_IP like the app).
+services:
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "${BIND_IP:-0.0.0.0}:${MAILPIT_PORT:-8025}:8025"
+  app:
+    depends_on:
+      mailpit:
+        condition: service_started
+    environment:
+      SMTP_URL: smtp://mailpit:1025
+      SMTP_FROM: ${SMTP_FROM:-Sitli <no-reply@sitli.local>}

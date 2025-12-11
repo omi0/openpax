@@ -23,7 +23,8 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      # BIND_IP lets you publish only on one interface, e.g. a Tailscale IP
+      - "${BIND_IP:-0.0.0.0}:${PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgres://sitli:${POSTGRES_PASSWORD:-sitli}@db:5432/sitli
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}

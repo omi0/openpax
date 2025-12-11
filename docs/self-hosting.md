@@ -17,6 +17,7 @@
 | `SMTP_URL`, `SMTP_FROM` | no | instance-wide email fallback, e.g. `smtp://user:pass@smtp.example.com:587`. Restaurants can still configure their own provider in the dashboard. |
 | `PORT`, `HOST`, `LOG_LEVEL` | no | defaults `3000`, `0.0.0.0`, `info` |
 | `ROLE` | no | `all` (default), `api` (HTTP only) or `worker` (jobs only) to run several containers |
+| `BIND_IP`, `PORT` | compose only | interface and host port to publish, default `0.0.0.0:3000`. Set `BIND_IP` to a Tailscale or LAN address to keep the instance private. |
 
 ## Reverse proxy
 
@@ -43,6 +44,21 @@ docker compose up -d
 ```
 
 Migrations run automatically when the container starts.
+
+## Catching emails without a mail server
+
+Add the Mailpit override and every email lands in a web inbox on port 8025:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mailpit.yml up -d
+```
+
+## Private instance over Tailscale
+
+Set `BIND_IP` to the machine's Tailscale IP and `PUBLIC_URL` to its MagicDNS
+name, then `tailscale serve --bg --http=80 http://<tailscale-ip>:3000` gives
+`http://<machine>.<tailnet>.ts.net` to everyone on the tailnet. Enable HTTPS
+certificates in the Tailscale admin console to serve over TLS instead.
 
 ## Running on plain HTTP (LAN, testing)
 
