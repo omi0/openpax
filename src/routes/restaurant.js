@@ -4,6 +4,7 @@ const restaurantController = require('../controllers/restaurantController');
 const orarioController = require('../controllers/orarioController');
 const tableController = require('../controllers/tableController');
 const saleController = require('../controllers/saleController');
+const decorationController = require('../controllers/decorationController');
 const { 
   authenticateToken,
   rateLimitAPI,
@@ -147,11 +148,11 @@ router.post(
 
 
 /**
- * @route PUT /api/restaurants/:id/time-settings (with giorno_settimana and nome_servizio in body)
+ * @route PATCH /api/restaurants/:id/time-settings (with giorno_settimana and nome_servizio in body)
  * @desc Update an existing orario
  * @access Private (requires manager or owner role)
  */
-router.put(
+router.patch(
   '/:id/time-settings/',
   requireJSON,
   authenticateToken,
@@ -162,11 +163,11 @@ router.put(
 
 
 /**
- * @route PUT /api/restaurants/:id/time-settings/:orarioId
+ * @route PATCH /api/restaurants/:id/time-settings/:orarioId
  * @desc Update an existing orario
  * @access Private (requires manager or owner role)
  */
-router.put(
+router.patch(
   '/:id/time-settings/:orarioId',
   requireJSON,
   authenticateToken,
@@ -180,13 +181,13 @@ router.put(
  * @desc Delete an existing orario
  * @access Private (requires manager or owner role)
  */
-router.put(
+router.delete(
   '/:id/time-settings/',
   requireJSON,
   authenticateToken,
   rateLimitAPI,
   //sanitizeOrarioCreation, //to add
-  orarioController.updateOrario
+  orarioController.deleteOrario
 );
 
 /**
@@ -194,13 +195,13 @@ router.put(
  * @desc Delete an existing orario
  * @access Private (requires manager or owner role)
  */
-router.put(
+router.delete(
   '/:id/time-settings/:orarioId',
   requireJSON,
   authenticateToken,
   rateLimitAPI,
   //sanitizeOrarioCreation, //to add
-  orarioController.updateOrario
+  orarioController.deleteOrario
 );
 
 
@@ -337,6 +338,88 @@ router.delete(
   saleController.deleteSala
 );
 
+
+// ============================================================================
+// Decorations routes such as creating a decoration, updating its position...
+// ============================================================================
+
+/**
+ * @route   POST /api/restaurants/:id/decorations
+ * @desc    Create a new decoration
+ * @access  Private
+ */
+router.post(
+  '/:id/decorations',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeRestaurantCreation,
+  decorationController.createDecoration
+);
+
+/**
+ * @route   GET /api/restaurants/:id/decorations/:decorationId
+ * @desc    Get specific decoration details using table id
+ * @access  Private
+ */
+router.get(
+  '/:id/decorations/:decorationId',
+  authenticateToken,
+  rateLimitAPI,
+  decorationController.getDecoration
+);
+
+/**
+ * @route   GET /api/restaurants/:id/decorations/sala/:salaId
+ * @desc    Get all decorations for a sala
+ * @access  Private
+ */
+router.get(
+  '/:id/decorations/sala/:salaId',
+  authenticateToken,
+  rateLimitAPI,
+  decorationController.getSalaDecorations
+);
+
+
+/**
+ * @route   PATCH /api/restaurants/:id/decorations/:decorationId
+ * @desc    Update decoration position
+ * @access  Private (requires manager or owner role)
+ */
+router.patch(
+  '/:id/decorations/:decorationId',
+  requireJSON,
+  authenticateToken,
+  rateLimitAPI,
+  //sanitizeTableUpdate,
+  decorationController.updateDecoration
+);
+
+/**
+ * @route   DELETE /api/restaurants/:id/decorations/:decorationId
+ * @desc    Delete a decoration
+ * @access  Private (requires owner role)
+ */
+router.delete(
+  '/:id/decorations/:decorationId',
+  authenticateToken,
+  rateLimitStrict,
+  decorationController.deleteDecoration
+);
+
+
+/**
+ * @route   DELETE /api/restaurants/:id/decorations/sala/:salaId
+ * @desc    Delete all decoration of a sala !!
+ * @access  Private (requires owner role)
+ */
+router.delete(
+  '/:id/decorations/sala/:salaId',
+  authenticateToken,
+  rateLimitStrict,
+  decorationController.deleteSalaDecorations
+);
 
 // ============================================================================
 // HEALTH CHECK

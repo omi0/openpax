@@ -187,18 +187,22 @@ class RefreshToken {
    */
   static async cleanupExpired() {
     const sql = `
-      DELETE FROM refresh_tokens 
-      WHERE 
-        expires_at < NOW() 
+      DELETE FROM refresh_tokens
+      WHERE
+        expires_at < NOW()
         OR (
-          revoked = true 
-          AND created_at < NOW() - INTERVAL '${this.config.cleanupRetentionDays} days'
+          revoked = true
+          AND created_at < NOW() - ($1::text || ' days')::interval
         )
-      RETURNING COUNT(*) as deleted_count
+      RETURNING id;
     `;
-    const result = await query(sql);
-    return result.rows[0]?.deleted_count || 0;
+
+    // pass cleanupRetentionDays as a parameter (string or number)
+    const result = await query(sql, [this.config.cleanupRetentionDays]);
+    // result.rowCount is the number of rows deleted
+    return result.rowCount || 0;
   }
+
 
   /**
    * Get active sessions for a user with detailed information

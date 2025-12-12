@@ -9,7 +9,7 @@ const Sale = require('../models/SaleModel');
 const saleController = {
 
   /**
-   * Create a new table in a sala
+   * Create a new sala
    * POST /api/restaurants/:id/sale
    */
 
@@ -95,10 +95,10 @@ const saleController = {
       const sala = await Sale.create(req.body, restaurant.schema_name);
 
       logger.info({ 
-        nome: table.numero,
+        nome: sala.nome,
         restaurantId,
         duration: Date.now() - startTime 
-      }, 'Table created successfully');
+      }, 'Sala created successfully');
 
       res.status(201).json({
         success: true,
@@ -176,7 +176,7 @@ const saleController = {
         });
       }
 
-      if (isNaN(tableId)) {
+      if (isNaN(salaId)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid table ID',
@@ -184,7 +184,7 @@ const saleController = {
         });
       }
 
-      const deleted = await Sale.delete(tableId, restaurant.schema_name);
+      const deleted = await Sale.delete(salaId, restaurant.schema_name);
 
       if (!deleted) {
         return res.status(404).json({

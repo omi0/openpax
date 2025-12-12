@@ -163,7 +163,8 @@ class Restaurant {
         id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         sala_id INTEGER REFERENCES ${schemaName}.sale(id) ON DELETE CASCADE,
         numero VARCHAR(20) NOT NULL,
-        posti INTEGER NOT NULL DEFAULT 2,
+        posti_min INTEGER NOT NULL,
+        posti_max INTEGER NOT NULL,
         solo_su_richiesta BOOLEAN DEFAULT false,
         prenotazione_minima_persone INTEGER,
         durata_prenotazione_custom INTEGER,
@@ -306,6 +307,7 @@ class Restaurant {
       CREATE TABLE IF NOT EXISTS ${schemaName}.impostazioni (
         chiave VARCHAR(100) PRIMARY KEY,
         valore JSONB NOT NULL,
+        tipo VARCHAR(20) DEFAULT 'string' CHECK (tipo IN ('string', 'integer', 'boolean', 'json', 'array')),
         categoria VARCHAR(50),
         descrizione TEXT,
         updated_at TIMESTAMPTZ DEFAULT now()
@@ -341,6 +343,20 @@ class Restaurant {
       )
     `);
 
+        
+    // 10. Decorazioni (decorations)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ${schemaName}.decorazioni (
+        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        sala_id INTEGER REFERENCES ${schemaName}.sale(id) ON DELETE CASCADE,
+        posizione_x NUMERIC(10,2),
+        posizione_y NUMERIC(10,2),
+        forma VARCHAR(20) DEFAULT 'rectangle' CHECK (forma IN ('rectangle', 'circle', 'square', 'oval')),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     // Create indexes for better performance
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_clienti_email ON ${schemaName}.clienti(email)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_clienti_telefono ON ${schemaName}.clienti(telefono)`);
@@ -349,6 +365,7 @@ class Restaurant {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_sala ON ${schemaName}.tavoli(sala_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_attivo ON ${schemaName}.tavoli(attivo)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_tavoli_posti ON ${schemaName}.tavoli(posti_min, posti_max)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_decorazioni_sala ON ${schemaName}.decorazioni(sala_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_giorno_attivo ON ${schemaName}.orario(giorno_settimana, attivo)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_servizio ON ${schemaName}.orario(nome_servizio)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_${schemaName}_orario_eccezioni_date ON ${schemaName}.orario_eccezioni(data_inizio, data_fine)`);
