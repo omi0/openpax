@@ -1,21 +1,21 @@
 const Restaurant = require('../models/RestaurantModel');
-const Table = require('../models/TableModel');
+const Decoration = require('../models/DecorationModel');
 const logger = require('../config/logger');
 
 /**
- * Table controller
- * Handles creation update deletion of tables
+ * Decoration controller
+ * Handles creation update deletion of decorations
  */
 
-const tableController = {
+const decorationController = {
 
   /**
-   * Create a new table in a sala
-   * POST /api/restaurants/:id/tables
+   * Create a new decoration in a sala
+   * POST /api/restaurants/:id/decorations
    */
 
 
-  async createTable(req, res) {
+  async createDecoration(req, res) {
     const startTime = Date.now();
     
     try {
@@ -59,12 +59,12 @@ const tableController = {
       }
 
       // Validate required fields
-      const { sala_id, numero, posti_min, posti_max, solo_su_richiesta, posizione_x, posizione_y, forma, note} = req.body;
+      const { sala_id, forma, posizione_x, posizione_y} = req.body;
       
-      if (!sala_id || !numero || !posti_min || !posti_max || !solo_su_richiesta || !posizione_x || !posizione_y || !forma || !note) {
+      if (!sala_id || !posizione_x || !posizione_y || !forma) {
         return res.status(400).json({
           success: false,
-          message: 'Missing required fields: sala_id, numero, posti, solo_su_richiesta, posizione_x, posizione_y, forma, note',
+          message: 'Missing required fields: sala_id, posizione_x, posizione_y, forma',
           code: 'MISSING_FIELDS'
         });
       }
@@ -87,62 +87,30 @@ const tableController = {
         })
       }
 
-      //Validate numero ovvero nome tavolo
-      if (numero.length > 20) {
-        return res.status(400).json({
-          success: false,
-          message: 'Lenght exceeded for numero',
-          error: 'INVALID_NUMERO'
-        })
-      }
-
-      //Validate posti 
-      if (!(/^\d+$/.test(posti_min)) && posti_min > 40) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid posti_min. Must be between a number not > 40',
-          code: 'INVALID_SALA'
-        });
-      }
-
-      if (!(/^\d+$/.test(posti_max)) && posti_max > 40) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid posti_max. Must be between a number not > 40',
-          code: 'INVALID_SALA'
-        });
-      }
-
-      // Create table
+      // Create decoration
       logger.info({ 
         restaurantId, 
         userId, 
-        nome: numero, 
-      }, 'Creating new table');
+        forma: forma,
+      }, 'Creating new decoration');
       
-      const table = await Table.create(req.body, restaurant.schema_name);
+      const decoration = await Decoration.create(req.body, restaurant.schema_name);
 
       logger.info({ 
-        nome: table.numero,
+        nome: decoration.forma,
         restaurantId,
         duration: Date.now() - startTime 
-      }, 'Table created successfully');
+      }, 'Decoration created successfully');
 
       res.status(201).json({
         success: true,
-        message: 'Table created successfully',
+        message: 'Decoration created successfully',
         data: {
-          table: {
-            id: table.id,
-            numero: table.numero,
-            posti_min: table.posti_min,
-            posti_max: table.posti_max,
-            solo_su_richiesta: table.solo_su_richiesta,
-            posizione_x: table.posizione_x,
-            posizione_y: table.posizione_y,
-            forma: table.forma,
-            note: table.note,
-            attivo: table.attivo
+          decoration: {
+            id: decoration.id,
+            posizione_x: decoration.posizione_x,
+            posizione_y: decoration.posizione_y,
+            forma: decoration.forma,
           }
         }
       });
@@ -152,33 +120,33 @@ const tableController = {
         err: error, 
         restaurantId: req.params.id,
         userId: req.user?.userId 
-      }, 'Table creation error');
+      }, 'Decoration creation error');
 
-      if (error.message === 'TABLE_EXISTS') {
+      if (error.message === 'DECORATION_EXISTS') {
         return res.status(409).json({
           success: false,
-          message: 'Table already exists for this sala. Use PUT to update it',
-          code: 'TABLE_EXISTS'
+          message: 'Decoration already exists for this sala. Use PUT to update it',
+          code: 'DECORATION_EXISTS'
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to create table',
+        message: 'Failed to create decoration',
         code: 'CREATION_FAILED'
       });
     }
   },
 
   /**
-   * Update an existing table
-   * PATCH /api/restaurants/:id/tables/:tableId
+   * Update an existing decoration only by position nothing else
+   * PATCH /api/restaurants/:id/decorations/:decorationId
    */
-  async updateTable(req, res) {
+  async updateDecoration(req, res) {
     try {
       const userId = req.user.userId;
       const restaurantId = parseInt(req.params.id);
-      const tableId = req.params.tableId ? parseInt(req.params.tableId) : null;
+      const decorationId = req.params.decorationId ? parseInt(req.params.decorationId) : null;
 
       if (isNaN(restaurantId)) {
         return res.status(400).json({
@@ -217,37 +185,31 @@ const tableController = {
         });
       }
 
-      if (isNaN(tableId)) {
+      if (isNaN(decorationId)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid table ID',
+          message: 'Invalid decoration ID',
           code: 'INVALID_ID'
         });
       }
       
-      const updatedTable = await Table.update(tableId, req.body, restaurant.schema_name);
+      const updatedDecoration = await Decoration.update(decorationId, req.body, restaurant.schema_name);
 
       logger.info({ 
-        tableId: updatedTable.id,
+        decorationId: updatedDecoration.id,
         restaurantId,
         userId,
         updatedFields: Object.keys(req.body)
-      }, 'Table updated');
+      }, 'Decoration updated');
 
       res.json({
         success: true,
-        message: 'Table updated successfully',
+        message: 'Decoration updated successfully',
         data: {
-          table: {
-            id: updatedTable.id,
-            numero: updatedTable.numero,
-            posti: updatedTable.posti,
-            solo_su_richiesta: updatedTable.solo_su_richiesta,
-            posizione_x: updatedTable.posizione_x,
-            posizione_y: updatedTable.posizione_y,
-            forma: updatedTable.forma,
-            note: updatedTable.note,
-            attivo: updatedTable.attivo
+          decoration: {
+            id: updatedDecoration.id,
+            posizione_x: updatedDecoration.posizione_x,
+            posizione_y: updatedDecoration.posizione_y,
           }
         }
       });
@@ -256,9 +218,9 @@ const tableController = {
       logger.error({ 
         err: error, 
         restaurantId: req.params.id,
-        tableId: req.params.tableId,
+        decorationId: req.params.decorationId,
         userId: req.user?.userId 
-      }, 'Error updating table');
+      }, 'Error updating decoration');
 
       if (error.message === 'NO_VALID_FIELDS') {
         return res.status(400).json({
@@ -268,17 +230,17 @@ const tableController = {
         });
       }
 
-      if (error.message === 'TABLE_NOT_FOUND') {
+      if (error.message === 'DECORATION_NOT_FOUND') {
         return res.status(404).json({
           success: false,
-          message: 'Table not found',
+          message: 'Decoration not found',
           code: 'NOT_FOUND'
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to update table',
+        message: 'Failed to update decoration',
         code: 'UPDATE_FAILED'
       });
     }
@@ -286,14 +248,14 @@ const tableController = {
 
 
   /**
-   * Get single table detail for a restaurant
-   * GET /api/restaurants/:id/tables/:tableId
+   * Get single decoration detail for a restaurant
+   * GET /api/restaurants/:id/decorations/:decorationId
    */
-  async getTable(req, res) {
+  async getDecoration(req, res) {
     try {
       const userId = req.user.userId;
       const restaurantId = parseInt(req.params.id);
-      const tableId = req.params.tableId ? parseInt(req.params.tableId) : null;
+      const decorationId = req.params.decorationId ? parseInt(req.params.decorationId) : null;
 
       if (isNaN(restaurantId)) {
         return res.status(400).json({
@@ -332,30 +294,25 @@ const tableController = {
         });
       }
 
-      if (isNaN(tableId)) {
+      if (isNaN(decorationId)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid table ID',
+          message: 'Invalid decoration ID',
           code: 'INVALID_ID'
         });
       }
       
-      const infoTable = await Table.findById(tableId, restaurant.schema_name);
+      const infoDecoration = await Decoration.findById(decorationId, restaurant.schema_name);
 
       res.json({
         success: true,
-        message: 'Table fetched successfully',
+        message: 'Decoration fetched successfully',
         data: {
-          table: {
-            id: infoTable.id,
-            numero: infoTable.numero,
-            posti: infoTable.posti,
-            solo_su_richiesta: infoTable.solo_su_richiesta,
-            posizione_x: infoTable.posizione_x,
-            posizione_y: infoTable.posizione_y,
-            forma: infoTable.forma,
-            note: infoTable.note,
-            attivo: infoTable.attivo
+          decoration: {
+            id: infoDecoration.id,
+            posizione_x: infoDecoration.posizione_x,
+            posizione_y: infoDecoration.posizione_y,
+            forma: infoDecoration.forma,
           }
         }
       });
@@ -364,31 +321,31 @@ const tableController = {
       logger.error({ 
         err: error, 
         restaurantId: req.params.id,
-        tableId: req.params.tableId,
+        decorationId: req.params.decorationId,
         userId: req.user?.userId 
-      }, 'Error fetching table');
+      }, 'Error fetching decoration');
 
-      if (error.message === 'TABLE_NOT_FOUND') {
+      if (error.message === 'DECORATION_NOT_FOUND') {
         return res.status(404).json({
           success: false,
-          message: 'Table not found',
+          message: 'Decoration not found',
           code: 'NOT_FOUND'
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch table',
+        message: 'Failed to fetch decoration',
         code: 'FETCH_FAILED'
       });
     }
   },
 
   /**
-   * Get all tables in a sala
-   * GET /api/restaurants/:id/tables/:salaId
+   * Get all decorations in a sala
+   * GET /api/restaurants/:id/decorations/:salaId
    */
-  async getSalaTables(req, res) {
+  async getSalaDecorations(req, res) {
     try {
       const userId = req.user.userId;
       const restaurantId = parseInt(req.params.id);
@@ -431,12 +388,12 @@ const tableController = {
         });
       }
 
-      const tables = await Table.findBySala(salaId, restaurant.schema_name);
+      const decorations = await Decoration.findBySala(salaId, restaurant.schema_name);
 
       res.json({
         success: true,
-        count: tables.length,
-        data: tables
+        count: decorations.length,
+        data: decorations
       });
 
     } catch (error) {
@@ -444,25 +401,25 @@ const tableController = {
         err: error, 
         restaurantId: req.params.id,
         userId: req.user?.userId 
-      }, 'Error fetching tables');
+      }, 'Error fetching decorations');
 
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch tables',
+        message: 'Failed to fetch decorations',
         code: 'FETCH_FAILED'
       });
     }
   },
 
   /**
-   * Delete table by id
-   * DELETE /api/restaurants/:id/tables/:tableId
+   * Delete decoration by id
+   * DELETE /api/restaurants/:id/decorations/:decorationId
   */
-  async deleteTable(req, res) {
+  async deleteDecoration(req, res) {
     try {
       const userId = req.user.userId;
       const restaurantId = parseInt(req.params.id);
-      const tableId = req.params.tableId ? parseInt(req.params.tableId) : null;
+      const decorationId = req.params.decorationId ? parseInt(req.params.decorationId) : null;
 
       if (isNaN(restaurantId)) {
         return res.status(400).json({
@@ -478,7 +435,7 @@ const tableController = {
       if (!access.hasAccess || access.role !== 'owner') {
         return res.status(403).json({
           success: false,
-          message: 'Only restaurant owner can delete tables',
+          message: 'Only restaurant owner can delete decorations',
           code: 'OWNER_ONLY'
         });
       }
@@ -493,46 +450,46 @@ const tableController = {
         });
       }
 
-      if (isNaN(tableId)) {
+      if (isNaN(decorationId)) {
           return res.status(400).json({
             success: false,
-            message: 'Invalid table ID',
+            message: 'Invalid decoration ID',
             code: 'INVALID_ID'
           });
         }
 
-      const deleted = await Table.delete(tableId, restaurant.schema_name);
+      const deleted = await Decoration.delete(decorationId, restaurant.schema_name);
 
       if (!deleted) {
         return res.status(404).json({
           success: false,
-          message: 'Table not found',
+          message: 'Decoration not found',
           code: 'NOT_FOUND'
         });
       }
 
       logger.warn({ 
-        tableId,
+        decorationId,
         restaurantId,
         userId
-      }, 'Table deleted');
+      }, 'Decoration deleted');
 
       res.json({
         success: true,
-        message: 'Table deleted successfully'
+        message: 'Decoration deleted successfully'
       });
 
     } catch (error) {
       logger.error({ 
         err: error, 
         restaurantId: req.params.id,
-        tableId: req.params.tableId,
+        decorationId: req.params.decoration,
         userId: req.user?.userId 
-      }, 'Error deleting table');
+      }, 'Error deleting decorations');
 
       res.status(500).json({
         success: false,
-        message: 'Failed to delete table',
+        message: 'Failed to delete decoration',
         code: 'DELETE_FAILED'
       });
     }
@@ -541,11 +498,11 @@ const tableController = {
 
 
   /**
-   * Delete all tables inside a sala, to be used when user wants to clear table or delete a sala
+   * Delete all decorations inside a sala, to be used when user wants to clear decorations or delete a sala
    * in which case it'll call this function first and the delete the sala record
-   * DELETE /api/restaurants/:id/tables/:salaId
+   * DELETE /api/restaurants/:id/decorations/:salaId
   */
-  async deleteSalaTables(req, res) {
+  async deleteSalaDecorations(req, res) {
     try {
       const userId = req.user.userId;
       const restaurantId = parseInt(req.params.id);
@@ -588,12 +545,12 @@ const tableController = {
           });
         }
 
-      const deleted = await Table.deleteTablesBySala(salaId, restaurant.schema_name);
+      const deleted = await Decoration.deleteDecorationsBySala(salaId, restaurant.schema_name);
 
       if (!deleted) {
         return res.status(404).json({
           success: false,
-          message: 'Table not found',
+          message: 'Decoration not found',
           code: 'NOT_FOUND'
         });
       }
@@ -602,11 +559,11 @@ const tableController = {
         salaId,
         restaurantId,
         userId
-      }, 'Tables deleted');
+      }, 'Decorations deleted');
 
       res.json({
         success: true,
-        message: 'Tables deleted successfully'
+        message: 'Decorations deleted successfully'
       });
 
     } catch (error) {
@@ -615,11 +572,11 @@ const tableController = {
         restaurantId: req.params.id,
         salaId: req.params.salaId,
         userId: req.user?.userId 
-      }, 'Error deleting table');
+      }, 'Error deleting decorations');
 
       res.status(500).json({
         success: false,
-        message: 'Failed to delete table',
+        message: 'Failed to delete decoration',
         code: 'DELETE_FAILED'
       });
     }
@@ -628,4 +585,4 @@ const tableController = {
 
 };
 
-module.exports = tableController;
+module.exports = decorationController;

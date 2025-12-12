@@ -66,7 +66,7 @@ router.patch(
   '/:id',
   requireJSON,
   authenticateToken,
-  rateLimitStrict,
+  rateLimitAPI,
   settingsController.updateSettings
 );
 

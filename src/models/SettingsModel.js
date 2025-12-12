@@ -41,7 +41,7 @@ class Settings {
            SET valore = $1, updated_at = NOW() 
            WHERE chiave = $2 
            RETURNING chiave, valore`,
-          [value, key]
+          [JSON.stringify(value), key]
         );
 
         if (result.rows.length > 0) {

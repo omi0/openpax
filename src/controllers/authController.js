@@ -28,7 +28,7 @@ const ACCESS_COOKIE_OPTIONS = {
 const REFRESH_COOKIE_OPTIONS = {
   ...COOKIE_OPTIONS,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  path: '/api/auth' // Restrict refresh token to auth endpoints
+  path: '/api/auth' // Restrict refresh token to auth endpoints /api/auth
 };
 
 /**

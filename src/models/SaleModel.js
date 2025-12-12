@@ -49,7 +49,7 @@ class Sale {
       const result = await client.query(
         `INSERT INTO ${schemaName}.sale 
          (nome, descrizione, capacita_massima, ordine)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         VALUES ($1, $2, $3, $4)
          RETURNING *`,
         [
           salaData.nome,
