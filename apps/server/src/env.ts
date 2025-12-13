@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+/** "true"/"1"/"yes" → true, "false"/"0"/"no"/"" → false (z.coerce.boolean would make "false" true). */
+const boolString = z
+  .string()
+  .optional()
+  .transform((v) => {
+    if (v === undefined || v.trim() === "") return undefined;
+    return ["1", "true", "yes", "on"].includes(v.trim().toLowerCase());
+  });
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -18,8 +27,8 @@ const envSchema = z.object({
   SMTP_URL: z.string().optional(),
   SMTP_FROM: z.string().optional(),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "silent"]).default("info"),
-  TRUST_PROXY: z.coerce.boolean().default(false),
-  SECURE_COOKIES: z.coerce.boolean().optional(),
+  TRUST_PROXY: boolString.transform((v) => v ?? false),
+  SECURE_COOKIES: boolString,
   /** api = HTTP only, worker = jobs only, all = both (default). */
   ROLE: z.enum(["api", "worker", "all"]).default("all"),
   DASHBOARD_DIST: z.string().optional(),
