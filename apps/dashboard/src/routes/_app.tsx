@@ -7,7 +7,7 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { CalendarDays, LogOut, Plus, Settings } from "lucide-react";
+import { CalendarDays, LogOut, Plus, Settings, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
@@ -83,6 +83,14 @@ function AppLayout() {
                 activeProps={{ className: "bg-zinc-100 font-medium" }}
               >
                 <CalendarDays className="size-4" /> {t("app.today")}
+              </Link>
+              <Link
+                to="/r/$restaurantId/customers"
+                params={{ restaurantId: current.id }}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                activeProps={{ className: "bg-zinc-100 font-medium" }}
+              >
+                <Users className="size-4" /> {t("app.customers")}
               </Link>
               <Link
                 to="/r/$restaurantId/settings"

@@ -1,5 +1,6 @@
 import { availabilityModule } from "./availability/index.js";
 import { bookingsModule } from "./bookings/index.js";
+import { customersModule } from "./customers/index.js";
 import type { SitliModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
 import { restaurantsModule } from "./restaurants/index.js";
@@ -11,5 +12,6 @@ export const modules: SitliModule[] = [
   availabilityModule,
   widgetModule,
   bookingsModule,
+  customersModule,
   notificationsModule,
 ];

@@ -1,5 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { member, restaurant } from "@sitli/db";
 import { createTestDatabase, type TestDatabase } from "@sitli/db/testing";
+import { eq } from "drizzle-orm";
 import { createApp } from "../src/app.js";
 import { buildContext } from "../src/bootstrap.js";
 import type { AppContext, AppEnv } from "../src/context.js";
@@ -223,6 +225,29 @@ export async function createFixture(
     slug: created.body.slug,
     serviceId: service.body.id,
   };
+}
+
+/** Sign up a new user and add them to the fixture's organization with the given role. */
+export async function addMember(
+  t: TestApp,
+  fx: Fixture,
+  role: "owner" | "manager" | "staff",
+  email = `${role}-${Math.random().toString(36).slice(2)}@example.com`,
+): Promise<Session> {
+  const session = await signUp(t, email, `${role} user`);
+  const [r] = await t.ctx.db
+    .select({ organizationId: restaurant.organizationId })
+    .from(restaurant)
+    .where(eq(restaurant.id, fx.restaurantId))
+    .limit(1);
+  if (!r) throw new Error("fixture restaurant missing");
+  await t.ctx.db.insert(member).values({
+    organizationId: r.organizationId,
+    userId: session.userId,
+    role,
+    createdAt: new Date(),
+  });
+  return session;
 }
 
 /** 20:00 Rome on the given date, as an ISO instant. */

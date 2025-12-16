@@ -142,6 +142,7 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   if (q.to) conditions.push(lte(booking.serviceDate, q.to));
   if (q.status && q.status.length > 0) conditions.push(inArray(booking.status, q.status));
   if (q.serviceId) conditions.push(eq(booking.serviceId, q.serviceId));
+  if (q.customerId) conditions.push(eq(booking.customerId, q.customerId));
   if (q.search) {
     const term = `%${q.search}%`;
     const match = or(
@@ -160,7 +161,10 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
       .innerJoin(customer, eq(customer.id, booking.customerId))
       .innerJoin(service, eq(service.id, booking.serviceId))
       .where(where)
-      .orderBy(asc(booking.startsAt), desc(booking.createdAt))
+      .orderBy(
+        q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
+        desc(booking.createdAt),
+      )
       .limit(q.pageSize)
       .offset((q.page - 1) * q.pageSize),
     ctx.db

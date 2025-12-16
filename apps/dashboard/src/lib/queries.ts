@@ -2,6 +2,9 @@ import type {
   AvailabilityResponse,
   BookingDto,
   BookingPolicyDto,
+  CustomerDto,
+  CustomerSort,
+  CustomerTagDto,
   NotificationChannel,
   NotificationLogDto,
   NotificationSettingDto,
@@ -61,6 +64,51 @@ export const bookingsQuery = (id: string, date: string) =>
     queryFn: () =>
       api.get<Paginated<BookingDto>>(`/api/v1/restaurants/${id}/bookings`, { date, pageSize: 200 }),
     refetchInterval: 30_000,
+  });
+
+export interface CustomersParams {
+  search?: string;
+  tag?: string;
+  sort?: CustomerSort;
+  page?: number;
+}
+
+export const customersQuery = (id: string, params: CustomersParams) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "customers", params],
+    queryFn: () =>
+      api.get<Paginated<CustomerDto>>(`/api/v1/restaurants/${id}/customers`, {
+        search: params.search || undefined,
+        tag: params.tag || undefined,
+        sort: params.sort,
+        page: params.page,
+        pageSize: 50,
+      }),
+    placeholderData: (prev) => prev,
+  });
+
+export const customerQuery = (id: string, customerId: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "customers", customerId],
+    queryFn: () => api.get<CustomerDto>(`/api/v1/restaurants/${id}/customers/${customerId}`),
+  });
+
+export const customerTagsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "customer-tags"],
+    queryFn: () => api.get<CustomerTagDto[]>(`/api/v1/restaurants/${id}/customers/tags`),
+    staleTime: 60_000,
+  });
+
+export const customerBookingsQuery = (id: string, customerId: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "bookings", { customerId }],
+    queryFn: () =>
+      api.get<Paginated<BookingDto>>(`/api/v1/restaurants/${id}/bookings`, {
+        customerId,
+        order: "desc",
+        pageSize: 100,
+      }),
   });
 
 export const availabilityQuery = (slug: string, date: string, partySize: number) =>

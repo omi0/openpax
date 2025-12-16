@@ -7,7 +7,6 @@ import { expect, test } from "@playwright/test";
  */
 test("owner onboards, guest books through the widget, booking appears on Today", async ({
   page,
-  request,
   baseURL,
 }) => {
   const email = `owner-${Date.now()}@example.com`;
@@ -40,7 +39,9 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   await emailCard.getByLabel("Choose a provider").selectOption("console-email");
   await emailCard.getByRole("button", { name: "Save" }).click();
   // the form reloads with the stored configuration; the scope badge confirms the save
-  await expect(emailCard.locator("span.rounded-full", { hasText: "This restaurant" })).toBeVisible();
+  await expect(
+    emailCard.locator("span.rounded-full", { hasText: "This restaurant" }),
+  ).toBeVisible();
 
   // --- guest books through the hosted widget page
   const guest = await page.context().newPage();

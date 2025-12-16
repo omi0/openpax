@@ -21,7 +21,8 @@
     "error": "Something went wrong",
     "confirmDelete": "Delete this item?",
     "restaurants": "Restaurants",
-    "newRestaurant": "New restaurant"
+    "newRestaurant": "New restaurant",
+    "customers": "Customers"
   },
   "auth": {
     "login": "Log in",
@@ -103,7 +104,8 @@
       "create": "Create booking"
     },
     "notifications": "Notifications",
-    "noNotifications": "No notifications yet."
+    "noNotifications": "No notifications yet.",
+    "viewProfile": "Guest profile"
   },
   "services": {
     "title": "Services",
@@ -155,7 +157,10 @@
       "booking.modified": "Booking modified",
       "booking.reminder": "Reminder before arrival"
     },
-    "audience": { "guest": "Guest", "restaurant": "Restaurant" },
+    "audience": {
+      "guest": "Guest",
+      "restaurant": "Restaurant"
+    },
     "hoursBefore": "hours before",
     "rulesHint": "Choose which messages go out on each channel. SMS only works once an SMS provider is configured."
   },
@@ -190,5 +195,57 @@
     "fri": "Fri",
     "sat": "Sat",
     "sun": "Sun"
+  },
+  "customers": {
+    "title": "Customers",
+    "count": "{{count}} guests",
+    "search": "Search by name, email or phone",
+    "empty": "No guests yet. They appear here after their first booking.",
+    "noResults": "No guests match this search.",
+    "sort": {
+      "recent": "Last visit",
+      "name": "Name",
+      "visits": "Most visits",
+      "created": "Newest"
+    },
+    "columns": {
+      "name": "Name",
+      "contact": "Contact",
+      "visits": "Visits",
+      "noShows": "No-shows",
+      "lastVisit": "Last visit"
+    },
+    "allTags": "All tags",
+    "never": "Never",
+    "page": "Page {{page}} of {{pages}}",
+    "prev": "Previous",
+    "next": "Next",
+    "back": "All customers",
+    "profile": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "language": "Language",
+    "languageUnknown": "Not set",
+    "marketing": "Accepts marketing messages",
+    "notes": "Internal notes",
+    "notesHint": "Only staff can see this: allergies, preferences, seating wishes.",
+    "tags": "Tags",
+    "addTag": "Add a tag",
+    "tagHint": "Press Enter to add. Tags help you filter regulars, VIPs, allergies…",
+    "stats": {
+      "visits": "Visits",
+      "noShows": "No-shows",
+      "bookings": "Bookings",
+      "lastVisit": "Last visit",
+      "since": "Guest since"
+    },
+    "history": "Booking history",
+    "noHistory": "No bookings yet.",
+    "delete": "Delete guest",
+    "deleteHint": "Removes contact details, notes and tags. Bookings are kept under an anonymous guest.",
+    "confirmDelete": "Delete this guest and their personal data?",
+    "duplicate": "Another guest already uses this {{field}}.",
+    "invalidPhone": "The phone number is not valid."
   }
 }

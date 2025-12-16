@@ -37,6 +37,18 @@ export const updateCustomerInputSchema = z.object({
 });
 export type UpdateCustomerInput = z.infer<typeof updateCustomerInputSchema>;
 
+export const CUSTOMER_SORTS = ["recent", "name", "visits", "created"] as const;
+export type CustomerSort = (typeof CUSTOMER_SORTS)[number];
+
 export const listCustomersQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(100).optional(),
+  tag: z.string().trim().min(1).max(40).optional(),
+  sort: z.enum(CUSTOMER_SORTS).default("recent"),
 });
+export type ListCustomersQuery = z.infer<typeof listCustomersQuerySchema>;
+
+export const customerTagDtoSchema = z.object({
+  tag: z.string(),
+  count: z.number().int(),
+});
+export type CustomerTagDto = z.infer<typeof customerTagDtoSchema>;

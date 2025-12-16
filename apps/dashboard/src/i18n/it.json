@@ -21,7 +21,8 @@
     "error": "Qualcosa è andato storto",
     "confirmDelete": "Eliminare questo elemento?",
     "restaurants": "Ristoranti",
-    "newRestaurant": "Nuovo ristorante"
+    "newRestaurant": "Nuovo ristorante",
+    "customers": "Clienti"
   },
   "auth": {
     "login": "Accedi",
@@ -103,7 +104,8 @@
       "create": "Crea prenotazione"
     },
     "notifications": "Notifiche",
-    "noNotifications": "Nessuna notifica ancora."
+    "noNotifications": "Nessuna notifica ancora.",
+    "viewProfile": "Scheda ospite"
   },
   "services": {
     "title": "Servizi",
@@ -155,7 +157,10 @@
       "booking.modified": "Prenotazione modificata",
       "booking.reminder": "Promemoria prima dell'arrivo"
     },
-    "audience": { "guest": "Ospite", "restaurant": "Ristorante" },
+    "audience": {
+      "guest": "Ospite",
+      "restaurant": "Ristorante"
+    },
     "hoursBefore": "ore prima",
     "rulesHint": "Scegli quali messaggi partono su ogni canale. Gli SMS funzionano solo con un provider SMS configurato."
   },
@@ -190,5 +195,57 @@
     "fri": "Ven",
     "sat": "Sab",
     "sun": "Dom"
+  },
+  "customers": {
+    "title": "Clienti",
+    "count": "{{count}} ospiti",
+    "search": "Cerca per nome, email o telefono",
+    "empty": "Nessun ospite ancora. Compaiono qui dopo la prima prenotazione.",
+    "noResults": "Nessun ospite corrisponde alla ricerca.",
+    "sort": {
+      "recent": "Ultima visita",
+      "name": "Nome",
+      "visits": "Più visite",
+      "created": "Più recenti"
+    },
+    "columns": {
+      "name": "Nome",
+      "contact": "Contatti",
+      "visits": "Visite",
+      "noShows": "No-show",
+      "lastVisit": "Ultima visita"
+    },
+    "allTags": "Tutti i tag",
+    "never": "Mai",
+    "page": "Pagina {{page}} di {{pages}}",
+    "prev": "Precedente",
+    "next": "Successiva",
+    "back": "Tutti i clienti",
+    "profile": "Scheda",
+    "name": "Nome",
+    "email": "Email",
+    "phone": "Telefono",
+    "language": "Lingua",
+    "languageUnknown": "Non impostata",
+    "marketing": "Accetta comunicazioni promozionali",
+    "notes": "Note interne",
+    "notesHint": "Visibili solo allo staff: allergie, preferenze, tavolo preferito.",
+    "tags": "Tag",
+    "addTag": "Aggiungi un tag",
+    "tagHint": "Premi Invio per aggiungere. I tag servono a filtrare habitué, VIP, allergie…",
+    "stats": {
+      "visits": "Visite",
+      "noShows": "No-show",
+      "bookings": "Prenotazioni",
+      "lastVisit": "Ultima visita",
+      "since": "Cliente dal"
+    },
+    "history": "Storico prenotazioni",
+    "noHistory": "Nessuna prenotazione ancora.",
+    "delete": "Elimina ospite",
+    "deleteHint": "Rimuove contatti, note e tag. Le prenotazioni restano intestate a un ospite anonimo.",
+    "confirmDelete": "Eliminare questo ospite e i suoi dati personali?",
+    "duplicate": "Un altro ospite usa già questo {{field}}.",
+    "invalidPhone": "Il numero di telefono non è valido."
   }
 }

@@ -33,9 +33,12 @@ export function formatDate(
 }
 
 export function formatTime(iso: string, timeZone: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone }).format(
-    new Date(iso),
-  );
+  return new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(new Date(iso));
 }
 
 export function formatDateTime(iso: string, timeZone: string, locale: string): string {

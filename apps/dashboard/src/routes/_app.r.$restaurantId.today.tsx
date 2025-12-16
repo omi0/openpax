@@ -1,7 +1,7 @@
 import type { BookingAction } from "@sitli/core";
 import type { BookingDto } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Phone, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -179,6 +179,13 @@ function BookingDetails({ restaurantId, booking }: { restaurantId: string; booki
           <span className="font-mono">{booking.confirmationCode}</span>
         </p>
         {booking.customer.email ? <p className="text-zinc-600">{booking.customer.email}</p> : null}
+        <Link
+          to="/r/$restaurantId/customers/$customerId"
+          params={{ restaurantId, customerId: booking.customer.id }}
+          className="mt-1 inline-block text-brand hover:underline"
+        >
+          {t("today.viewProfile")}
+        </Link>
       </div>
       <div>
         <p className="mb-1 text-zinc-500">{t("today.notifications")}</p>

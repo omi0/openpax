@@ -140,6 +140,9 @@ export const listBookingsQuerySchema = paginationQuerySchema.extend({
     .transform((v) => (Array.isArray(v) ? v : [v]))
     .optional(),
   serviceId: idSchema.optional(),
+  customerId: idSchema.optional(),
   search: z.string().trim().max(100).optional(),
+  /** Chronological by default; "desc" for history views. */
+  order: z.enum(["asc", "desc"]).default("asc"),
 });
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;
