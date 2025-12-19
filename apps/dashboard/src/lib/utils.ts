@@ -52,3 +52,15 @@ export function formatDateTime(iso: string, timeZone: string, locale: string): s
     timeZone,
   }).format(new Date(iso));
 }
+
+/** Monday of the week containing `date` (YYYY-MM-DD). */
+export function startOfWeek(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const dow = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1)).getUTCDay();
+  return addDays(date, -((dow + 6) % 7));
+}
+
+/** Inclusive day range as YYYY-MM-DD strings. */
+export function dateRange(start: string, days: number): string[] {
+  return Array.from({ length: days }, (_, i) => addDays(start, i));
+}

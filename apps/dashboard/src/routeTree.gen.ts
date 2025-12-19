@@ -16,6 +16,7 @@ import { Route as SignupRouteImport } from "./routes/signup";
 import { Route as AppOnboardingRouteImport } from "./routes/_app.onboarding";
 import { Route as AppRRestaurantIdRouteImport } from "./routes/_app.r.$restaurantId";
 import { Route as AppRRestaurantIdIndexRouteImport } from "./routes/_app.r.$restaurantId.index";
+import { Route as AppRRestaurantIdCalendarRouteImport } from "./routes/_app.r.$restaurantId.calendar";
 import { Route as AppRRestaurantIdSettingsRouteImport } from "./routes/_app.r.$restaurantId.settings";
 import { Route as AppRRestaurantIdTodayRouteImport } from "./routes/_app.r.$restaurantId.today";
 import { Route as AppRRestaurantIdCustomersIndexRouteImport } from "./routes/_app.r.$restaurantId.customers.index";
@@ -59,6 +60,12 @@ const AppRRestaurantIdIndexRoute = AppRRestaurantIdIndexRouteImport.update({
   path: "/",
   getParentRoute: () => AppRRestaurantIdRoute,
 } as any);
+const AppRRestaurantIdCalendarRoute =
+  AppRRestaurantIdCalendarRouteImport.update({
+    id: "/calendar",
+    path: "/calendar",
+    getParentRoute: () => AppRRestaurantIdRoute,
+  } as any);
 const AppRRestaurantIdSettingsRoute =
   AppRRestaurantIdSettingsRouteImport.update({
     id: "/settings",
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
   "/signup": typeof SignupRoute;
   "/onboarding": typeof AppOnboardingRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
+  "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/onboarding": typeof AppOnboardingRoute;
+  "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
@@ -145,6 +154,7 @@ export interface FileRoutesById {
   "/signup": typeof SignupRoute;
   "/_app/onboarding": typeof AppOnboardingRoute;
   "/_app/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
+  "/_app/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/_app/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
   "/_app/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/_app/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | "/signup"
     | "/onboarding"
     | "/r/$restaurantId"
+    | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/settings"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId/"
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/onboarding"
+    | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId"
     | "/r/$restaurantId/customers/$customerId"
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
     | "/signup"
     | "/_app/onboarding"
     | "/_app/r/$restaurantId"
+    | "/_app/r/$restaurantId/calendar"
     | "/_app/r/$restaurantId/settings"
     | "/_app/r/$restaurantId/today"
     | "/_app/r/$restaurantId/"
@@ -261,6 +274,13 @@ declare module "@tanstack/react-router" {
       path: "/";
       fullPath: "/r/$restaurantId/";
       preLoaderRoute: typeof AppRRestaurantIdIndexRouteImport;
+      parentRoute: typeof AppRRestaurantIdRoute;
+    };
+    "/_app/r/$restaurantId/calendar": {
+      id: "/_app/r/$restaurantId/calendar";
+      path: "/calendar";
+      fullPath: "/r/$restaurantId/calendar";
+      preLoaderRoute: typeof AppRRestaurantIdCalendarRouteImport;
       parentRoute: typeof AppRRestaurantIdRoute;
     };
     "/_app/r/$restaurantId/settings": {
@@ -345,6 +365,7 @@ const AppRRestaurantIdSettingsRouteWithChildren =
   );
 
 interface AppRRestaurantIdRouteChildren {
+  AppRRestaurantIdCalendarRoute: typeof AppRRestaurantIdCalendarRoute;
   AppRRestaurantIdSettingsRoute: typeof AppRRestaurantIdSettingsRouteWithChildren;
   AppRRestaurantIdTodayRoute: typeof AppRRestaurantIdTodayRoute;
   AppRRestaurantIdIndexRoute: typeof AppRRestaurantIdIndexRoute;
@@ -353,6 +374,7 @@ interface AppRRestaurantIdRouteChildren {
 }
 
 const AppRRestaurantIdRouteChildren: AppRRestaurantIdRouteChildren = {
+  AppRRestaurantIdCalendarRoute: AppRRestaurantIdCalendarRoute,
   AppRRestaurantIdSettingsRoute: AppRRestaurantIdSettingsRouteWithChildren,
   AppRRestaurantIdTodayRoute: AppRRestaurantIdTodayRoute,
   AppRRestaurantIdIndexRoute: AppRRestaurantIdIndexRoute,

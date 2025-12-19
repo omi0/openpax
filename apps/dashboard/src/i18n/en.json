@@ -22,7 +22,8 @@
     "confirmDelete": "Delete this item?",
     "restaurants": "Restaurants",
     "newRestaurant": "New restaurant",
-    "customers": "Customers"
+    "customers": "Customers",
+    "calendar": "Calendar"
   },
   "auth": {
     "login": "Log in",
@@ -247,5 +248,16 @@
     "confirmDelete": "Delete this guest and their personal data?",
     "duplicate": "Another guest already uses this {{field}}.",
     "invalidPhone": "The phone number is not valid."
+  },
+  "calendar": {
+    "title": "Week",
+    "prev": "Previous week",
+    "next": "Next week",
+    "thisWeek": "This week",
+    "closed": "Closed",
+    "customHours": "Special hours",
+    "noBookings": "—",
+    "weekTotal": "{{bookings}} bookings · {{covers}} covers this week",
+    "openDay": "Open day view"
   }
 }

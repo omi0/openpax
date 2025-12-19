@@ -22,7 +22,8 @@
     "confirmDelete": "Eliminare questo elemento?",
     "restaurants": "Ristoranti",
     "newRestaurant": "Nuovo ristorante",
-    "customers": "Clienti"
+    "customers": "Clienti",
+    "calendar": "Calendario"
   },
   "auth": {
     "login": "Accedi",
@@ -247,5 +248,16 @@
     "confirmDelete": "Eliminare questo ospite e i suoi dati personali?",
     "duplicate": "Un altro ospite usa già questo {{field}}.",
     "invalidPhone": "Il numero di telefono non è valido."
+  },
+  "calendar": {
+    "title": "Settimana",
+    "prev": "Settimana precedente",
+    "next": "Settimana successiva",
+    "thisWeek": "Questa settimana",
+    "closed": "Chiuso",
+    "customHours": "Orario speciale",
+    "noBookings": "—",
+    "weekTotal": "{{bookings}} prenotazioni · {{covers}} coperti questa settimana",
+    "openDay": "Apri il giorno"
   }
 }

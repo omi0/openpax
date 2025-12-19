@@ -1,7 +1,9 @@
 import type {
+  AreaDto,
   AvailabilityResponse,
   BookingDto,
   BookingPolicyDto,
+  CapacityRuleDto,
   CustomerDto,
   CustomerSort,
   CustomerTagDto,
@@ -12,6 +14,7 @@ import type {
   ProviderDescriptorDto,
   RestaurantDto,
   RestaurantSummaryDto,
+  ScheduleExceptionDto,
   ServiceDto,
   WidgetConfigDto,
 } from "@sitli/shared";
@@ -37,6 +40,24 @@ export const servicesQuery = (id: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "services"],
     queryFn: () => api.get<ServiceDto[]>(`/api/v1/restaurants/${id}/services`),
+  });
+
+export const areasQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "areas"],
+    queryFn: () => api.get<AreaDto[]>(`/api/v1/restaurants/${id}/areas`),
+  });
+
+export const exceptionsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "schedule-exceptions"],
+    queryFn: () => api.get<ScheduleExceptionDto[]>(`/api/v1/restaurants/${id}/schedule-exceptions`),
+  });
+
+export const capacityRulesQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "capacity-rules"],
+    queryFn: () => api.get<CapacityRuleDto[]>(`/api/v1/restaurants/${id}/capacity-rules`),
   });
 
 export const policyQuery = (id: string) =>
