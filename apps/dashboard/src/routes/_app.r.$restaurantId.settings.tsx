@@ -10,6 +10,7 @@ function SettingsLayout() {
   const { restaurantId } = Route.useParams();
   const tabs = [
     { to: "/r/$restaurantId/settings/services", label: t("services.title") },
+    { to: "/r/$restaurantId/settings/closures", label: t("closures.title") },
     { to: "/r/$restaurantId/settings/notifications", label: t("notifications.title") },
     { to: "/r/$restaurantId/settings/widget", label: t("widget.title") },
   ] as const;

@@ -22,6 +22,7 @@ import { Route as AppRRestaurantIdTodayRouteImport } from "./routes/_app.r.$rest
 import { Route as AppRRestaurantIdCustomersIndexRouteImport } from "./routes/_app.r.$restaurantId.customers.index";
 import { Route as AppRRestaurantIdCustomersCustomerIdRouteImport } from "./routes/_app.r.$restaurantId.customers.$customerId";
 import { Route as AppRRestaurantIdSettingsIndexRouteImport } from "./routes/_app.r.$restaurantId.settings.index";
+import { Route as AppRRestaurantIdSettingsClosuresRouteImport } from "./routes/_app.r.$restaurantId.settings.closures";
 import { Route as AppRRestaurantIdSettingsNotificationsRouteImport } from "./routes/_app.r.$restaurantId.settings.notifications";
 import { Route as AppRRestaurantIdSettingsServicesRouteImport } from "./routes/_app.r.$restaurantId.settings.services";
 import { Route as AppRRestaurantIdSettingsWidgetRouteImport } from "./routes/_app.r.$restaurantId.settings.widget";
@@ -95,6 +96,12 @@ const AppRRestaurantIdSettingsIndexRoute =
     path: "/",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsClosuresRoute =
+  AppRRestaurantIdSettingsClosuresRouteImport.update({
+    id: "/closures",
+    path: "/closures",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsNotificationsRoute =
   AppRRestaurantIdSettingsNotificationsRouteImport.update({
     id: "/notifications",
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
@@ -140,6 +148,7 @@ export interface FileRoutesByTo {
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
@@ -159,6 +168,7 @@ export interface FileRoutesById {
   "/_app/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/_app/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/_app/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/_app/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/_app/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/_app/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/_app/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/today"
     | "/r/$restaurantId/"
     | "/r/$restaurantId/customers/$customerId"
+    | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/services"
     | "/r/$restaurantId/settings/widget"
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/today"
     | "/r/$restaurantId"
     | "/r/$restaurantId/customers/$customerId"
+    | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/services"
     | "/r/$restaurantId/settings/widget"
@@ -211,6 +223,7 @@ export interface FileRouteTypes {
     | "/_app/r/$restaurantId/today"
     | "/_app/r/$restaurantId/"
     | "/_app/r/$restaurantId/customers/$customerId"
+    | "/_app/r/$restaurantId/settings/closures"
     | "/_app/r/$restaurantId/settings/notifications"
     | "/_app/r/$restaurantId/settings/services"
     | "/_app/r/$restaurantId/settings/widget"
@@ -318,6 +331,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsIndexRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/closures": {
+      id: "/_app/r/$restaurantId/settings/closures";
+      path: "/closures";
+      fullPath: "/r/$restaurantId/settings/closures";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsClosuresRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/notifications": {
       id: "/_app/r/$restaurantId/settings/notifications";
       path: "/notifications";
@@ -343,6 +363,7 @@ declare module "@tanstack/react-router" {
 }
 
 interface AppRRestaurantIdSettingsRouteChildren {
+  AppRRestaurantIdSettingsClosuresRoute: typeof AppRRestaurantIdSettingsClosuresRoute;
   AppRRestaurantIdSettingsNotificationsRoute: typeof AppRRestaurantIdSettingsNotificationsRoute;
   AppRRestaurantIdSettingsServicesRoute: typeof AppRRestaurantIdSettingsServicesRoute;
   AppRRestaurantIdSettingsWidgetRoute: typeof AppRRestaurantIdSettingsWidgetRoute;
@@ -351,6 +372,8 @@ interface AppRRestaurantIdSettingsRouteChildren {
 
 const AppRRestaurantIdSettingsRouteChildren: AppRRestaurantIdSettingsRouteChildren =
   {
+    AppRRestaurantIdSettingsClosuresRoute:
+      AppRRestaurantIdSettingsClosuresRoute,
     AppRRestaurantIdSettingsNotificationsRoute:
       AppRRestaurantIdSettingsNotificationsRoute,
     AppRRestaurantIdSettingsServicesRoute:
