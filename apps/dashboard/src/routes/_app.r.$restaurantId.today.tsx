@@ -2,9 +2,10 @@ import type { BookingAction } from "@sitli/core";
 import type { BookingDto } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Phone, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Phone, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
 import { Badge, Button, EmptyState, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -40,6 +41,7 @@ function TodayPage() {
   const bookings = useQuery(bookingsQuery(restaurantId, date));
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editing, setEditing] = useState<BookingDto | null>(null);
 
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
@@ -133,6 +135,17 @@ function TodayPage() {
                 <Badge tone={b.status}>{t(`today.status.${b.status}`)}</Badge>
                 <span className="text-xs text-zinc-400">{t(`today.source.${b.source}`)}</span>
                 <div className="flex gap-1">
+                  {["pending", "confirmed", "seated"].includes(b.status) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={t("today.edit")}
+                      title={t("today.edit")}
+                      onClick={() => setEditing(b)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  ) : null}
                   {actionsFor[b.status]?.map((action) => (
                     <Button
                       key={action}
@@ -164,6 +177,16 @@ function TodayPage() {
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}
       />
+      {editing ? (
+        <BookingEditDialog
+          key={editing.id}
+          restaurant={restaurant}
+          booking={editing}
+          open
+          onClose={() => setEditing(null)}
+          canOverride={role !== "staff"}
+        />
+      ) : null}
     </div>
   );
 }

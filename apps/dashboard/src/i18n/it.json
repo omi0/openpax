@@ -102,11 +102,28 @@
       "ignoreCapacity": "Ignora i limiti di capienza",
       "noSlots": "Nessun orario in questa data",
       "full": "completo",
-      "create": "Crea prenotazione"
+      "create": "Crea prenotazione",
+      "save": "Salva modifiche",
+      "current": "attuale",
+      "reason": {
+        "closed": "chiuso",
+        "no_service": "nessun servizio",
+        "in_past": "nel passato",
+        "outside_lead_time": "preavviso insufficiente",
+        "too_far_ahead": "troppo in anticipo",
+        "party_too_small": "gruppo troppo piccolo",
+        "party_too_large": "gruppo troppo grande",
+        "full": "completo",
+        "not_a_slot": "orario non prenotabile"
+      },
+      "slotUnavailable": "Quell'orario non è disponibile: {{reason}}.",
+      "noChanges": "Nessuna modifica."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
-    "viewProfile": "Scheda ospite"
+    "viewProfile": "Scheda ospite",
+    "edit": "Modifica",
+    "editBooking": "Modifica prenotazione"
   },
   "services": {
     "title": "Servizi",

@@ -102,11 +102,28 @@
       "ignoreCapacity": "Ignore capacity limits",
       "noSlots": "No slots on this date",
       "full": "full",
-      "create": "Create booking"
+      "create": "Create booking",
+      "save": "Save changes",
+      "current": "current",
+      "reason": {
+        "closed": "closed",
+        "no_service": "no service",
+        "in_past": "in the past",
+        "outside_lead_time": "too short notice",
+        "too_far_ahead": "too far ahead",
+        "party_too_small": "party too small",
+        "party_too_large": "party too large",
+        "full": "full",
+        "not_a_slot": "not a bookable time"
+      },
+      "slotUnavailable": "That time is not available: {{reason}}.",
+      "noChanges": "Nothing changed."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
-    "viewProfile": "Guest profile"
+    "viewProfile": "Guest profile",
+    "edit": "Edit",
+    "editBooking": "Edit booking"
   },
   "services": {
     "title": "Services",
