@@ -1,4 +1,5 @@
 import type {
+  ApiKeyDto,
   AreaDto,
   AvailabilityResponse,
   BookingDto,
@@ -12,10 +13,12 @@ import type {
   NotificationSettingDto,
   ProviderConfigDto,
   ProviderDescriptorDto,
+  PublicInvitationDto,
   RestaurantDto,
   RestaurantSummaryDto,
   ScheduleExceptionDto,
   ServiceDto,
+  TeamDto,
   WidgetConfigDto,
 } from "@sitli/shared";
 import { queryOptions } from "@tanstack/react-query";
@@ -176,4 +179,23 @@ export const bookingNotificationsQuery = (id: string, bookingId: string) =>
       const rows = query.state.data;
       return !rows || rows.length === 0 || rows.some((n) => n.status === "queued") ? 3_000 : false;
     },
+  });
+
+export const teamQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "team"],
+    queryFn: () => api.get<TeamDto>(`/api/v1/restaurants/${id}/team`),
+  });
+
+export const apiKeysQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "api-keys"],
+    queryFn: () => api.get<ApiKeyDto[]>(`/api/v1/restaurants/${id}/api-keys`),
+  });
+
+export const invitationQuery = (invitationId: string) =>
+  queryOptions({
+    queryKey: ["invitation", invitationId],
+    queryFn: () => api.get<PublicInvitationDto>(`/api/v1/invitations/${invitationId}`),
+    retry: false,
   });

@@ -4,12 +4,17 @@ import { useTranslation } from "react-i18next";
 import { AuthLayout } from "@/components/auth-layout";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { authSearch } from "@/lib/auth-search";
 
-export const Route = createFileRoute("/signup")({ component: SignupPage });
+export const Route = createFileRoute("/signup")({
+  validateSearch: authSearch,
+  component: SignupPage,
+});
 
 function SignupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { redirect, email } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -28,7 +33,7 @@ function SignupPage() {
       setError(res.error.message ?? t("app.error"));
       return;
     }
-    await navigate({ to: "/onboarding" });
+    await navigate({ to: redirect ?? "/onboarding" });
   };
 
   return (
@@ -38,7 +43,7 @@ function SignupPage() {
       footer={
         <>
           {t("auth.haveAccount")}{" "}
-          <Link to="/login" className="font-medium text-brand">
+          <Link to="/login" search={{ redirect, email }} className="font-medium text-brand">
             {t("auth.login")}
           </Link>
         </>
@@ -49,7 +54,7 @@ function SignupPage() {
           <Input name="name" required autoComplete="name" />
         </Field>
         <Field label={t("auth.email")}>
-          <Input name="email" type="email" required autoComplete="email" />
+          <Input name="email" type="email" required autoComplete="email" defaultValue={email} />
         </Field>
         <Field label={t("auth.password")}>
           <Input

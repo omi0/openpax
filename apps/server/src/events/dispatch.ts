@@ -66,7 +66,7 @@ export async function relayOutboxOnce(
         type: row.type,
         version: 1,
         occurredAt: row.occurredAt.toISOString(),
-        restaurantId: row.restaurantId ?? "",
+        restaurantId: row.restaurantId,
         payload: row.payload as never,
       };
       try {

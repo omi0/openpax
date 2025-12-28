@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from "./routes/_app";
 import { Route as LoginRouteImport } from "./routes/login";
 import { Route as SignupRouteImport } from "./routes/signup";
 import { Route as AppOnboardingRouteImport } from "./routes/_app.onboarding";
+import { Route as InvitationsInvitationIdRouteImport } from "./routes/invitations.$invitationId";
 import { Route as AppRRestaurantIdRouteImport } from "./routes/_app.r.$restaurantId";
 import { Route as AppRRestaurantIdIndexRouteImport } from "./routes/_app.r.$restaurantId.index";
 import { Route as AppRRestaurantIdCalendarRouteImport } from "./routes/_app.r.$restaurantId.calendar";
@@ -22,9 +23,11 @@ import { Route as AppRRestaurantIdTodayRouteImport } from "./routes/_app.r.$rest
 import { Route as AppRRestaurantIdCustomersIndexRouteImport } from "./routes/_app.r.$restaurantId.customers.index";
 import { Route as AppRRestaurantIdCustomersCustomerIdRouteImport } from "./routes/_app.r.$restaurantId.customers.$customerId";
 import { Route as AppRRestaurantIdSettingsIndexRouteImport } from "./routes/_app.r.$restaurantId.settings.index";
+import { Route as AppRRestaurantIdSettingsApiKeysRouteImport } from "./routes/_app.r.$restaurantId.settings.api-keys";
 import { Route as AppRRestaurantIdSettingsClosuresRouteImport } from "./routes/_app.r.$restaurantId.settings.closures";
 import { Route as AppRRestaurantIdSettingsNotificationsRouteImport } from "./routes/_app.r.$restaurantId.settings.notifications";
 import { Route as AppRRestaurantIdSettingsServicesRouteImport } from "./routes/_app.r.$restaurantId.settings.services";
+import { Route as AppRRestaurantIdSettingsTeamRouteImport } from "./routes/_app.r.$restaurantId.settings.team";
 import { Route as AppRRestaurantIdSettingsWidgetRouteImport } from "./routes/_app.r.$restaurantId.settings.widget";
 
 const IndexRoute = IndexRouteImport.update({
@@ -50,6 +53,11 @@ const AppOnboardingRoute = AppOnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
   getParentRoute: () => AppRoute,
+} as any);
+const InvitationsInvitationIdRoute = InvitationsInvitationIdRouteImport.update({
+  id: "/invitations/$invitationId",
+  path: "/invitations/$invitationId",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const AppRRestaurantIdRoute = AppRRestaurantIdRouteImport.update({
   id: "/r/$restaurantId",
@@ -96,6 +104,12 @@ const AppRRestaurantIdSettingsIndexRoute =
     path: "/",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsApiKeysRoute =
+  AppRRestaurantIdSettingsApiKeysRouteImport.update({
+    id: "/api-keys",
+    path: "/api-keys",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsClosuresRoute =
   AppRRestaurantIdSettingsClosuresRouteImport.update({
     id: "/closures",
@@ -114,6 +128,12 @@ const AppRRestaurantIdSettingsServicesRoute =
     path: "/services",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsTeamRoute =
+  AppRRestaurantIdSettingsTeamRouteImport.update({
+    id: "/team",
+    path: "/team",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsWidgetRoute =
   AppRRestaurantIdSettingsWidgetRouteImport.update({
     id: "/widget",
@@ -126,15 +146,18 @@ export interface FileRoutesByFullPath {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/onboarding": typeof AppOnboardingRoute;
+  "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/r/$restaurantId/customers/": typeof AppRRestaurantIdCustomersIndexRoute;
   "/r/$restaurantId/settings/": typeof AppRRestaurantIdSettingsIndexRoute;
@@ -144,13 +167,16 @@ export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/onboarding": typeof AppOnboardingRoute;
+  "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/r/$restaurantId/customers": typeof AppRRestaurantIdCustomersIndexRoute;
   "/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsIndexRoute;
@@ -162,15 +188,18 @@ export interface FileRoutesById {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/_app/onboarding": typeof AppOnboardingRoute;
+  "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
   "/_app/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
   "/_app/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/_app/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
   "/_app/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/_app/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/_app/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
+  "/_app/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/_app/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/_app/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/_app/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/_app/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/_app/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/_app/r/$restaurantId/customers/": typeof AppRRestaurantIdCustomersIndexRoute;
   "/_app/r/$restaurantId/settings/": typeof AppRRestaurantIdSettingsIndexRoute;
@@ -182,15 +211,18 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/onboarding"
+    | "/invitations/$invitationId"
     | "/r/$restaurantId"
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/settings"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId/"
     | "/r/$restaurantId/customers/$customerId"
+    | "/r/$restaurantId/settings/api-keys"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/services"
+    | "/r/$restaurantId/settings/team"
     | "/r/$restaurantId/settings/widget"
     | "/r/$restaurantId/customers/"
     | "/r/$restaurantId/settings/";
@@ -200,13 +232,16 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/onboarding"
+    | "/invitations/$invitationId"
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId"
     | "/r/$restaurantId/customers/$customerId"
+    | "/r/$restaurantId/settings/api-keys"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/services"
+    | "/r/$restaurantId/settings/team"
     | "/r/$restaurantId/settings/widget"
     | "/r/$restaurantId/customers"
     | "/r/$restaurantId/settings";
@@ -217,15 +252,18 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/_app/onboarding"
+    | "/invitations/$invitationId"
     | "/_app/r/$restaurantId"
     | "/_app/r/$restaurantId/calendar"
     | "/_app/r/$restaurantId/settings"
     | "/_app/r/$restaurantId/today"
     | "/_app/r/$restaurantId/"
     | "/_app/r/$restaurantId/customers/$customerId"
+    | "/_app/r/$restaurantId/settings/api-keys"
     | "/_app/r/$restaurantId/settings/closures"
     | "/_app/r/$restaurantId/settings/notifications"
     | "/_app/r/$restaurantId/settings/services"
+    | "/_app/r/$restaurantId/settings/team"
     | "/_app/r/$restaurantId/settings/widget"
     | "/_app/r/$restaurantId/customers/"
     | "/_app/r/$restaurantId/settings/";
@@ -236,6 +274,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren;
   LoginRoute: typeof LoginRoute;
   SignupRoute: typeof SignupRoute;
+  InvitationsInvitationIdRoute: typeof InvitationsInvitationIdRoute;
 }
 
 declare module "@tanstack/react-router" {
@@ -274,6 +313,13 @@ declare module "@tanstack/react-router" {
       fullPath: "/onboarding";
       preLoaderRoute: typeof AppOnboardingRouteImport;
       parentRoute: typeof AppRoute;
+    };
+    "/invitations/$invitationId": {
+      id: "/invitations/$invitationId";
+      path: "/invitations/$invitationId";
+      fullPath: "/invitations/$invitationId";
+      preLoaderRoute: typeof InvitationsInvitationIdRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     "/_app/r/$restaurantId": {
       id: "/_app/r/$restaurantId";
@@ -331,6 +377,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsIndexRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/api-keys": {
+      id: "/_app/r/$restaurantId/settings/api-keys";
+      path: "/api-keys";
+      fullPath: "/r/$restaurantId/settings/api-keys";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsApiKeysRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/closures": {
       id: "/_app/r/$restaurantId/settings/closures";
       path: "/closures";
@@ -352,6 +405,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsServicesRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/team": {
+      id: "/_app/r/$restaurantId/settings/team";
+      path: "/team";
+      fullPath: "/r/$restaurantId/settings/team";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsTeamRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/widget": {
       id: "/_app/r/$restaurantId/settings/widget";
       path: "/widget";
@@ -363,21 +423,25 @@ declare module "@tanstack/react-router" {
 }
 
 interface AppRRestaurantIdSettingsRouteChildren {
+  AppRRestaurantIdSettingsApiKeysRoute: typeof AppRRestaurantIdSettingsApiKeysRoute;
   AppRRestaurantIdSettingsClosuresRoute: typeof AppRRestaurantIdSettingsClosuresRoute;
   AppRRestaurantIdSettingsNotificationsRoute: typeof AppRRestaurantIdSettingsNotificationsRoute;
   AppRRestaurantIdSettingsServicesRoute: typeof AppRRestaurantIdSettingsServicesRoute;
+  AppRRestaurantIdSettingsTeamRoute: typeof AppRRestaurantIdSettingsTeamRoute;
   AppRRestaurantIdSettingsWidgetRoute: typeof AppRRestaurantIdSettingsWidgetRoute;
   AppRRestaurantIdSettingsIndexRoute: typeof AppRRestaurantIdSettingsIndexRoute;
 }
 
 const AppRRestaurantIdSettingsRouteChildren: AppRRestaurantIdSettingsRouteChildren =
   {
+    AppRRestaurantIdSettingsApiKeysRoute: AppRRestaurantIdSettingsApiKeysRoute,
     AppRRestaurantIdSettingsClosuresRoute:
       AppRRestaurantIdSettingsClosuresRoute,
     AppRRestaurantIdSettingsNotificationsRoute:
       AppRRestaurantIdSettingsNotificationsRoute,
     AppRRestaurantIdSettingsServicesRoute:
       AppRRestaurantIdSettingsServicesRoute,
+    AppRRestaurantIdSettingsTeamRoute: AppRRestaurantIdSettingsTeamRoute,
     AppRRestaurantIdSettingsWidgetRoute: AppRRestaurantIdSettingsWidgetRoute,
     AppRRestaurantIdSettingsIndexRoute: AppRRestaurantIdSettingsIndexRoute,
   };
@@ -426,6 +490,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  InvitationsInvitationIdRoute: InvitationsInvitationIdRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

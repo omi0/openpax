@@ -10,6 +10,7 @@ export interface InvitationEmailData {
   id: string;
   email: string;
   role: string;
+  organizationId: string;
   organizationName: string;
   inviterName: string;
   inviterEmail: string;
@@ -58,6 +59,7 @@ export function createAuth(options: CreateAuthOptions) {
             id: data.id,
             email: data.email,
             role: data.role,
+            organizationId: data.organization.id,
             organizationName: data.organization.name,
             inviterName: data.inviter.user.name,
             inviterEmail: data.inviter.user.email,

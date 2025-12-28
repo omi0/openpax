@@ -10,6 +10,12 @@ import {
   type BookingEmailProps,
   bookingEmailText,
 } from "./templates/booking-email.js";
+import {
+  InvitationEmail,
+  type InvitationEmailProps,
+  invitationCopy,
+  invitationEmailText,
+} from "./templates/invitation-email.js";
 
 export interface RenderedEmail {
   subject: string;
@@ -94,4 +100,35 @@ export function renderTestEmail(input: TestEmailInput): RenderedEmail {
     : `This is a test email sent by Sitli through ${input.providerLabel}. If you can read this, your configuration works.`;
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px"><h2 style="color:${input.primaryColor}">${subject}</h2><p>${body}</p></body></html>`;
   return { subject, html, text: `${subject}\n\n${body}` };
+}
+
+export interface InvitationEmailInput {
+  locale: Locale;
+  organizationName: string;
+  inviterName: string;
+  role: string;
+  acceptUrl: string;
+  expiresAt: Date;
+  timezone: string;
+  primaryColor: string;
+  logoUrl?: string | null;
+}
+
+export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmail {
+  const zoned = new TZDate(input.expiresAt.getTime(), input.timezone);
+  const props: InvitationEmailProps = {
+    locale: input.locale,
+    organizationName: input.organizationName,
+    inviterName: input.inviterName,
+    role: input.role,
+    acceptUrl: input.acceptUrl,
+    expiresOn: format(zoned, "d MMMM yyyy, HH:mm", { locale: dateLocales[input.locale] ?? enGB }),
+    primaryColor: input.primaryColor,
+    logoUrl: input.logoUrl,
+  };
+  return {
+    subject: invitationCopy(props).subject,
+    html: `<!DOCTYPE html>${renderToStaticMarkup(createElement(InvitationEmail, props))}`,
+    text: invitationEmailText(props),
+  };
 }

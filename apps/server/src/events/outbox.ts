@@ -5,7 +5,7 @@ import { outboxEvent } from "@sitli/db";
 
 export interface EmitOptions<T extends DomainEventType> {
   type: T;
-  restaurantId: string;
+  restaurantId: string | null;
   aggregateType: string;
   aggregateId: string;
   payload: DomainEventPayloads[T];

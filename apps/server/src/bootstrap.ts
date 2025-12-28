@@ -2,6 +2,7 @@ import { createDb } from "@sitli/db";
 import { createAuth } from "./auth/create-auth.js";
 import type { AppContext } from "./context.js";
 import type { Env } from "./env.js";
+import { emitEvent } from "./events/outbox.js";
 import type { JobQueue } from "./jobs/queue.js";
 import { createSecretBox } from "./lib/crypto.js";
 import type { Logger } from "./logger.js";
@@ -30,11 +31,21 @@ export function buildContext(options: BuildContextOptions): AppContext {
     trustedOrigins: [env.PUBLIC_URL, env.DASHBOARD_ORIGIN].filter((v): v is string => !!v),
     secureCookies: env.SECURE_COOKIES,
     trustProxy: env.TRUST_PROXY,
+    // Better Auth calls this after it stored the invitation; delivery is a
+    // module concern, so hand it to the outbox like any other domain event.
     sendInvitationEmail: async (data) => {
-      logger.info(
-        { email: data.email, organization: data.organizationName },
-        "invitation created (email delivery not wired yet)",
-      );
+      await emitEvent(db, {
+        type: "team.invitation_created",
+        restaurantId: null,
+        aggregateType: "invitation",
+        aggregateId: data.id,
+        payload: {
+          invitationId: data.id,
+          organizationId: data.organizationId,
+          email: data.email,
+          role: data.role,
+        },
+      });
     },
   });
 

@@ -1,4 +1,5 @@
 export * from "./schemas/api-error.js";
+export * from "./schemas/api-key.js";
 export * from "./schemas/availability.js";
 export * from "./schemas/booking.js";
 export * from "./schemas/common.js";
@@ -6,5 +7,6 @@ export * from "./schemas/customer.js";
 export * from "./schemas/notifications.js";
 export * from "./schemas/restaurant.js";
 export * from "./schemas/service.js";
+export * from "./schemas/team.js";
 export * from "./schemas/weekly-hours.js";
 export * from "./schemas/widget.js";

@@ -28,6 +28,12 @@ export interface DomainEventPayloads {
   "booking.seated": { bookingId: string };
   "booking.completed": { bookingId: string };
   "booking.no_show": { bookingId: string };
+  "team.invitation_created": {
+    invitationId: string;
+    organizationId: string;
+    email: string;
+    role: string;
+  };
 }
 
 export type DomainEventType = keyof DomainEventPayloads;
@@ -38,7 +44,8 @@ export interface DomainEvent<T extends DomainEventType = DomainEventType> {
   /** Schema version of the payload, bump on breaking payload changes. */
   version: 1;
   occurredAt: string;
-  restaurantId: string;
+  /** null for organization-level events (team, billing...). */
+  restaurantId: string | null;
   payload: DomainEventPayloads[T];
 }
 
@@ -51,6 +58,7 @@ export const DOMAIN_EVENT_TYPES = [
   "booking.seated",
   "booking.completed",
   "booking.no_show",
+  "team.invitation_created",
 ] as const satisfies readonly DomainEventType[];
 
 export function isDomainEventType(value: string): value is DomainEventType {

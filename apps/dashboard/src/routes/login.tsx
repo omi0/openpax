@@ -4,12 +4,17 @@ import { useTranslation } from "react-i18next";
 import { AuthLayout } from "@/components/auth-layout";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { authSearch } from "@/lib/auth-search";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+export const Route = createFileRoute("/login")({
+  validateSearch: authSearch,
+  component: LoginPage,
+});
 
 function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { redirect, email } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +32,7 @@ function LoginPage() {
       setError(t("auth.invalid"));
       return;
     }
-    await navigate({ to: "/" });
+    await navigate({ to: redirect ?? "/" });
   };
 
   return (
@@ -36,7 +41,7 @@ function LoginPage() {
       footer={
         <>
           {t("auth.noAccount")}{" "}
-          <Link to="/signup" className="font-medium text-brand">
+          <Link to="/signup" search={{ redirect, email }} className="font-medium text-brand">
             {t("auth.signup")}
           </Link>
         </>
@@ -44,7 +49,7 @@ function LoginPage() {
     >
       <form onSubmit={(e) => void submit(e)} className="space-y-4">
         <Field label={t("auth.email")}>
-          <Input name="email" type="email" required autoComplete="email" />
+          <Input name="email" type="email" required autoComplete="email" defaultValue={email} />
         </Field>
         <Field label={t("auth.password")}>
           <Input name="password" type="password" required autoComplete="current-password" />
