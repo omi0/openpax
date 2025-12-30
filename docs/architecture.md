@@ -59,6 +59,40 @@ Modules never import each other's internals. To add a feature (say, a
 waitlist), add a module that subscribes to the events it needs and exposes its
 own routes and jobs, then register it in `modules/index.ts`.
 
+Current modules: `restaurants` (restaurants, services, policy, widget config,
+areas, closures, capacity rules), `availability`, `widget` (hosted page config),
+`bookings`, `customers`, `notifications`, `team`, `api-keys`.
+
+Most events belong to a restaurant. Organization-level events carry
+`restaurantId: null`: `team.invitation_created` is written by the Better Auth
+`sendInvitationEmail` hook and picked up by the notifications module, which
+emails the link through the provider of the organization's first restaurant.
+
+## Team and API keys
+
+Users belong to an **organization** (Better Auth organization plugin) that owns
+one or more restaurants. Roles, defined in `apps/server/src/auth/access.ts`:
+
+| Role | Can |
+| --- | --- |
+| `owner` | everything, including inviting other owners and deleting restaurants |
+| `manager` | run the restaurant: settings, services, bookings with capacity override, customers, invite managers and staff, read API keys |
+| `staff` | bookings and customer notes; read-only settings |
+
+The `team` module wraps the organization API (`ctx.auth.api.*`) so the
+dashboard talks to one REST surface: invite → `POST /team/invitations`, accept
+→ `POST /api/v1/invitations/{id}/accept`. Invitation links point at
+`/invitations/{id}`; the page previews the invitation without a session and
+sends the visitor to sign up or log in with the invited address. When no email
+provider is configured the invitation still exists and the link is shown in
+the pending list.
+
+**API keys** are organization-scoped (`references: "organization"` in the
+api-key plugin), act with manager permissions, and are hashed at rest. They are
+created from Settings → API keys; the secret is returned once. Send it in the
+`X-Api-Key` header; `requireRestaurant` resolves the key to the organization
+and refuses keys from another one.
+
 ## Notification providers
 
 Email and SMS are provider-agnostic. A provider is one file:
