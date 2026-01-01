@@ -37,7 +37,7 @@ export function Button({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,
@@ -165,7 +165,7 @@ export function Card({
             <h2 className="font-semibold">{title}</h2>
             {description ? <p className="mt-0.5 text-sm text-zinc-500">{description}</p> : null}
           </div>
-          {actions}
+          {actions ? <div className="shrink-0">{actions}</div> : null}
         </header>
       ) : null}
       <div className="px-5 py-4">{children}</div>
