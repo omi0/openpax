@@ -19,6 +19,7 @@ import {
   widgetConfigDtoSchema,
 } from "@sitli/shared";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
+import { isSignupOpen } from "../../auth/signup.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 import { jsonBody, jsonResponse, noContentResponse, restaurantIdParam } from "../../lib/openapi.js";
@@ -28,6 +29,32 @@ const tags = ["Restaurants"];
 const idParam = restaurantIdParam.extend({ id: z.uuid() });
 
 export function restaurantRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/auth-config",
+      tags: ["Account"],
+      summary: "Whether a visitor without an invitation can create an account",
+      responses: {
+        200: jsonResponse(
+          z.object({
+            signupMode: z.enum(["open", "invite_only", "first_user"]),
+            signupOpen: z.boolean(),
+          }),
+          "Sign-up policy of this instance",
+        ),
+      },
+    }),
+    async (c) =>
+      c.json(
+        {
+          signupMode: ctx.env.SIGNUP_MODE,
+          signupOpen: await isSignupOpen(ctx.db, ctx.env.SIGNUP_MODE),
+        },
+        200,
+      ),
+  );
+
   app.openapi(
     createRoute({
       method: "get",

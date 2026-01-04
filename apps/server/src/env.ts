@@ -29,6 +29,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "silent"]).default("info"),
   TRUST_PROXY: boolString.transform((v) => v ?? false),
   SECURE_COOKIES: boolString,
+  /** Who may create accounts; see auth/signup.ts. */
+  SIGNUP_MODE: z.enum(["open", "invite_only", "first_user"]).default("first_user"),
   /** api = HTTP only, worker = jobs only, all = both (default). */
   ROLE: z.enum(["api", "worker", "all"]).default("all"),
   DASHBOARD_DIST: z.string().optional(),

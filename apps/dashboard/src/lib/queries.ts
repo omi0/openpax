@@ -199,3 +199,15 @@ export const invitationQuery = (invitationId: string) =>
     queryFn: () => api.get<PublicInvitationDto>(`/api/v1/invitations/${invitationId}`),
     retry: false,
   });
+
+export interface AuthConfig {
+  signupMode: "open" | "invite_only" | "first_user";
+  signupOpen: boolean;
+}
+
+export const authConfigQuery = () =>
+  queryOptions({
+    queryKey: ["auth-config"],
+    queryFn: () => api.get<AuthConfig>("/api/v1/auth-config"),
+    staleTime: 60_000,
+  });

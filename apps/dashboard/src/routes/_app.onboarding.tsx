@@ -6,27 +6,9 @@ import { useTranslation } from "react-i18next";
 import { defaultServiceInput, ServiceForm } from "@/components/service-form";
 import { Alert, Button, Card, Field, Input, Select } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
+import { TIMEZONES } from "@/lib/timezones";
 
 export const Route = createFileRoute("/_app/onboarding")({ component: OnboardingPage });
-
-const TIMEZONES = [
-  "Europe/Rome",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Madrid",
-  "Europe/Lisbon",
-  "Europe/Zurich",
-  "Europe/Vienna",
-  "Europe/Amsterdam",
-  "Europe/Athens",
-  "America/New_York",
-  "America/Chicago",
-  "America/Los_Angeles",
-  "Asia/Dubai",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-];
 
 const starterService = (): UpsertServiceInput => ({
   ...defaultServiceInput(),

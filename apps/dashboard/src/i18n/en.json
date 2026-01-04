@@ -34,7 +34,9 @@
     "noAccount": "No account yet?",
     "haveAccount": "Already have an account?",
     "invalid": "Invalid email or password",
-    "signupHint": "Create the owner account for your restaurant."
+    "signupHint": "Create the owner account for your restaurant.",
+    "closed": "Sign-up is closed on this instance",
+    "closedHint": "Ask the owner for an invitation: the link in the email lets you create your account."
   },
   "onboarding": {
     "title": "Set up your restaurant",
@@ -385,5 +387,20 @@
     "login": "Log in",
     "signup": "Create account",
     "logout": "Log out"
+  },
+  "restaurant": {
+    "title": "Restaurant",
+    "profile": "Restaurant profile",
+    "profileHint": "Shown to guests in emails and on the booking page.",
+    "name": "Name",
+    "slug": "Booking page URL",
+    "slugHint": "Changing it breaks embed codes and links already shared.",
+    "timezone": "Timezone",
+    "locale": "Language for guests",
+    "currency": "Currency",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email for notifications",
+    "emailHint": "Staff alerts and guest replies go here."
   }
 }

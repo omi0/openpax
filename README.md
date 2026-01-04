@@ -28,7 +28,10 @@ docker compose up -d
 ```
 
 Open http://localhost:3000, create your account, and follow the two-step
-onboarding. The widget embed code is under **Settings → Widget**.
+onboarding. The widget embed code is under **Settings → Widget**. The first
+account becomes the owner and sign-up closes behind it: colleagues join through
+invitations from **Settings → Team** (set `SIGNUP_MODE=open` for a shared,
+multi-tenant instance).
 
 Behind a reverse proxy with TLS, set `PUBLIC_URL=https://bookings.example.com`
 and `TRUST_PROXY=true`. See [docs/self-hosting.md](docs/self-hosting.md).

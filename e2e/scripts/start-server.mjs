@@ -30,6 +30,8 @@ const child = spawn("pnpm", ["--filter", "@sitli/server", "exec", "tsx", "src/in
     BETTER_AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-1234",
     APP_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString("base64"),
     LOG_LEVEL: process.env.LOG_LEVEL ?? "warn",
+    // specs sign up several owners against one server
+    SIGNUP_MODE: process.env.SIGNUP_MODE ?? "open",
     SMTP_URL: process.env.MAILPIT_SMTP ?? "",
     SMTP_FROM: "Sitli E2E <e2e@example.com>",
   },

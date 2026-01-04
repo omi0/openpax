@@ -2,9 +2,11 @@ import { apiKey } from "@better-auth/api-key";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import type { Db } from "@sitli/db";
 import * as schema from "@sitli/db/schema";
+import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { organization } from "better-auth/plugins";
 import { ac, roles } from "./access.js";
+import { type SignupMode, signupAllowed } from "./signup.js";
 
 export interface InvitationEmailData {
   id: string;
@@ -25,6 +27,8 @@ export interface CreateAuthOptions {
   secureCookies?: boolean;
   /** Honour X-Forwarded-Host/Proto from a reverse proxy. */
   trustProxy?: boolean;
+  /** Defaults to "open" so the CLI and tests are unaffected; the server passes SIGNUP_MODE. */
+  signupMode?: SignupMode;
   sendInvitationEmail?: (data: InvitationEmailData) => Promise<void>;
 }
 
@@ -42,6 +46,19 @@ export function createAuth(options: CreateAuthOptions) {
     },
     session: {
       cookieCache: { enabled: true, maxAge: 5 * 60 },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            if (await signupAllowed(options.db, options.signupMode ?? "open", user.email)) return;
+            throw new APIError("FORBIDDEN", {
+              code: "SIGNUP_CLOSED",
+              message: "Sign-up is closed on this instance. Ask an owner for an invitation.",
+            });
+          },
+        },
+      },
     },
     advanced: {
       useSecureCookies: options.secureCookies,

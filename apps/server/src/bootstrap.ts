@@ -31,6 +31,7 @@ export function buildContext(options: BuildContextOptions): AppContext {
     trustedOrigins: [env.PUBLIC_URL, env.DASHBOARD_ORIGIN].filter((v): v is string => !!v),
     secureCookies: env.SECURE_COOKIES,
     trustProxy: env.TRUST_PROXY,
+    signupMode: env.SIGNUP_MODE,
     // Better Auth calls this after it stored the invitation; delivery is a
     // module concern, so hand it to the outbox like any other domain event.
     sendInvitationEmail: async (data) => {

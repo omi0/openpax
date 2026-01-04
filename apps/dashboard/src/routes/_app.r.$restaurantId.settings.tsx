@@ -13,6 +13,7 @@ function SettingsLayout() {
   const { data: me } = useSuspenseQuery(meQuery());
   const role = me.restaurants.find((r) => r.id === restaurantId)?.role ?? "staff";
   const tabs = [
+    { to: "/r/$restaurantId/settings/restaurant", label: t("restaurant.title") },
     { to: "/r/$restaurantId/settings/services", label: t("services.title") },
     { to: "/r/$restaurantId/settings/closures", label: t("closures.title") },
     { to: "/r/$restaurantId/settings/notifications", label: t("notifications.title") },
@@ -25,13 +26,13 @@ function SettingsLayout() {
   return (
     <div>
       <h1 className="mb-4 text-xl font-semibold">{t("app.settings")}</h1>
-      <nav className="mb-6 flex gap-1 border-b border-zinc-200">
+      <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-zinc-200">
         {tabs.map((tab) => (
           <Link
             key={tab.to}
             to={tab.to}
             params={{ restaurantId }}
-            className="-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900"
+            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2 text-sm whitespace-nowrap text-zinc-600 hover:text-zinc-900"
             activeProps={{ className: "border-brand font-medium text-brand" }}
           >
             {tab.label}

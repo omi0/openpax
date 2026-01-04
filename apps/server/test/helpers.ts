@@ -38,7 +38,9 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export async function createTestApp(options: { now?: Date } = {}): Promise<TestApp> {
+export async function createTestApp(
+  options: { now?: Date; env?: Record<string, string> } = {},
+): Promise<TestApp> {
   const testDb: TestDatabase = await createTestDatabase();
   const env = loadEnv({
     NODE_ENV: "test",
@@ -47,6 +49,9 @@ export async function createTestApp(options: { now?: Date } = {}): Promise<TestA
     APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
     PUBLIC_URL,
     LOG_LEVEL: "silent",
+    // fixtures sign up many owners; the default first_user mode is covered by signup.test.ts
+    SIGNUP_MODE: "open",
+    ...options.env,
   });
   const logger = createLogger("silent", false);
   const jobs = new MemoryJobQueue();
@@ -118,12 +123,16 @@ function cookieHeaderFrom(res: Response): string {
   return cookies.map((c) => c.split(";")[0]).join("; ");
 }
 
-export async function signUp(t: TestApp, email: string, name = "Test Owner"): Promise<Session> {
-  const res = await t.app.request("/api/auth/sign-up/email", {
+export async function trySignUp(t: TestApp, email: string, name = "Test Owner"): Promise<Response> {
+  return t.app.request("/api/auth/sign-up/email", {
     method: "POST",
     headers: { "content-type": "application/json", origin: PUBLIC_URL },
     body: JSON.stringify({ email, password: "password-1234", name }),
   });
+}
+
+export async function signUp(t: TestApp, email: string, name = "Test Owner"): Promise<Session> {
+  const res = await trySignUp(t, email, name);
   if (res.status !== 200) throw new Error(`sign-up failed: ${res.status} ${await res.text()}`);
   const body = (await res.json()) as { user: { id: string } };
   return { cookie: cookieHeaderFrom(res), userId: body.user.id, email };

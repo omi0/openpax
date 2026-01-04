@@ -34,7 +34,9 @@
     "noAccount": "Non hai un account?",
     "haveAccount": "Hai già un account?",
     "invalid": "Email o password non validi",
-    "signupHint": "Crea l'account proprietario del tuo ristorante."
+    "signupHint": "Crea l'account proprietario del tuo ristorante.",
+    "closed": "Le registrazioni sono chiuse su questa istanza",
+    "closedHint": "Chiedi un invito al titolare: il link nell'email ti permette di creare l'account."
   },
   "onboarding": {
     "title": "Configura il tuo ristorante",
@@ -385,5 +387,20 @@
     "login": "Accedi",
     "signup": "Crea account",
     "logout": "Esci"
+  },
+  "restaurant": {
+    "title": "Ristorante",
+    "profile": "Profilo del ristorante",
+    "profileHint": "Mostrato agli ospiti nelle email e nella pagina di prenotazione.",
+    "name": "Nome",
+    "slug": "URL pagina prenotazioni",
+    "slugHint": "Cambiarlo rompe i codici di embed e i link già condivisi.",
+    "timezone": "Fuso orario",
+    "locale": "Lingua per gli ospiti",
+    "currency": "Valuta",
+    "address": "Indirizzo",
+    "phone": "Telefono",
+    "email": "Email per le notifiche",
+    "emailHint": "Qui arrivano gli avvisi allo staff e le risposte degli ospiti."
   }
 }

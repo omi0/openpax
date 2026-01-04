@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -5,6 +6,7 @@ import { AuthLayout } from "@/components/auth-layout";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { authSearch } from "@/lib/auth-search";
+import { authConfigQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/login")({
   validateSearch: authSearch,
@@ -15,6 +17,7 @@ function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { redirect, email } = Route.useSearch();
+  const authConfig = useQuery(authConfigQuery());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -39,12 +42,14 @@ function LoginPage() {
     <AuthLayout
       title={t("auth.login")}
       footer={
-        <>
-          {t("auth.noAccount")}{" "}
-          <Link to="/signup" search={{ redirect, email }} className="font-medium text-brand">
-            {t("auth.signup")}
-          </Link>
-        </>
+        authConfig.data?.signupOpen || email ? (
+          <>
+            {t("auth.noAccount")}{" "}
+            <Link to="/signup" search={{ redirect, email }} className="font-medium text-brand">
+              {t("auth.signup")}
+            </Link>
+          </>
+        ) : undefined
       }
     >
       <form onSubmit={(e) => void submit(e)} className="space-y-4">
