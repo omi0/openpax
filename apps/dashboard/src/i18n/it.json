@@ -23,7 +23,8 @@
     "restaurants": "Ristoranti",
     "newRestaurant": "Nuovo ristorante",
     "customers": "Clienti",
-    "calendar": "Calendario"
+    "calendar": "Calendario",
+    "bookings": "Prenotazioni"
   },
   "auth": {
     "login": "Accedi",
@@ -125,7 +126,12 @@
     "noNotifications": "Nessuna notifica ancora.",
     "viewProfile": "Scheda ospite",
     "edit": "Modifica",
-    "editBooking": "Modifica prenotazione"
+    "editBooking": "Modifica prenotazione",
+    "cancelTitle": "Annulla prenotazione",
+    "cancelReason": "Motivo (facoltativo)",
+    "cancelReasonHint": "Inviato all'ospite nell'email di annullamento se ha un indirizzo.",
+    "cancelConfirm": "Annulla prenotazione",
+    "keep": "Mantieni prenotazione"
   },
   "services": {
     "title": "Servizi",
@@ -402,5 +408,27 @@
     "phone": "Telefono",
     "email": "Email per le notifiche",
     "emailHint": "Qui arrivano gli avvisi allo staff e le risposte degli ospiti."
+  },
+  "bookings": {
+    "title": "Prenotazioni",
+    "search": "Cerca per ospite, telefono, email o codice",
+    "allStatuses": "Tutti gli stati",
+    "from": "Dal",
+    "to": "Al",
+    "upcoming": "In arrivo",
+    "past": "Passate",
+    "clear": "Azzera filtri",
+    "columns": {
+      "when": "Quando",
+      "guest": "Ospite",
+      "party": "Persone",
+      "service": "Servizio",
+      "status": "Stato",
+      "source": "Origine",
+      "code": "Codice"
+    },
+    "empty": "Nessuna prenotazione corrisponde.",
+    "count": "{{count}} prenotazioni",
+    "openDay": "Apri il giorno"
   }
 }

@@ -7,7 +7,15 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { CalendarDays, CalendarRange, LogOut, Plus, Settings, Users } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarRange,
+  ClipboardList,
+  LogOut,
+  Plus,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
@@ -91,6 +99,14 @@ function AppLayout() {
                 activeProps={{ className: "bg-zinc-100 font-medium" }}
               >
                 <CalendarRange className="size-4" /> {t("app.calendar")}
+              </Link>
+              <Link
+                to="/r/$restaurantId/bookings"
+                params={{ restaurantId: current.id }}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                activeProps={{ className: "bg-zinc-100 font-medium" }}
+              >
+                <ClipboardList className="size-4" /> {t("app.bookings")}
               </Link>
               <Link
                 to="/r/$restaurantId/customers"

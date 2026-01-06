@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
-import { Badge, Button, EmptyState, Spinner } from "@/components/ui";
+import { Badge, Button, Dialog, EmptyState, Field, Spinner, Textarea } from "@/components/ui";
 import { api } from "@/lib/api";
 import { bookingNotificationsQuery, bookingsQuery, meQuery, restaurantQuery } from "@/lib/queries";
 import { addDays, formatDate, formatTime, todayLocal } from "@/lib/utils";
@@ -42,17 +42,27 @@ function TodayPage() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editing, setEditing] = useState<BookingDto | null>(null);
+  const [cancelling, setCancelling] = useState<BookingDto | null>(null);
+  const [reason, setReason] = useState("");
 
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
   const act = useMutation({
-    mutationFn: ({ id, action }: { id: string; action: BookingAction }) =>
+    mutationFn: ({ id, action, reason }: { id: string; action: BookingAction; reason?: string }) =>
       api.post<BookingDto>(`/api/v1/restaurants/${restaurantId}/bookings/${id}/actions`, {
         action,
+        ...(reason ? { reason } : {}),
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] });
+      setCancelling(null);
+      setReason("");
+    },
   });
+  const run = (b: BookingDto, action: BookingAction) => {
+    if (action === "cancel") setCancelling(b);
+    else act.mutate({ id: b.id, action });
+  };
 
   const items = bookings.data?.items ?? [];
   const active = items.filter((b) => ["pending", "confirmed", "seated"].includes(b.status));
@@ -153,7 +163,7 @@ function TodayPage() {
                       variant={
                         action === "cancel" || action === "no_show" ? "outline" : "secondary"
                       }
-                      onClick={() => act.mutate({ id: b.id, action })}
+                      onClick={() => run(b, action)}
                       disabled={act.isPending}
                     >
                       {t(`today.actions.${action}`)}
@@ -177,6 +187,42 @@ function TodayPage() {
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}
       />
+      <Dialog
+        open={cancelling !== null}
+        onClose={() => setCancelling(null)}
+        title={t("today.cancelTitle")}
+      >
+        {cancelling ? (
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-600">
+              {cancelling.customer.name} ·{" "}
+              {formatTime(cancelling.startsAt, restaurant.timezone, i18n.language)} ·{" "}
+              {cancelling.partySize}
+            </p>
+            <Field label={t("today.cancelReason")} hint={t("today.cancelReasonHint")}>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={500}
+              />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCancelling(null)}>
+                {t("today.keep")}
+              </Button>
+              <Button
+                variant="danger"
+                loading={act.isPending}
+                onClick={() =>
+                  act.mutate({ id: cancelling.id, action: "cancel", reason: reason.trim() })
+                }
+              >
+                {t("today.cancelConfirm")}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Dialog>
       {editing ? (
         <BookingEditDialog
           key={editing.id}

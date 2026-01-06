@@ -135,6 +135,30 @@ export const customerBookingsQuery = (id: string, customerId: string) =>
       }),
   });
 
+export interface BookingsSearchParams {
+  search?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
+
+export const bookingsSearchQuery = (id: string, params: BookingsSearchParams) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "bookings", { search: params }],
+    queryFn: () =>
+      api.get<Paginated<BookingDto>>(`/api/v1/restaurants/${id}/bookings`, {
+        search: params.search || undefined,
+        status: params.status || undefined,
+        from: params.from || undefined,
+        to: params.to || undefined,
+        order: params.from && !params.to ? "asc" : "desc",
+        page: params.page,
+        pageSize: 50,
+      }),
+    placeholderData: (prev) => prev,
+  });
+
 export const availabilityQuery = (slug: string, date: string, partySize: number) =>
   queryOptions({
     queryKey: ["availability", slug, date, partySize],

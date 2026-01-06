@@ -23,7 +23,8 @@
     "restaurants": "Restaurants",
     "newRestaurant": "New restaurant",
     "customers": "Customers",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "bookings": "Bookings"
   },
   "auth": {
     "login": "Log in",
@@ -125,7 +126,12 @@
     "noNotifications": "No notifications yet.",
     "viewProfile": "Guest profile",
     "edit": "Edit",
-    "editBooking": "Edit booking"
+    "editBooking": "Edit booking",
+    "cancelTitle": "Cancel booking",
+    "cancelReason": "Reason (optional)",
+    "cancelReasonHint": "Sent to the guest in the cancellation email when they have an address.",
+    "cancelConfirm": "Cancel booking",
+    "keep": "Keep booking"
   },
   "services": {
     "title": "Services",
@@ -402,5 +408,27 @@
     "phone": "Phone",
     "email": "Email for notifications",
     "emailHint": "Staff alerts and guest replies go here."
+  },
+  "bookings": {
+    "title": "Bookings",
+    "search": "Search by guest, phone, email or code",
+    "allStatuses": "All statuses",
+    "from": "From",
+    "to": "To",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "clear": "Clear filters",
+    "columns": {
+      "when": "When",
+      "guest": "Guest",
+      "party": "Party",
+      "service": "Service",
+      "status": "Status",
+      "source": "Source",
+      "code": "Code"
+    },
+    "empty": "No bookings match.",
+    "count": "{{count}} bookings",
+    "openDay": "Open day"
   }
 }
