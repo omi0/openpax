@@ -14,7 +14,7 @@
 | `APP_ENCRYPTION_KEY` | yes | 32 bytes base64, encrypts provider secrets. `openssl rand -base64 32`. Losing it means re-entering provider credentials. |
 | `PUBLIC_URL` | yes | the URL guests and staff use, e.g. `https://bookings.example.com` |
 | `TRUST_PROXY` | behind a proxy | honour `X-Forwarded-*` from your reverse proxy |
-| `SMTP_URL`, `SMTP_FROM` | no | instance-wide email fallback, e.g. `smtp://user:pass@smtp.example.com:587`. Restaurants can still configure their own provider in the dashboard. |
+| `SMTP_URL`, `SMTP_FROM` | no | instance-wide email fallback, e.g. `smtp://user:pass@smtp.example.com:587`. Restaurants can still configure their own provider in the dashboard. Password reset and invitation emails use the restaurant's provider when there is one, otherwise this fallback, so set it on any instance with more than one user. |
 | `SIGNUP_MODE` | no | `first_user` (default): the first account created becomes the owner and sign-up closes; new staff join through invitations from Settings → Team. `invite_only` closes it from the start; `open` lets anyone sign up (hosted, multi-tenant instances). |
 | `PORT`, `HOST`, `LOG_LEVEL` | no | defaults `3000`, `0.0.0.0`, `info` |
 | `ROLE` | no | `all` (default), `api` (HTTP only) or `worker` (jobs only) to run several containers |

@@ -37,7 +37,20 @@
     "invalid": "Invalid email or password",
     "signupHint": "Create the owner account for your restaurant.",
     "closed": "Sign-up is closed on this instance",
-    "closedHint": "Ask the owner for an invitation: the link in the email lets you create your account."
+    "closedHint": "Ask the owner for an invitation: the link in the email lets you create your account.",
+    "forgot": "Forgot your password?",
+    "forgotTitle": "Reset your password",
+    "forgotHint": "Enter your email and we will send you a link to choose a new password.",
+    "sendReset": "Send reset link",
+    "resetSent": "If an account exists for {{email}}, a reset link is on its way. Check your inbox and spam folder.",
+    "resetTitle": "Choose a new password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordMismatch": "The passwords do not match.",
+    "setPassword": "Set password",
+    "resetDone": "Your password has been updated. You can log in now.",
+    "resetInvalid": "This reset link is invalid or has expired. Request a new one.",
+    "backToLogin": "Back to log in"
   },
   "onboarding": {
     "title": "Set up your restaurant",

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createDb } from "@sitli/db";
 import { createAuth } from "./auth/create-auth.js";
 import type { AppContext } from "./context.js";
@@ -24,7 +25,7 @@ export function buildContext(options: BuildContextOptions): AppContext {
   const providers = new ProviderRegistry();
   for (const m of options.modules) if (m.providers) providers.register(m.providers);
 
-  const auth = createAuth({
+  const authOptions: Parameters<typeof createAuth>[0] = {
     db,
     baseURL: env.PUBLIC_URL,
     secret: env.BETTER_AUTH_SECRET,
@@ -48,7 +49,14 @@ export function buildContext(options: BuildContextOptions): AppContext {
         },
       });
     },
-  });
+  };
+  const auth = createAuth(authOptions);
+
+  // Reset links are secrets with a short life: hand them straight to the job
+  // queue rather than recording them as domain events.
+  authOptions.sendResetPassword = async (data) => {
+    await options.jobs.send("notify.password_reset", { ...data, requestId: randomUUID() });
+  };
 
   return {
     env,

@@ -37,7 +37,20 @@
     "invalid": "Email o password non validi",
     "signupHint": "Crea l'account proprietario del tuo ristorante.",
     "closed": "Le registrazioni sono chiuse su questa istanza",
-    "closedHint": "Chiedi un invito al titolare: il link nell'email ti permette di creare l'account."
+    "closedHint": "Chiedi un invito al titolare: il link nell'email ti permette di creare l'account.",
+    "forgot": "Password dimenticata?",
+    "forgotTitle": "Reimposta la password",
+    "forgotHint": "Inserisci la tua email e ti invieremo un link per scegliere una nuova password.",
+    "sendReset": "Invia il link",
+    "resetSent": "Se esiste un account per {{email}}, il link è in arrivo. Controlla la posta e la cartella spam.",
+    "resetTitle": "Scegli una nuova password",
+    "newPassword": "Nuova password",
+    "confirmPassword": "Conferma password",
+    "passwordMismatch": "Le password non coincidono.",
+    "setPassword": "Imposta password",
+    "resetDone": "La password è stata aggiornata. Ora puoi accedere.",
+    "resetInvalid": "Questo link non è valido o è scaduto. Richiedine uno nuovo.",
+    "backToLogin": "Torna all'accesso"
   },
   "onboarding": {
     "title": "Configura il tuo ristorante",

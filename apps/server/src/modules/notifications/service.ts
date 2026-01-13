@@ -236,20 +236,27 @@ function decryptConfig(
   return out;
 }
 
+export interface ProviderScope {
+  restaurantId: string | null;
+  organizationId: string | null;
+}
+
 async function findConfigRow(
   ctx: AppContext,
-  r: RestaurantRow,
+  ids: ProviderScope,
   channel: NotificationChannel,
   scope: "restaurant" | "organization",
 ) {
+  if (scope === "restaurant" && !ids.restaurantId) return null;
+  if (scope === "organization" && !ids.organizationId) return null;
   const where =
     scope === "restaurant"
       ? and(
-          eq(notificationProviderConfig.restaurantId, r.id),
+          eq(notificationProviderConfig.restaurantId, ids.restaurantId ?? ""),
           eq(notificationProviderConfig.channel, channel),
         )
       : and(
-          eq(notificationProviderConfig.organizationId, r.organizationId),
+          eq(notificationProviderConfig.organizationId, ids.organizationId ?? ""),
           isNull(notificationProviderConfig.restaurantId),
           eq(notificationProviderConfig.channel, channel),
         );
@@ -263,8 +270,17 @@ export async function resolveProvider(
   r: RestaurantRow,
   channel: NotificationChannel,
 ): Promise<ResolvedProvider | null> {
+  return resolveProviderFor(ctx, { restaurantId: r.id, organizationId: r.organizationId }, channel);
+}
+
+/** Same lookup for callers without a restaurant row (account emails, organization events). */
+export async function resolveProviderFor(
+  ctx: AppContext,
+  ids: ProviderScope,
+  channel: NotificationChannel,
+): Promise<ResolvedProvider | null> {
   for (const scope of ["restaurant", "organization"] as const) {
-    const row = await findConfigRow(ctx, r, channel, scope);
+    const row = await findConfigRow(ctx, ids, channel, scope);
     if (!row?.enabled) continue;
     const provider = ctx.providers.get(row.providerId);
     if (!provider || provider.channel !== channel) continue;
@@ -343,7 +359,12 @@ export async function upsertProviderConfig(
   if (!provider || provider.channel !== channel)
     throw ApiError.badRequest("unknown_provider", `No ${channel} provider "${input.providerId}"`);
 
-  const existing = await findConfigRow(ctx, r, channel, input.scope);
+  const existing = await findConfigRow(
+    ctx,
+    { restaurantId: r.id, organizationId: r.organizationId },
+    channel,
+    input.scope,
+  );
   const previous = existing?.providerId === provider.id ? existing.config : {};
 
   // Omitted secrets keep their stored value; everything else is validated fresh.
@@ -408,7 +429,12 @@ export async function disableProviderConfig(
   scope: "restaurant" | "organization",
   actor: Actor,
 ): Promise<ProviderConfigDto> {
-  const existing = await findConfigRow(ctx, r, channel, scope);
+  const existing = await findConfigRow(
+    ctx,
+    { restaurantId: r.id, organizationId: r.organizationId },
+    channel,
+    scope,
+  );
   if (existing) {
     await ctx.db
       .delete(notificationProviderConfig)

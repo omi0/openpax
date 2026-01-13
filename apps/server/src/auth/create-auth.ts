@@ -18,6 +18,13 @@ export interface InvitationEmailData {
   inviterEmail: string;
 }
 
+export interface PasswordResetEmailData {
+  userId: string;
+  email: string;
+  name: string;
+  url: string;
+}
+
 export interface CreateAuthOptions {
   db: Db;
   baseURL: string;
@@ -30,7 +37,11 @@ export interface CreateAuthOptions {
   /** Defaults to "open" so the CLI and tests are unaffected; the server passes SIGNUP_MODE. */
   signupMode?: SignupMode;
   sendInvitationEmail?: (data: InvitationEmailData) => Promise<void>;
+  sendResetPassword?: (data: PasswordResetEmailData) => Promise<void>;
 }
+
+/** How long a password reset link stays valid. */
+export const RESET_PASSWORD_TTL_SECONDS = 60 * 60;
 
 export function createAuth(options: CreateAuthOptions) {
   return betterAuth({
@@ -43,6 +54,15 @@ export function createAuth(options: CreateAuthOptions) {
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
+      resetPasswordTokenExpiresIn: RESET_PASSWORD_TTL_SECONDS,
+      sendResetPassword: async ({ user, url }) => {
+        await options.sendResetPassword?.({
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          url,
+        });
+      },
     },
     session: {
       cookieCache: { enabled: true, maxAge: 5 * 60 },

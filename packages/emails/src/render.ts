@@ -16,6 +16,12 @@ import {
   invitationCopy,
   invitationEmailText,
 } from "./templates/invitation-email.js";
+import {
+  PasswordResetEmail,
+  type PasswordResetEmailProps,
+  passwordResetCopy,
+  passwordResetEmailText,
+} from "./templates/password-reset-email.js";
 
 export interface RenderedEmail {
   subject: string;
@@ -130,5 +136,13 @@ export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmai
     subject: invitationCopy(props).subject,
     html: `<!DOCTYPE html>${renderToStaticMarkup(createElement(InvitationEmail, props))}`,
     text: invitationEmailText(props),
+  };
+}
+
+export function renderPasswordResetEmail(props: PasswordResetEmailProps): RenderedEmail {
+  return {
+    subject: passwordResetCopy(props).subject,
+    html: `<!DOCTYPE html>${renderToStaticMarkup(createElement(PasswordResetEmail, props))}`,
+    text: passwordResetEmailText(props),
   };
 }

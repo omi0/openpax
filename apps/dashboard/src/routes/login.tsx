@@ -63,6 +63,11 @@ function LoginPage() {
         <Button type="submit" className="w-full" loading={busy}>
           {t("auth.login")}
         </Button>
+        <p className="text-center text-sm">
+          <Link to="/forgot-password" search={{ email }} className="text-zinc-500 hover:text-brand">
+            {t("auth.forgot")}
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   );
