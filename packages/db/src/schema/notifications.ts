@@ -102,3 +102,38 @@ export const notificationLog = pgTable(
     index("notification_log_restaurant_created_idx").on(t.restaurantId, t.createdAt),
   ],
 );
+
+/**
+ * A restaurant's own wording for one message (event × channel × audience ×
+ * locale). Absent rows fall back to the defaults shipped in @sitli/shared.
+ */
+export const notificationTemplate = pgTable(
+  "notification_template",
+  {
+    id: id(),
+    restaurantId: uuid()
+      .notNull()
+      .references(() => restaurant.id, { onDelete: "cascade" }),
+    event: text().notNull(),
+    channel: notificationChannelEnum().notNull(),
+    audience: notificationAudienceEnum().notNull(),
+    locale: text().notNull(),
+    /** Email only. */
+    subject: text(),
+    /** Email only. */
+    heading: text(),
+    body: text().notNull(),
+    updatedByUserId: uuid().references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("notification_template_uidx").on(
+      t.restaurantId,
+      t.event,
+      t.channel,
+      t.audience,
+      t.locale,
+    ),
+  ],
+);

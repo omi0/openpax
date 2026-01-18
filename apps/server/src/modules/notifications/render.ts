@@ -4,20 +4,23 @@ import { renderSms } from "@sitli/shared/sms";
 import type { AppContext } from "../../context.js";
 import type { EmailMessage, SmsMessage } from "../../notifications/provider.js";
 import type { BookingBundle } from "./dispatch.js";
+import { effectiveEmailTemplate, getTemplateOverride } from "./templates.js";
 
 const asLocale = (v: string | null | undefined, fallback: Locale): Locale =>
   v === "it" || v === "en" ? v : fallback;
 
-export function buildEmail(
+export async function buildEmail(
   ctx: AppContext,
   bundle: BookingBundle,
   event: NotificationEvent,
   audience: NotificationAudience,
   to: string,
-): EmailMessage {
+): Promise<EmailMessage> {
   const restaurantLocale = asLocale(bundle.restaurant.locale, "en");
   const locale =
     audience === "guest" ? asLocale(bundle.booking.locale, restaurantLocale) : restaurantLocale;
+  const key = { event, channel: "email" as const, audience, locale };
+  const override = await getTemplateOverride(ctx, bundle.restaurant.id, key);
   const rendered = renderBookingEmail({
     event,
     audience,
@@ -35,7 +38,9 @@ export function buildEmail(
       confirmationCode: bundle.booking.confirmationCode,
       serviceName: bundle.serviceName,
       notes: bundle.booking.notes,
+      cancellationReason: bundle.booking.cancellationReason,
     },
+    template: override ? effectiveEmailTemplate(key, override) : null,
     guest: {
       name: bundle.customer.name,
       email: bundle.customer.email,
@@ -56,26 +61,44 @@ export function buildEmail(
   };
 }
 
-export function buildSms(
+export async function buildSms(
   ctx: AppContext,
   bundle: BookingBundle,
   event: NotificationEvent,
   audience: NotificationAudience,
   to: string,
-): SmsMessage {
+): Promise<SmsMessage> {
   const restaurantLocale = asLocale(bundle.restaurant.locale, "en");
   const locale =
     audience === "guest" ? asLocale(bundle.booking.locale, restaurantLocale) : restaurantLocale;
-  const body = renderSms(event, locale, {
-    restaurantName: bundle.restaurant.name,
-    guestName: bundle.customer.name,
-    when: formatWhen(bundle.booking.startsAt, bundle.restaurant.timezone, locale),
-    partySize: bundle.booking.partySize,
-    confirmationCode: bundle.booking.confirmationCode,
-    manageUrl:
-      audience === "guest"
-        ? `${ctx.env.PUBLIC_URL}/book/${bundle.restaurant.slug}/manage/${bundle.booking.manageToken}`
-        : undefined,
+  const override = await getTemplateOverride(ctx, bundle.restaurant.id, {
+    event,
+    channel: "sms",
+    audience,
+    locale,
   });
+  const body = renderSms(
+    event,
+    locale,
+    audience,
+    {
+      restaurantName: bundle.restaurant.name,
+      guestName: bundle.customer.name,
+      when: formatWhen(bundle.booking.startsAt, bundle.restaurant.timezone, locale),
+      partySize: bundle.booking.partySize,
+      confirmationCode: bundle.booking.confirmationCode,
+      serviceName: bundle.serviceName,
+      manageUrl:
+        audience === "guest"
+          ? `${ctx.env.PUBLIC_URL}/book/${bundle.restaurant.slug}/manage/${bundle.booking.manageToken}`
+          : "",
+      guestPhone: bundle.customer.phone ?? "",
+      guestEmail: bundle.customer.email ?? "",
+      notes: bundle.booking.notes ?? "",
+      address: bundle.restaurant.address ?? "",
+      cancellationReason: bundle.booking.cancellationReason ?? "",
+    },
+    override ? { body: override.body } : null,
+  );
   return { to, body };
 }

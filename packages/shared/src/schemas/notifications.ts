@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema, instantSchema } from "./common.js";
+import { idSchema, instantSchema, localeSchema } from "./common.js";
 
 export const NOTIFICATION_CHANNELS = ["email", "sms"] as const;
 export const notificationChannelSchema = z.enum(NOTIFICATION_CHANNELS);
@@ -112,3 +112,37 @@ export const notificationLogDtoSchema = z.object({
   createdAt: instantSchema,
 });
 export type NotificationLogDto = z.infer<typeof notificationLogDtoSchema>;
+
+export const notificationTemplateDtoSchema = z.object({
+  event: notificationEventSchema,
+  channel: notificationChannelSchema,
+  audience: notificationAudienceSchema,
+  locale: localeSchema,
+  /** Email only. */
+  subject: z.string().nullable(),
+  /** Email only. */
+  heading: z.string().nullable(),
+  body: z.string(),
+  /** true when the restaurant saved its own text instead of the default. */
+  custom: z.boolean(),
+  updatedAt: instantSchema.nullable(),
+});
+export type NotificationTemplateDto = z.infer<typeof notificationTemplateDtoSchema>;
+
+export const upsertNotificationTemplateInputSchema = z.object({
+  event: notificationEventSchema,
+  channel: notificationChannelSchema,
+  audience: notificationAudienceSchema,
+  locale: localeSchema,
+  subject: z.string().trim().max(200).nullable().optional(),
+  heading: z.string().trim().max(120).nullable().optional(),
+  body: z.string().trim().min(1).max(4000),
+});
+export type UpsertNotificationTemplateInput = z.infer<typeof upsertNotificationTemplateInputSchema>;
+
+export const notificationTemplatePreviewSchema = z.object({
+  subject: z.string().nullable(),
+  html: z.string().nullable(),
+  text: z.string(),
+});
+export type NotificationTemplatePreview = z.infer<typeof notificationTemplatePreviewSchema>;

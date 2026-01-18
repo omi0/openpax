@@ -2,13 +2,19 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import { notificationLog } from "@sitli/db";
 import {
+  localeSchema,
+  notificationAudienceSchema,
   notificationChannelSchema,
+  notificationEventSchema,
   notificationLogDtoSchema,
   notificationSettingDtoSchema,
+  notificationTemplateDtoSchema,
+  notificationTemplatePreviewSchema,
   providerConfigDtoSchema,
   providerDescriptorDtoSchema,
   testProviderInputSchema,
   updateNotificationSettingsInputSchema,
+  upsertNotificationTemplateInputSchema,
   upsertProviderConfigInputSchema,
 } from "@sitli/shared";
 import { and, desc, eq } from "drizzle-orm";
@@ -17,6 +23,7 @@ import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";
 import { describeProvider } from "../../notifications/provider.js";
 import * as svc from "./service.js";
+import * as templates from "./templates.js";
 
 const tags = ["Notifications"];
 const channelParam = restaurantIdParam.extend({ channel: notificationChannelSchema });
@@ -204,6 +211,84 @@ export function notificationRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           sentAt: r.sentAt?.toISOString() ?? null,
           createdAt: r.createdAt.toISOString(),
         })),
+        200,
+      );
+    },
+  );
+
+  // ----- templates
+  const templatesPath = "/api/v1/restaurants/{restaurantId}/notification-templates";
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: templatesPath,
+      tags,
+      summary: "Message templates in effect for a locale (defaults unless customised)",
+      middleware: [requireRestaurant(ctx, { settings: ["read"] })] as const,
+      request: { params: restaurantIdParam, query: z.object({ locale: localeSchema }) },
+      responses: { 200: jsonResponse(z.array(notificationTemplateDtoSchema), "Templates") },
+    }),
+    async (c) =>
+      c.json(
+        await templates.listTemplates(ctx, c.get("restaurant").id, c.req.valid("query").locale),
+        200,
+      ),
+  );
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: templatesPath,
+      tags,
+      summary: "Save the restaurant's own wording for a message",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam, body: jsonBody(upsertNotificationTemplateInputSchema) },
+      responses: { 200: jsonResponse(notificationTemplateDtoSchema, "Saved template") },
+    }),
+    async (c) =>
+      c.json(
+        await templates.upsertTemplate(
+          ctx,
+          c.get("restaurant"),
+          c.req.valid("json"),
+          c.get("actor"),
+        ),
+        200,
+      ),
+  );
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: `${templatesPath}/preview`,
+      tags,
+      summary: "Render a template with sample data without saving it",
+      middleware: [requireRestaurant(ctx, { settings: ["read"] })] as const,
+      request: { params: restaurantIdParam, body: jsonBody(upsertNotificationTemplateInputSchema) },
+      responses: { 200: jsonResponse(notificationTemplatePreviewSchema, "Rendered preview") },
+    }),
+    async (c) =>
+      c.json(await templates.previewTemplate(ctx, c.get("restaurant"), c.req.valid("json")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "delete",
+      path: `${templatesPath}/{event}/{channel}/{audience}/{locale}`,
+      tags,
+      summary: "Go back to the default wording",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: {
+        params: restaurantIdParam.extend({
+          event: notificationEventSchema,
+          channel: notificationChannelSchema,
+          audience: notificationAudienceSchema,
+          locale: localeSchema,
+        }),
+      },
+      responses: { 200: jsonResponse(notificationTemplateDtoSchema, "Default template") },
+    }),
+    async (c) => {
+      const { restaurantId: _r, ...key } = c.req.valid("param");
+      return c.json(
+        await templates.resetTemplate(ctx, c.get("restaurant"), key, c.get("actor")),
         200,
       );
     },

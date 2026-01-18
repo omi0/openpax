@@ -11,6 +11,7 @@ import type {
   NotificationChannel,
   NotificationLogDto,
   NotificationSettingDto,
+  NotificationTemplateDto,
   ProviderConfigDto,
   ProviderDescriptorDto,
   PublicInvitationDto,
@@ -234,4 +235,13 @@ export const authConfigQuery = () =>
     queryKey: ["auth-config"],
     queryFn: () => api.get<AuthConfig>("/api/v1/auth-config"),
     staleTime: 60_000,
+  });
+
+export const templatesQuery = (id: string, locale: "it" | "en") =>
+  queryOptions({
+    queryKey: ["restaurant", id, "notification-templates", locale],
+    queryFn: () =>
+      api.get<NotificationTemplateDto[]>(`/api/v1/restaurants/${id}/notification-templates`, {
+        locale,
+      }),
   });

@@ -201,7 +201,8 @@
       "restaurant": "Ristorante"
     },
     "hoursBefore": "ore prima",
-    "rulesHint": "Scegli quali messaggi partono su ogni canale. Gli SMS funzionano solo con un provider SMS configurato."
+    "rulesHint": "Scegli quali messaggi partono su ogni canale. Gli SMS funzionano solo con un provider SMS configurato.",
+    "templates": "Testi"
   },
   "widget": {
     "title": "Widget e regole",
@@ -443,5 +444,37 @@
     "empty": "Nessuna prenotazione corrisponde.",
     "count": "{{count}} prenotazioni",
     "openDay": "Apri il giorno"
+  },
+  "templates": {
+    "hint": "Riscrivi ogni messaggio con parole tue. I segnaposto tra doppie graffe vengono sostituiti all'invio; la tabella con i dettagli e il pulsante di gestione restano.",
+    "language": "Lingua",
+    "custom": "Personalizzato",
+    "default": "Predefinito",
+    "edit": "Modifica messaggio",
+    "subject": "Oggetto",
+    "heading": "Titolo",
+    "body": "Testo",
+    "placeholders": "Segnaposto",
+    "insert": "Inserisci {{name}}",
+    "preview": "Anteprima",
+    "previewHint": "Generata con dati di esempio.",
+    "characters": "{{count}} caratteri",
+    "reset": "Ripristina predefinito",
+    "confirmReset": "Scartare il tuo testo e tornare a quello predefinito?",
+    "unknownPlaceholder": "Segnaposto sconosciuto: {{placeholders}}.",
+    "variable": {
+      "restaurantName": "Nome ristorante",
+      "guestName": "Nome ospite",
+      "when": "Data e ora",
+      "partySize": "Persone",
+      "confirmationCode": "Codice prenotazione",
+      "serviceName": "Servizio",
+      "manageUrl": "Link di gestione",
+      "guestPhone": "Telefono ospite",
+      "guestEmail": "Email ospite",
+      "notes": "Note dell'ospite",
+      "address": "Indirizzo ristorante",
+      "cancellationReason": "Motivo annullamento"
+    }
   }
 }

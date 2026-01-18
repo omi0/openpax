@@ -1,5 +1,5 @@
 import { TZDate } from "@date-fns/tz";
-import type { Locale, NotificationAudience, NotificationEvent } from "@sitli/shared";
+import type { EmailTemplate, Locale, NotificationAudience, NotificationEvent } from "@sitli/shared";
 import { format } from "date-fns";
 import { enGB, it } from "date-fns/locale";
 import { createElement } from "react";
@@ -46,10 +46,13 @@ export interface BookingEmailInput {
     confirmationCode: string;
     serviceName: string;
     notes: string | null;
+    cancellationReason?: string | null;
   };
   guest: { name: string; email: string | null; phone: string | null };
   manageUrl?: string;
   dashboardUrl?: string;
+  /** Restaurant-specific template replacing the default copy. */
+  template?: EmailTemplate | null;
 }
 
 const dateLocales = { it, en: enGB } as const;
@@ -61,7 +64,7 @@ export function formatWhen(startsAt: Date, timezone: string, locale: Locale): st
 }
 
 export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
-  const copy = getCopy(input.locale, input.audience, input.event);
+  const copy = getCopy(input.locale, input.audience, input.event, input.template);
   const vars = {
     restaurantName: input.restaurant.name,
     guestName: input.guest.name,
@@ -69,6 +72,12 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
     partySize: input.booking.partySize,
     confirmationCode: input.booking.confirmationCode,
     serviceName: input.booking.serviceName,
+    manageUrl: input.manageUrl ?? "",
+    guestPhone: input.guest.phone ?? "",
+    guestEmail: input.guest.email ?? "",
+    notes: input.booking.notes ?? "",
+    address: input.restaurant.address ?? "",
+    cancellationReason: input.booking.cancellationReason ?? "",
   };
   const props: BookingEmailProps = {
     copy,

@@ -10,3 +10,4 @@ export * from "./schemas/service.js";
 export * from "./schemas/team.js";
 export * from "./schemas/weekly-hours.js";
 export * from "./schemas/widget.js";
+export * from "./templates/index.js";

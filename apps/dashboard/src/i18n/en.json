@@ -201,7 +201,8 @@
       "restaurant": "Restaurant"
     },
     "hoursBefore": "hours before",
-    "rulesHint": "Choose which messages go out on each channel. SMS only works once an SMS provider is configured."
+    "rulesHint": "Choose which messages go out on each channel. SMS only works once an SMS provider is configured.",
+    "templates": "Templates"
   },
   "widget": {
     "title": "Widget & booking rules",
@@ -443,5 +444,37 @@
     "empty": "No bookings match.",
     "count": "{{count}} bookings",
     "openDay": "Open day"
+  },
+  "templates": {
+    "hint": "Rewrite any message in your own words. Placeholders in double braces are replaced when the message goes out; the booking details table and the manage button stay.",
+    "language": "Language",
+    "custom": "Custom",
+    "default": "Default",
+    "edit": "Edit message",
+    "subject": "Subject",
+    "heading": "Heading",
+    "body": "Body",
+    "placeholders": "Placeholders",
+    "insert": "Insert {{name}}",
+    "preview": "Preview",
+    "previewHint": "Rendered with sample data.",
+    "characters": "{{count}} characters",
+    "reset": "Reset to default",
+    "confirmReset": "Discard your wording and go back to the default text?",
+    "unknownPlaceholder": "Unknown placeholder: {{placeholders}}.",
+    "variable": {
+      "restaurantName": "Restaurant name",
+      "guestName": "Guest name",
+      "when": "Date and time",
+      "partySize": "Party size",
+      "confirmationCode": "Booking code",
+      "serviceName": "Service",
+      "manageUrl": "Manage link",
+      "guestPhone": "Guest phone",
+      "guestEmail": "Guest email",
+      "notes": "Guest notes",
+      "address": "Restaurant address",
+      "cancellationReason": "Cancellation reason"
+    }
   }
 }

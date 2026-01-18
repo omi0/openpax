@@ -68,6 +68,17 @@ Most events belong to a restaurant. Organization-level events carry
 `sendInvitationEmail` hook and picked up by the notifications module, which
 emails the link through the provider of the organization's first restaurant.
 
+### Message templates
+
+Default wording lives in `packages/shared/src/templates` as `{{placeholder}}`
+text per locale, audience and event; the emails package builds its copy from
+it and the SMS renderer fills it directly. A restaurant can override any
+message from Settings → Notifications → Templates: rows in
+`notification_template` (restaurant × event × channel × audience × locale)
+replace subject, heading and body, while the details table, button and footer
+stay. Unknown placeholders are rejected on save; the preview endpoint renders
+with sample data.
+
 ## Team and API keys
 
 Users belong to an **organization** (Better Auth organization plugin) that owns

@@ -17,6 +17,27 @@ export interface BookingEmailProps {
   address?: string | null;
 }
 
+/** Blank lines become paragraphs, single newlines become line breaks. */
+export function Paragraphs({ text }: { text: string }) {
+  return (
+    <>
+      {text
+        .split(/\n{2,}/)
+        .filter((para) => para.trim() !== "")
+        .map((para, i) => (
+          <p key={`${i}-${para.slice(0, 12)}`} style={{ margin: "0 0 8px" }}>
+            {para.split("\n").map((line, j) => (
+              <span key={`${j}-${line.slice(0, 12)}`}>
+                {j > 0 ? <br /> : null}
+                {line}
+              </span>
+            ))}
+          </p>
+        ))}
+    </>
+  );
+}
+
 export function BookingEmail(p: BookingEmailProps) {
   const rows: Array<[string, string]> = [
     [p.copy.labels.when, p.vars.when],
@@ -44,12 +65,11 @@ export function BookingEmail(p: BookingEmailProps) {
       footer={p.copy.footer(p.vars)}
     >
       <h1 style={{ margin: "0 0 12px", fontSize: 22 }}>{p.copy.heading(p.vars)}</h1>
-      <p style={{ margin: "0 0 8px" }}>{p.copy.intro(p.vars)}</p>
+      <Paragraphs text={p.copy.intro(p.vars)} />
       <Details rows={rows} />
       {p.audience === "guest" && p.address ? (
         <p style={{ margin: "0 0 8px", color: "#52525b" }}>{p.address}</p>
       ) : null}
-      {p.copy.outro ? <p style={{ margin: "12px 0 0" }}>{p.copy.outro(p.vars)}</p> : null}
       {href && label ? <Button href={href} label={label} color={p.primaryColor} /> : null}
     </Layout>
   );
@@ -73,7 +93,6 @@ export function bookingEmailText(p: BookingEmailProps): string {
   }
   if (p.notes) lines.push(`${p.copy.labels.notes}: ${p.notes}`);
   if (p.audience === "guest" && p.address) lines.push("", p.address);
-  if (p.copy.outro) lines.push("", p.copy.outro(p.vars));
   const href = p.audience === "guest" ? p.manageUrl : p.dashboardUrl;
   if (href) lines.push("", href);
   lines.push("", "--", p.copy.footer(p.vars));

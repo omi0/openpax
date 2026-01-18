@@ -42,13 +42,13 @@ export const sendNotificationJob = defineJob<{ logId: string }>({
     try {
       let result: { providerMessageId?: string };
       if (log.channel === "email") {
-        const message = buildEmail(ctx, bundle, log.event, log.audience, log.recipient);
+        const message = await buildEmail(ctx, bundle, log.event, log.audience, log.recipient);
         result = await (resolved.provider as NotificationProvider<"email">).send(
           message,
           resolved.config,
         );
       } else {
-        const message = buildSms(ctx, bundle, log.event, log.audience, log.recipient);
+        const message = await buildSms(ctx, bundle, log.event, log.audience, log.recipient);
         result = await (resolved.provider as NotificationProvider<"sms">).send(
           message,
           resolved.config,

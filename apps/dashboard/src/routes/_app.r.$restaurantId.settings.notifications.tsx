@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NotificationRules } from "@/components/notification-rules";
+import { NotificationTemplates } from "@/components/notification-templates";
 import { ProviderConfigForm } from "@/components/provider-config-form";
 import { Card } from "@/components/ui";
 import { notificationSettingsQuery, providerConfigQuery, providersQuery } from "@/lib/queries";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/_app/r/$restaurantId/settings/notificatio
 function NotificationsPage() {
   const { t } = useTranslation();
   const { restaurantId } = Route.useParams();
-  const [tab, setTab] = useState<"providers" | "rules">("providers");
+  const [tab, setTab] = useState<"providers" | "rules" | "templates">("providers");
   const { data: providers } = useSuspenseQuery(providersQuery());
   const { data: email } = useSuspenseQuery(providerConfigQuery(restaurantId, "email"));
   const { data: sms } = useSuspenseQuery(providerConfigQuery(restaurantId, "sms"));
@@ -32,7 +33,7 @@ function NotificationsPage() {
   return (
     <div className="space-y-4">
       <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 text-sm">
-        {(["providers", "rules"] as const).map((k) => (
+        {(["providers", "rules", "templates"] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -67,6 +68,10 @@ function NotificationsPage() {
             />
           </Card>
         </>
+      ) : tab === "templates" ? (
+        <Card title={t("notifications.templates")} description={t("templates.hint")}>
+          <NotificationTemplates restaurantId={restaurantId} />
+        </Card>
       ) : (
         <Card title={t("notifications.rules")}>
           <NotificationRules
