@@ -221,16 +221,20 @@ export function Spinner() {
   return <Loader2 className="size-5 animate-spin text-zinc-400" />;
 }
 
+const dialogSizes = { md: "max-w-lg", lg: "max-w-3xl", xl: "max-w-5xl" } as const;
+
 export function Dialog({
   open,
   onClose,
   title,
   children,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: keyof typeof dialogSizes;
 }) {
   if (!open) return null;
   return (
@@ -241,7 +245,7 @@ export function Dialog({
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg rounded-xl bg-white shadow-xl">
+      <div className={cn("relative w-full rounded-xl bg-white shadow-xl", dialogSizes[size])}>
         <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
           <h2 className="font-semibold">{title}</h2>
           <button

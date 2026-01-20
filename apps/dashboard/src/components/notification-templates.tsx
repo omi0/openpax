@@ -110,6 +110,8 @@ function TemplateEditor({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<NotificationTemplatePreview | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // caret position of the body field, remembered so chips insert where the user was typing
+  const caret = useRef<number | null>(null);
   const base = `/api/v1/restaurants/${restaurantId}/notification-templates`;
   const input = (): UpsertNotificationTemplateInput => ({
     event: template.event,
@@ -172,27 +174,27 @@ function TemplateEditor({
   const insert = (name: string) => {
     const el = bodyRef.current;
     const token = `{{${name}}}`;
-    if (!el) {
-      setBody((b) => b + token);
-      return;
-    }
-    const start = el.selectionStart ?? body.length;
-    const end = el.selectionEnd ?? body.length;
-    const next = `${body.slice(0, start)}${token}${body.slice(end)}`;
+    const at = caret.current ?? body.length;
+    const next = `${body.slice(0, at)}${token}${body.slice(at)}`;
     setBody(next);
+    caret.current = at + token.length;
     requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + token.length, start + token.length);
+      el?.focus();
+      el?.setSelectionRange(at + token.length, at + token.length);
     });
+  };
+  const rememberCaret = () => {
+    caret.current = bodyRef.current?.selectionStart ?? null;
   };
 
   return (
     <Dialog
       open
+      size="xl"
       onClose={onClose}
       title={`${t("templates.edit")} · ${t(`notifications.event.${template.event}`)} · ${t(`notifications.${template.channel}`)} · ${t(`notifications.audience.${template.audience}`)} · ${template.locale.toUpperCase()}`}
     >
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-3">
           {isEmail ? (
             <>
@@ -219,7 +221,13 @@ function TemplateEditor({
             <Textarea
               ref={bodyRef}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                caret.current = e.target.selectionStart;
+              }}
+              onSelect={rememberCaret}
+              onKeyUp={rememberCaret}
+              onClick={rememberCaret}
               maxLength={4000}
               className={isEmail ? "min-h-40" : "min-h-24"}
             />
