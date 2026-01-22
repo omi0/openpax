@@ -24,7 +24,8 @@
     "newRestaurant": "New restaurant",
     "customers": "Customers",
     "calendar": "Calendar",
-    "bookings": "Bookings"
+    "bookings": "Bookings",
+    "analytics": "Analytics"
   },
   "auth": {
     "login": "Log in",
@@ -476,5 +477,51 @@
       "address": "Restaurant address",
       "cancellationReason": "Cancellation reason"
     }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "range": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "month": "This month",
+      "lastMonth": "Last month",
+      "next30": "Next 30 days"
+    },
+    "from": "From",
+    "to": "To",
+    "kpi": {
+      "bookings": "Bookings",
+      "covers": "Covers",
+      "averageParty": "Avg. party size",
+      "noShowRate": "No-show rate",
+      "cancellationRate": "Cancellation rate",
+      "occupancy": "Occupancy"
+    },
+    "kpiHint": {
+      "bookings": "{{cancelled}} cancelled",
+      "noShowRate": "of past bookings",
+      "cancellationRate": "of {{created}} created",
+      "occupancy": "of {{capacity}} covers offered",
+      "occupancyUnknown": "set max covers per slot on your services"
+    },
+    "coversPerDay": "Covers per day",
+    "coversPerDayHint": "Bars show covers seated or expected; the grey track is the capacity offered that day.",
+    "byService": "By service",
+    "bySource": "By source",
+    "byWeekday": "By weekday",
+    "columns": {
+      "service": "Service",
+      "bookings": "Bookings",
+      "covers": "Covers",
+      "occupancy": "Occupancy",
+      "date": "Date",
+      "cancelled": "Cancelled",
+      "noShows": "No-shows",
+      "capacity": "Capacity"
+    },
+    "noData": "No bookings in this period.",
+    "tableView": "Show as table",
+    "na": "n/a"
   }
 }

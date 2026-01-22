@@ -1,4 +1,5 @@
 import type {
+  AnalyticsDto,
   ApiKeyDto,
   AreaDto,
   AvailabilityResponse,
@@ -244,4 +245,12 @@ export const templatesQuery = (id: string, locale: "it" | "en") =>
       api.get<NotificationTemplateDto[]>(`/api/v1/restaurants/${id}/notification-templates`, {
         locale,
       }),
+  });
+
+export const analyticsQuery = (id: string, from: string, to: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "analytics", from, to],
+    queryFn: () => api.get<AnalyticsDto>(`/api/v1/restaurants/${id}/analytics`, { from, to }),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });

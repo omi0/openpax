@@ -61,7 +61,9 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `customers`, `notifications`, `team`, `api-keys`.
+`bookings`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+(read-only aggregates over bookings; capacity offered = slots × max covers per
+slot from the service hours and closures).
 
 Most events belong to a restaurant. Organization-level events carry
 `restaurantId: null`: `team.invitation_created` is written by the Better Auth

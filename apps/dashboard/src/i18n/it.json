@@ -24,7 +24,8 @@
     "newRestaurant": "Nuovo ristorante",
     "customers": "Clienti",
     "calendar": "Calendario",
-    "bookings": "Prenotazioni"
+    "bookings": "Prenotazioni",
+    "analytics": "Statistiche"
   },
   "auth": {
     "login": "Accedi",
@@ -476,5 +477,51 @@
       "address": "Indirizzo ristorante",
       "cancellationReason": "Motivo annullamento"
     }
+  },
+  "analytics": {
+    "title": "Statistiche",
+    "range": {
+      "7": "Ultimi 7 giorni",
+      "30": "Ultimi 30 giorni",
+      "90": "Ultimi 90 giorni",
+      "month": "Questo mese",
+      "lastMonth": "Mese scorso",
+      "next30": "Prossimi 30 giorni"
+    },
+    "from": "Dal",
+    "to": "Al",
+    "kpi": {
+      "bookings": "Prenotazioni",
+      "covers": "Coperti",
+      "averageParty": "Persone per tavolo",
+      "noShowRate": "Tasso di no-show",
+      "cancellationRate": "Tasso di annullamento",
+      "occupancy": "Occupazione"
+    },
+    "kpiHint": {
+      "bookings": "{{cancelled}} annullate",
+      "noShowRate": "delle prenotazioni passate",
+      "cancellationRate": "su {{created}} create",
+      "occupancy": "su {{capacity}} coperti offerti",
+      "occupancyUnknown": "imposta i coperti massimi per fascia nei servizi"
+    },
+    "coversPerDay": "Coperti per giorno",
+    "coversPerDayHint": "Le barre mostrano i coperti seduti o attesi; la traccia grigia è la capienza offerta quel giorno.",
+    "byService": "Per servizio",
+    "bySource": "Per origine",
+    "byWeekday": "Per giorno della settimana",
+    "columns": {
+      "service": "Servizio",
+      "bookings": "Prenotazioni",
+      "covers": "Coperti",
+      "occupancy": "Occupazione",
+      "date": "Data",
+      "cancelled": "Annullate",
+      "noShows": "No-show",
+      "capacity": "Capienza"
+    },
+    "noData": "Nessuna prenotazione nel periodo.",
+    "tableView": "Mostra come tabella",
+    "na": "n.d."
   }
 }

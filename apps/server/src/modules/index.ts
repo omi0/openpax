@@ -1,3 +1,4 @@
+import { analyticsModule } from "./analytics/index.js";
 import { apiKeysModule } from "./api-keys/index.js";
 import { availabilityModule } from "./availability/index.js";
 import { bookingsModule } from "./bookings/index.js";
@@ -18,4 +19,5 @@ export const modules: SitliModule[] = [
   notificationsModule,
   teamModule,
   apiKeysModule,
+  analyticsModule,
 ];

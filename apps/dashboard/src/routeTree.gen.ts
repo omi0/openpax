@@ -19,6 +19,7 @@ import { Route as AppOnboardingRouteImport } from "./routes/_app.onboarding";
 import { Route as InvitationsInvitationIdRouteImport } from "./routes/invitations.$invitationId";
 import { Route as AppRRestaurantIdRouteImport } from "./routes/_app.r.$restaurantId";
 import { Route as AppRRestaurantIdIndexRouteImport } from "./routes/_app.r.$restaurantId.index";
+import { Route as AppRRestaurantIdAnalyticsRouteImport } from "./routes/_app.r.$restaurantId.analytics";
 import { Route as AppRRestaurantIdBookingsRouteImport } from "./routes/_app.r.$restaurantId.bookings";
 import { Route as AppRRestaurantIdCalendarRouteImport } from "./routes/_app.r.$restaurantId.calendar";
 import { Route as AppRRestaurantIdSettingsRouteImport } from "./routes/_app.r.$restaurantId.settings";
@@ -83,6 +84,12 @@ const AppRRestaurantIdIndexRoute = AppRRestaurantIdIndexRouteImport.update({
   path: "/",
   getParentRoute: () => AppRRestaurantIdRoute,
 } as any);
+const AppRRestaurantIdAnalyticsRoute =
+  AppRRestaurantIdAnalyticsRouteImport.update({
+    id: "/analytics",
+    path: "/analytics",
+    getParentRoute: () => AppRRestaurantIdRoute,
+  } as any);
 const AppRRestaurantIdBookingsRoute =
   AppRRestaurantIdBookingsRouteImport.update({
     id: "/bookings",
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   "/onboarding": typeof AppOnboardingRoute;
   "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
+  "/r/$restaurantId/analytics": typeof AppRRestaurantIdAnalyticsRoute;
   "/r/$restaurantId/bookings": typeof AppRRestaurantIdBookingsRoute;
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
@@ -200,6 +208,7 @@ export interface FileRoutesByTo {
   "/signup": typeof SignupRoute;
   "/onboarding": typeof AppOnboardingRoute;
   "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
+  "/r/$restaurantId/analytics": typeof AppRRestaurantIdAnalyticsRoute;
   "/r/$restaurantId/bookings": typeof AppRRestaurantIdBookingsRoute;
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
@@ -226,6 +235,7 @@ export interface FileRoutesById {
   "/_app/onboarding": typeof AppOnboardingRoute;
   "/invitations/$invitationId": typeof InvitationsInvitationIdRoute;
   "/_app/r/$restaurantId": typeof AppRRestaurantIdRouteWithChildren;
+  "/_app/r/$restaurantId/analytics": typeof AppRRestaurantIdAnalyticsRoute;
   "/_app/r/$restaurantId/bookings": typeof AppRRestaurantIdBookingsRoute;
   "/_app/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/_app/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | "/onboarding"
     | "/invitations/$invitationId"
     | "/r/$restaurantId"
+    | "/r/$restaurantId/analytics"
     | "/r/$restaurantId/bookings"
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/settings"
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | "/signup"
     | "/onboarding"
     | "/invitations/$invitationId"
+    | "/r/$restaurantId/analytics"
     | "/r/$restaurantId/bookings"
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/today"
@@ -302,6 +314,7 @@ export interface FileRouteTypes {
     | "/_app/onboarding"
     | "/invitations/$invitationId"
     | "/_app/r/$restaurantId"
+    | "/_app/r/$restaurantId/analytics"
     | "/_app/r/$restaurantId/bookings"
     | "/_app/r/$restaurantId/calendar"
     | "/_app/r/$restaurantId/settings"
@@ -399,6 +412,13 @@ declare module "@tanstack/react-router" {
       path: "/";
       fullPath: "/r/$restaurantId/";
       preLoaderRoute: typeof AppRRestaurantIdIndexRouteImport;
+      parentRoute: typeof AppRRestaurantIdRoute;
+    };
+    "/_app/r/$restaurantId/analytics": {
+      id: "/_app/r/$restaurantId/analytics";
+      path: "/analytics";
+      fullPath: "/r/$restaurantId/analytics";
+      preLoaderRoute: typeof AppRRestaurantIdAnalyticsRouteImport;
       parentRoute: typeof AppRRestaurantIdRoute;
     };
     "/_app/r/$restaurantId/bookings": {
@@ -535,6 +555,7 @@ const AppRRestaurantIdSettingsRouteWithChildren =
   );
 
 interface AppRRestaurantIdRouteChildren {
+  AppRRestaurantIdAnalyticsRoute: typeof AppRRestaurantIdAnalyticsRoute;
   AppRRestaurantIdBookingsRoute: typeof AppRRestaurantIdBookingsRoute;
   AppRRestaurantIdCalendarRoute: typeof AppRRestaurantIdCalendarRoute;
   AppRRestaurantIdSettingsRoute: typeof AppRRestaurantIdSettingsRouteWithChildren;
@@ -545,6 +566,7 @@ interface AppRRestaurantIdRouteChildren {
 }
 
 const AppRRestaurantIdRouteChildren: AppRRestaurantIdRouteChildren = {
+  AppRRestaurantIdAnalyticsRoute: AppRRestaurantIdAnalyticsRoute,
   AppRRestaurantIdBookingsRoute: AppRRestaurantIdBookingsRoute,
   AppRRestaurantIdCalendarRoute: AppRRestaurantIdCalendarRoute,
   AppRRestaurantIdSettingsRoute: AppRRestaurantIdSettingsRouteWithChildren,
