@@ -6,8 +6,15 @@ import {
   weekdayOf,
 } from "@sitli/core";
 import { booking, scheduleException, service } from "@sitli/db";
-import type { AnalyticsDto, AnalyticsQuery, BookingSourceSchemaType } from "@sitli/shared";
-import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import {
+  type AnalyticsDto,
+  type AnalyticsQuery,
+  type AnalyticsTotalsDto,
+  type BookingSourceSchemaType,
+  LEAD_TIME_BUCKETS,
+  type LeadTimeBucket,
+} from "@sitli/shared";
+import { and, asc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 import { serviceToDef } from "../availability/service.js";
@@ -32,16 +39,14 @@ function add(target: Counts, status: string, count: number, covers: number) {
   if (status === "no_show") target.noShows += count;
 }
 
+type ServiceRow = typeof service.$inferSelect;
+type ExceptionRow = typeof scheduleException.$inferSelect;
+
 /** Covers a service can seat on a date given its hours, pacing limit and closures. */
 function serviceCapacity(
   svc: ReturnType<typeof serviceToDef>,
   date: string,
-  exceptions: Array<{
-    serviceId: string | null;
-    date: string;
-    closed: boolean;
-    windows: { start: string; end: string }[] | null;
-  }>,
+  exceptions: ExceptionRow[],
 ): number | null {
   if (svc.maxCoversPerSlot === null || svc.maxCoversPerSlot === undefined) return null;
   const { closed, windows } = resolveServiceWindows(svc, date, exceptions);
@@ -52,21 +57,41 @@ function serviceCapacity(
   return slots * svc.maxCoversPerSlot;
 }
 
-export async function getAnalytics(
-  ctx: AppContext,
-  r: RestaurantRow,
-  q: AnalyticsQuery,
-): Promise<AnalyticsDto> {
-  if (q.to < q.from) throw ApiError.badRequest("invalid_range", "`to` must not be before `from`");
+function datesBetween(from: string, to: string): string[] {
+  if (to < from) throw ApiError.badRequest("invalid_range", "`to` must not be before `from`");
   const dates: string[] = [];
-  for (let d = q.from; d <= q.to; d = addDaysToLocalDate(d, 1)) {
+  for (let d = from; d <= to; d = addDaysToLocalDate(d, 1)) {
     dates.push(d);
     if (dates.length > MAX_DAYS)
       throw ApiError.badRequest("range_too_long", `At most ${MAX_DAYS} days per request`);
   }
-  const today = instantToLocal(ctx.now(), r.timezone).date;
+  return dates;
+}
 
-  const [rows, services, exceptions] = await Promise.all([
+interface RangeAggregate {
+  totals: AnalyticsTotalsDto;
+  days: AnalyticsDto["days"];
+  services: AnalyticsDto["services"];
+  sources: AnalyticsDto["sources"];
+  weekdays: AnalyticsDto["weekdays"];
+}
+
+/** Everything the report needs for one date range; services are shared between ranges. */
+async function aggregateRange(
+  ctx: AppContext,
+  r: RestaurantRow,
+  dates: string[],
+  services: ServiceRow[],
+  today: string,
+): Promise<RangeAggregate> {
+  const from = dates[0] ?? "";
+  const to = dates[dates.length - 1] ?? from;
+  const inRange = and(
+    eq(booking.restaurantId, r.id),
+    gte(booking.serviceDate, from),
+    lte(booking.serviceDate, to),
+  );
+  const [rows, exceptions] = await Promise.all([
     ctx.db
       .select({
         date: booking.serviceDate,
@@ -77,27 +102,16 @@ export async function getAnalytics(
         covers: sql<number>`coalesce(sum(${booking.partySize}), 0)::int`,
       })
       .from(booking)
-      .where(
-        and(
-          eq(booking.restaurantId, r.id),
-          gte(booking.serviceDate, q.from),
-          lte(booking.serviceDate, q.to),
-        ),
-      )
+      .where(inRange)
       .groupBy(booking.serviceDate, booking.serviceId, booking.source, booking.status),
-    ctx.db
-      .select()
-      .from(service)
-      .where(eq(service.restaurantId, r.id))
-      .orderBy(asc(service.sortOrder), asc(service.name)),
     ctx.db
       .select()
       .from(scheduleException)
       .where(
         and(
           eq(scheduleException.restaurantId, r.id),
-          gte(scheduleException.date, q.from),
-          lte(scheduleException.date, q.to),
+          gte(scheduleException.date, from),
+          lte(scheduleException.date, to),
         ),
       ),
   ]);
@@ -161,8 +175,6 @@ export async function getAnalytics(
   }
 
   return {
-    from: q.from,
-    to: q.to,
     totals: {
       ...totals,
       averagePartySize: totals.bookings > 0 ? totals.covers / totals.bookings : null,
@@ -181,4 +193,135 @@ export async function getAnalytics(
       ...(byWeekday.get(weekday) ?? { bookings: 0, covers: 0 }),
     })),
   };
+}
+
+/** Hours between creation and arrival, bucketed; negative values (staff back-dating) count as 0. */
+const leadHours = sql<number>`greatest(0, extract(epoch from (${booking.startsAt} - ${booking.createdAt})) / 3600)`;
+const leadBucket = sql<LeadTimeBucket>`case
+  when ${leadHours} < 1 then '1h'
+  when ${leadHours} < 6 then '6h'
+  when ${leadHours} < 24 then '24h'
+  when ${leadHours} < 72 then '3d'
+  when ${leadHours} < 168 then '7d'
+  when ${leadHours} < 336 then '14d'
+  when ${leadHours} < 720 then '30d'
+  else '30d+' end`;
+
+async function distributions(
+  ctx: AppContext,
+  r: RestaurantRow,
+  from: string,
+  to: string,
+): Promise<Pick<AnalyticsDto, "partySizes" | "leadTime">> {
+  const active = and(
+    eq(booking.restaurantId, r.id),
+    gte(booking.serviceDate, from),
+    lte(booking.serviceDate, to),
+    ne(booking.status, "cancelled"),
+  );
+  const [sizes, buckets, [stats]] = await Promise.all([
+    ctx.db
+      .select({
+        partySize: booking.partySize,
+        bookings: sql<number>`count(*)::int`,
+        covers: sql<number>`sum(${booking.partySize})::int`,
+      })
+      .from(booking)
+      .where(active)
+      .groupBy(booking.partySize)
+      .orderBy(asc(booking.partySize)),
+    ctx.db
+      .select({ bucket: leadBucket, bookings: sql<number>`count(*)::int` })
+      .from(booking)
+      .where(active)
+      .groupBy(leadBucket),
+    ctx.db
+      .select({
+        median: sql<
+          number | null
+        >`percentile_cont(0.5) within group (order by ${leadHours})::float`,
+        average: sql<number | null>`avg(${leadHours})::float`,
+      })
+      .from(booking)
+      .where(active),
+  ]);
+  const byBucket = new Map(buckets.map((b) => [b.bucket, b.bookings]));
+  return {
+    partySizes: sizes,
+    leadTime: {
+      buckets: LEAD_TIME_BUCKETS.map((bucket) => ({ bucket, bookings: byBucket.get(bucket) ?? 0 })),
+      medianHours: stats?.median ?? null,
+      averageHours: stats?.average ?? null,
+    },
+  };
+}
+
+export async function getAnalytics(
+  ctx: AppContext,
+  r: RestaurantRow,
+  q: AnalyticsQuery,
+): Promise<AnalyticsDto> {
+  const dates = datesBetween(q.from, q.to);
+  const previousTo = addDaysToLocalDate(q.from, -1);
+  const previousFrom = addDaysToLocalDate(previousTo, -(dates.length - 1));
+  const previousDates = datesBetween(previousFrom, previousTo);
+  const today = instantToLocal(ctx.now(), r.timezone).date;
+
+  const services = await ctx.db
+    .select()
+    .from(service)
+    .where(eq(service.restaurantId, r.id))
+    .orderBy(asc(service.sortOrder), asc(service.name));
+  const [current, previous, dist] = await Promise.all([
+    aggregateRange(ctx, r, dates, services, today),
+    aggregateRange(ctx, r, previousDates, services, today),
+    distributions(ctx, r, q.from, q.to),
+  ]);
+
+  return {
+    from: q.from,
+    to: q.to,
+    ...current,
+    previous: { from: previousFrom, to: previousTo, totals: previous.totals },
+    ...dist,
+  };
+}
+
+// ---------- CSV export
+
+const csvCell = (v: string | number | null): string => {
+  if (v === null) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/** One row per day of the range; the last line carries the totals. */
+export function analyticsToCsv(data: AnalyticsDto): string {
+  const lines: string[][] = [
+    ["date", "weekday", "bookings", "covers", "cancelled", "no_shows", "capacity", "occupancy"],
+  ];
+  for (const d of data.days) {
+    lines.push([
+      d.date,
+      weekdayOf(d.date),
+      String(d.bookings),
+      String(d.covers),
+      String(d.cancelled),
+      String(d.noShows),
+      d.capacity === null ? "" : String(d.capacity),
+      d.capacity ? (d.covers / d.capacity).toFixed(4) : "",
+    ]);
+  }
+  const t = data.totals;
+  lines.push([
+    "total",
+    "",
+    String(t.bookings),
+    String(t.covers),
+    String(t.cancelled),
+    String(t.noShows),
+    t.capacity === null ? "" : String(t.capacity),
+    t.occupancy === null ? "" : t.occupancy.toFixed(4),
+  ]);
+  return `${lines.map((l) => l.map(csvCell).join(",")).join("\r\n")}\r\n`;
 }

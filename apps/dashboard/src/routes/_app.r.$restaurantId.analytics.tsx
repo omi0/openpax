@@ -1,7 +1,8 @@
-import type { AnalyticsDto } from "@sitli/shared";
+import type { AnalyticsDto, AnalyticsTotalsDto } from "@sitli/shared";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Download } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Card, EmptyState, Input, Spinner } from "@/components/ui";
 import { analyticsQuery, restaurantQuery } from "@/lib/queries";
@@ -51,6 +52,43 @@ const percent = (v: number | null, locale: string) =>
     : new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(v);
 const num = (v: number, locale: string, digits = 0) =>
   new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v);
+const signed = (v: number, locale: string, digits = 0) =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: digits, signDisplay: "always" }).format(v);
+
+/** Change against the previous period: relative for counts, percentage points for rates. */
+function Delta({
+  current,
+  previous,
+  kind,
+  lowerIsBetter,
+  locale,
+}: {
+  current: number | null;
+  previous: number | null;
+  kind: "count" | "rate";
+  lowerIsBetter?: boolean;
+  locale: string;
+}) {
+  const { t } = useTranslation();
+  if (current === null || previous === null) return null;
+  let label: string;
+  let diff: number;
+  if (kind === "rate") {
+    diff = (current - previous) * 100;
+    label = `${signed(diff, locale, 1)} pt`;
+  } else {
+    if (previous === 0) return null;
+    diff = (current - previous) / previous;
+    label = `${signed(diff * 100, locale, 0)}%`;
+  }
+  if (Math.abs(diff) < 0.05) return <p className="text-xs text-zinc-400">{t("analytics.same")}</p>;
+  const good = lowerIsBetter ? diff < 0 : diff > 0;
+  return (
+    <p className={cn("text-xs tabular-nums", good ? "text-emerald-700" : "text-red-600")}>
+      {label} <span className="text-zinc-400">{t("analytics.vsPrevious")}</span>
+    </p>
+  );
+}
 
 function AnalyticsPage() {
   const { t, i18n } = useTranslation();
@@ -70,6 +108,7 @@ function AnalyticsPage() {
     return r.from === from && r.to === to;
   });
   const data = analytics.data;
+  const prev: AnalyticsTotalsDto | undefined = data?.previous.totals;
   const locale = i18n.language;
 
   return (
@@ -80,6 +119,13 @@ function AnalyticsPage() {
           {formatDate(from, locale, { day: "numeric", month: "short", year: "numeric" })} –{" "}
           {formatDate(to, locale, { day: "numeric", month: "short", year: "numeric" })}
         </span>
+        <a
+          href={`/api/v1/restaurants/${restaurantId}/analytics/export?from=${from}&to=${to}`}
+          download
+          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium hover:bg-zinc-50"
+        >
+          <Download className="size-4" /> {t("analytics.exportCsv")}
+        </a>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(["7", "30", "90", "month", "lastMonth", "next30"] as Preset[]).map((p) => (
@@ -92,6 +138,7 @@ function AnalyticsPage() {
             {t(`analytics.range.${p}`)}
           </Button>
         ))}
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
         <label className="flex items-center gap-1 text-sm text-zinc-500">
           {t("analytics.from")}
           <Input
@@ -101,6 +148,7 @@ function AnalyticsPage() {
             className="h-8 w-auto"
           />
         </label>
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
         <label className="flex items-center gap-1 text-sm text-zinc-500">
           {t("analytics.to")}
           <Input
@@ -112,7 +160,7 @@ function AnalyticsPage() {
         </label>
       </div>
 
-      {!data ? (
+      {!data || !prev ? (
         <Spinner />
       ) : (
         <div className={cn("space-y-4", analytics.isFetching && "opacity-70")}>
@@ -121,14 +169,41 @@ function AnalyticsPage() {
               label={t("analytics.kpi.bookings")}
               value={num(data.totals.bookings, locale)}
               hint={t("analytics.kpiHint.bookings", { cancelled: data.totals.cancelled })}
+              delta={
+                <Delta
+                  current={data.totals.bookings}
+                  previous={prev.bookings}
+                  kind="count"
+                  locale={locale}
+                />
+              }
             />
-            <Stat label={t("analytics.kpi.covers")} value={num(data.totals.covers, locale)} />
+            <Stat
+              label={t("analytics.kpi.covers")}
+              value={num(data.totals.covers, locale)}
+              delta={
+                <Delta
+                  current={data.totals.covers}
+                  previous={prev.covers}
+                  kind="count"
+                  locale={locale}
+                />
+              }
+            />
             <Stat
               label={t("analytics.kpi.averageParty")}
               value={
                 data.totals.averagePartySize === null
                   ? t("analytics.na")
                   : num(data.totals.averagePartySize, locale, 1)
+              }
+              delta={
+                <Delta
+                  current={data.totals.averagePartySize}
+                  previous={prev.averagePartySize}
+                  kind="count"
+                  locale={locale}
+                />
               }
             />
             <Stat
@@ -140,11 +215,29 @@ function AnalyticsPage() {
                   ? "text-red-600"
                   : undefined
               }
+              delta={
+                <Delta
+                  current={data.totals.noShowRate}
+                  previous={prev.noShowRate}
+                  kind="rate"
+                  lowerIsBetter
+                  locale={locale}
+                />
+              }
             />
             <Stat
               label={t("analytics.kpi.cancellationRate")}
               value={percent(data.totals.cancellationRate, locale) ?? t("analytics.na")}
               hint={t("analytics.kpiHint.cancellationRate", { created: data.totals.created })}
+              delta={
+                <Delta
+                  current={data.totals.cancellationRate}
+                  previous={prev.cancellationRate}
+                  kind="rate"
+                  lowerIsBetter
+                  locale={locale}
+                />
+              }
             />
             <Stat
               label={t("analytics.kpi.occupancy")}
@@ -156,8 +249,28 @@ function AnalyticsPage() {
                     })
                   : t("analytics.kpiHint.occupancyUnknown")
               }
+              delta={
+                <Delta
+                  current={data.totals.occupancy}
+                  previous={prev.occupancy}
+                  kind="rate"
+                  locale={locale}
+                />
+              }
             />
           </div>
+          <p className="text-xs text-zinc-500">
+            {t("analytics.previousPeriod", {
+              from: formatDate(data.previous.from, locale, { day: "numeric", month: "short" }),
+              to: formatDate(data.previous.to, locale, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }),
+              bookings: num(prev.bookings, locale),
+              covers: num(prev.covers, locale),
+            })}
+          </p>
 
           <Card title={t("analytics.coversPerDay")} description={t("analytics.coversPerDayHint")}>
             {data.totals.created === 0 ? (
@@ -227,6 +340,47 @@ function AnalyticsPage() {
               }))}
             />
           </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card title={t("analytics.byPartySize")} description={t("analytics.byPartySizeHint")}>
+              {data.partySizes.length === 0 ? (
+                <EmptyState>{t("analytics.noData")}</EmptyState>
+              ) : (
+                <HBars
+                  rows={groupPartySizes(data.partySizes).map((p) => ({
+                    key: p.label,
+                    label: p.label,
+                    value: p.bookings,
+                    detail: `${num(p.bookings, locale)} · ${percent(p.bookings / data.totals.bookings, locale) ?? ""}`,
+                  }))}
+                />
+              )}
+            </Card>
+            <Card
+              title={t("analytics.leadTime")}
+              description={
+                data.leadTime.medianHours === null
+                  ? t("analytics.leadTimeHint")
+                  : t("analytics.leadTimeMedian", {
+                      median: humanHours(data.leadTime.medianHours, t),
+                      average: humanHours(data.leadTime.averageHours ?? 0, t),
+                    })
+              }
+            >
+              {data.totals.bookings === 0 ? (
+                <EmptyState>{t("analytics.noData")}</EmptyState>
+              ) : (
+                <HBars
+                  rows={data.leadTime.buckets.map((b) => ({
+                    key: b.bucket,
+                    label: t(`analytics.leadBucket.${b.bucket}`),
+                    value: b.bookings,
+                    detail: `${num(b.bookings, locale)} · ${percent(b.bookings / data.totals.bookings, locale) ?? ""}`,
+                  }))}
+                />
+              )}
+            </Card>
+          </div>
         </div>
       )}
     </div>
@@ -238,19 +392,40 @@ function Stat({
   value,
   hint,
   tone,
+  delta,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: string;
+  delta?: ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
       <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
       <p className={cn("text-2xl font-semibold tabular-nums", tone)}>{value}</p>
       {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
+      {delta}
     </div>
   );
+}
+
+/** Sizes above eight are rare enough to share one bar. */
+function groupPartySizes(rows: AnalyticsDto["partySizes"]) {
+  const out: Array<{ label: string; bookings: number }> = [];
+  let large = 0;
+  for (const r of rows) {
+    if (r.partySize <= 8) out.push({ label: String(r.partySize), bookings: r.bookings });
+    else large += r.bookings;
+  }
+  if (large > 0) out.push({ label: "9+", bookings: large });
+  return out;
+}
+
+function humanHours(hours: number, t: (key: string, opts?: Record<string, unknown>) => string) {
+  if (hours < 1) return t("analytics.duration.minutes", { count: Math.round(hours * 60) });
+  if (hours < 48) return t("analytics.duration.hours", { count: Math.round(hours) });
+  return t("analytics.duration.days", { count: Math.round(hours / 24) });
 }
 
 function Meter({ value, label }: { value: number; label: string }) {
@@ -339,6 +514,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
             const cap = d.capacity ?? 0;
             const isPeak = i === peak && d.covers > 0;
             return (
+              // biome-ignore lint/a11y/noStaticElementInteractions: hover only reveals the tooltip; the table view exposes the same data
               <g key={d.date} onMouseEnter={() => setHover(i)}>
                 <rect x={padL + i * band} y={padT} width={band} height={plotH} fill="transparent" />
                 {cap > 0 ? (

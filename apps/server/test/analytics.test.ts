@@ -1,3 +1,5 @@
+import { booking } from "@sitli/db";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   api,
@@ -34,6 +36,13 @@ interface Analytics {
   services: Array<{ name: string; bookings: number; covers: number; capacity: number | null }>;
   sources: Array<{ source: string; bookings: number }>;
   weekdays: Array<{ weekday: string; bookings: number }>;
+  previous: { from: string; to: string; totals: Analytics["totals"] };
+  partySizes: Array<{ partySize: number; bookings: number; covers: number }>;
+  leadTime: {
+    buckets: Array<{ bucket: string; bookings: number }>;
+    medianHours: number | null;
+    averageHours: number | null;
+  };
 }
 
 describe("analytics", () => {
@@ -43,7 +52,12 @@ describe("analytics", () => {
     const publicPath = `/api/public/v1/restaurants/${fx.slug}/bookings`;
 
     // two online bookings on Friday, one of them cancelled
-    await api(t, "POST", publicPath, guestBooking(fx));
+    const first = await api<{ id: string }>(t, "POST", publicPath, guestBooking(fx));
+    // the database clock stamps created_at, not the frozen test clock: back-date it 2 days
+    await t.ctx.db
+      .update(booking)
+      .set({ createdAt: sql`${booking.startsAt} - interval '48 hours'` })
+      .where(eq(booking.id, first.body.id));
     const cancelled = await api<{ id: string }>(
       t,
       "POST",
@@ -91,6 +105,22 @@ describe("analytics", () => {
       fx.session,
     );
     expect(walkIn.status).toBe(201);
+    // and a table of five in the previous period
+    const earlier = await api<{ id: string }>(
+      t,
+      "POST",
+      staff,
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant("2026-05-25", "20:00"),
+        partySize: 5,
+        customer: { name: "Giulia Russo" },
+        source: "phone",
+        ignoreCapacity: true,
+      },
+      fx.session,
+    );
+    expect(earlier.status).toBe(201);
 
     const res = await api<Analytics>(
       t,
@@ -126,6 +156,35 @@ describe("analytics", () => {
     });
     expect(res.body.sources.map((s) => s.source).sort()).toEqual(["phone", "walk_in", "widget"]);
     expect(res.body.weekdays.find((w) => w.weekday === "fri")?.bookings).toBe(3);
+
+    // previous period of the same length, ending the day before `from`
+    expect(res.body.previous).toMatchObject({ from: "2026-05-18", to: "2026-05-31" });
+    expect(res.body.previous.totals).toMatchObject({ created: 1, bookings: 1, covers: 5 });
+
+    // distributions ignore the cancelled booking
+    expect(res.body.partySizes).toEqual([
+      { partySize: 2, bookings: 2, covers: 4 },
+      { partySize: 4, bookings: 1, covers: 4 },
+    ]);
+    const buckets = Object.fromEntries(
+      res.body.leadTime.buckets.map((b) => [b.bucket, b.bookings]),
+    );
+    expect(buckets).toMatchObject({ "1h": 2, "3d": 1, "6h": 0, "30d+": 0 });
+    expect(res.body.leadTime.medianHours).toBe(0);
+    expect(res.body.leadTime.averageHours).toBeCloseTo(16);
+
+    const csv = await t.app.request(
+      `/api/v1/restaurants/${fx.restaurantId}/analytics/export?from=2026-06-01&to=2026-06-14`,
+      { headers: { cookie: fx.session.cookie, origin: "http://localhost:3000" } },
+    );
+    expect(csv.status).toBe(200);
+    expect(csv.headers.get("content-type")).toContain("text/csv");
+    expect(csv.headers.get("content-disposition")).toContain(".csv");
+    const lines = (await csv.text()).trim().split("\r\n");
+    expect(lines[0]).toBe("date,weekday,bookings,covers,cancelled,no_shows,capacity,occupancy");
+    expect(lines).toHaveLength(16);
+    expect(lines.find((l) => l.startsWith("2026-06-12"))).toBe("2026-06-12,fri,1,2,1,0,140,0.0143");
+    expect(lines[15]).toBe("total,,3,8,1,1,1960,0.0041");
 
     const closed = await api(
       t,

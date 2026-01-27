@@ -126,6 +126,7 @@ function BookingsPage() {
         >
           {t("bookings.past")}
         </Button>
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
         <label className="flex items-center gap-1 text-sm text-zinc-500">
           {t("bookings.from")}
           <Input
@@ -135,6 +136,7 @@ function BookingsPage() {
             className="h-8 w-auto"
           />
         </label>
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
         <label className="flex items-center gap-1 text-sm text-zinc-500">
           {t("bookings.to")}
           <Input
