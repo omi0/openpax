@@ -11,6 +11,8 @@ export const NOTIFICATION_EVENTS = [
   "booking.cancelled",
   "booking.modified",
   "booking.reminder",
+  "waitlist.joined",
+  "waitlist.offered",
 ] as const;
 export const notificationEventSchema = z.enum(NOTIFICATION_EVENTS);
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];

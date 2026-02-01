@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
 import { Badge, Button, Dialog, EmptyState, Field, Spinner, Textarea } from "@/components/ui";
+import { WaitlistPanel } from "@/components/waitlist-panel";
 import { api } from "@/lib/api";
 import { bookingNotificationsQuery, bookingsQuery, meQuery, restaurantQuery } from "@/lib/queries";
 import { addDays, formatDate, formatTime, todayLocal } from "@/lib/utils";
@@ -179,6 +180,8 @@ function TodayPage() {
           ))}
         </ul>
       )}
+
+      <WaitlistPanel restaurant={restaurant} date={date} canOverride={role !== "staff"} />
 
       <BookingFormDialog
         restaurant={restaurant}

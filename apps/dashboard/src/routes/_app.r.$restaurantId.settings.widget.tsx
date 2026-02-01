@@ -214,6 +214,37 @@ function WidgetPage() {
             />
             <span className="text-sm">{t("widget.autoConfirm")}</span>
           </div>
+          <div className="space-y-3 rounded-lg border border-zinc-200 p-3 sm:col-span-2">
+            <p className="text-sm font-medium">{t("widget.waitlist")}</p>
+            <p className="text-xs text-zinc-500">{t("widget.waitlistHint")}</p>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={p.waitlistEnabled}
+                onChange={(waitlistEnabled) => setP({ ...p, waitlistEnabled })}
+                label={t("widget.waitlistEnabled")}
+              />
+              <span className="text-sm">{t("widget.waitlistEnabled")}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={p.waitlistAutoOffer}
+                onChange={(waitlistAutoOffer) => setP({ ...p, waitlistAutoOffer })}
+                label={t("widget.waitlistAutoOffer")}
+                disabled={!p.waitlistEnabled}
+              />
+              <span className="text-sm">{t("widget.waitlistAutoOffer")}</span>
+            </div>
+            <Field label={t("widget.waitlistOfferMinutes")} className="sm:max-w-xs">
+              <Input
+                type="number"
+                min={15}
+                max={10080}
+                value={p.waitlistOfferMinutes}
+                disabled={!p.waitlistEnabled}
+                onChange={(e) => setP({ ...p, waitlistOfferMinutes: Number(e.target.value) })}
+              />
+            </Field>
+          </div>
           <div className="flex items-center justify-end gap-3 sm:col-span-2">
             {saved === "policy" ? (
               <span className="text-sm text-emerald-700">{t("app.saved")}</span>

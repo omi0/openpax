@@ -1,12 +1,36 @@
 import type { AvailabilitySlotDto } from "@sitli/shared";
 import { t } from "../i18n.js";
-import { availability, loadingSlots, selectedSlot } from "../state.js";
+import { availability, canJoinWaitlist, loadingSlots, selectedSlot, step } from "../state.js";
+
+function WaitlistCta() {
+  if (!canJoinWaitlist.value) return null;
+  return (
+    <div class="waitlist-cta">
+      <p>{t("waitlist.full")}</p>
+      <button
+        type="button"
+        class="btn secondary"
+        onClick={() => {
+          step.value = "waitlist";
+        }}
+      >
+        {t("waitlist.join")}
+      </button>
+    </div>
+  );
+}
 
 export function SlotGrid() {
   const data = availability.value;
   if (loadingSlots.value) return <p class="empty">…</p>;
   if (!data || data.closed) return <p class="empty">{t("closed")}</p>;
-  if (data.slots.length === 0) return <p class="empty">{t("noSlots")}</p>;
+  if (data.slots.length === 0)
+    return (
+      <div>
+        <p class="empty">{t("noSlots")}</p>
+        <WaitlistCta />
+      </div>
+    );
 
   const byService = new Map<string, AvailabilitySlotDto[]>();
   for (const s of data.slots)
@@ -44,6 +68,7 @@ export function SlotGrid() {
           </div>
         </div>
       ))}
+      <WaitlistCta />
     </div>
   );
 }

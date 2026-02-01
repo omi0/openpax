@@ -9,6 +9,7 @@ export * from "./schemas/notifications.js";
 export * from "./schemas/restaurant.js";
 export * from "./schemas/service.js";
 export * from "./schemas/team.js";
+export * from "./schemas/waitlist.js";
 export * from "./schemas/weekly-hours.js";
 export * from "./schemas/widget.js";
 export * from "./templates/index.js";

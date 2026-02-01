@@ -111,6 +111,26 @@ export const DEFAULT_TEMPLATES: Table = {
           body: "{{restaurantName}}: ti aspettiamo il {{when}} ({{partySize}} persone). Modifica: {{manageUrl}}",
         },
       },
+      "waitlist.joined": {
+        email: {
+          subject: "Sei in lista d'attesa da {{restaurantName}}",
+          heading: "Sei in lista d'attesa",
+          body: "Ciao {{guestName}}, ti abbiamo aggiunto alla lista d'attesa per {{partySize}} persone il {{when}}.\n\nSe si libera un tavolo ti avviseremo subito. Dal link qui sotto puoi uscire dalla lista quando vuoi.",
+        },
+        sms: {
+          body: "{{restaurantName}}: sei in lista d'attesa per {{partySize}} persone il {{when}}. Ti avvisiamo se si libera un tavolo. {{manageUrl}}",
+        },
+      },
+      "waitlist.offered": {
+        email: {
+          subject: "Si è liberato un tavolo da {{restaurantName}}",
+          heading: "Si è liberato un tavolo",
+          body: "Ciao {{guestName}}, abbiamo un tavolo per {{partySize}} persone il {{when}}.\n\nConfermalo dal link qui sotto: l'offerta resta valida per poco tempo, poi passerà al prossimo in lista.",
+        },
+        sms: {
+          body: "{{restaurantName}}: si è liberato un tavolo per {{partySize}} il {{when}}. Conferma entro poco: {{manageUrl}}",
+        },
+      },
     },
     restaurant: {
       "booking.confirmed": {
@@ -151,6 +171,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: modificata la prenotazione di {{guestName}}: {{partySize}} persone, {{when}}.",
+        },
+      },
+      "waitlist.joined": {
+        email: {
+          subject: "Lista d'attesa: {{guestName}}, {{partySize}} persone, {{when}}",
+          heading: "Nuova richiesta in lista d'attesa",
+          body: "Un ospite si è messo in lista d'attesa. Puoi offrirgli un tavolo dalla pagina del giorno.",
+        },
+        sms: {
+          body: "{{restaurantName}}: {{guestName}} in lista d'attesa, {{partySize}} persone, {{when}}.",
         },
       },
     },
@@ -207,6 +237,26 @@ export const DEFAULT_TEMPLATES: Table = {
           body: "{{restaurantName}}: see you on {{when}} ({{partySize}} guests). Change: {{manageUrl}}",
         },
       },
+      "waitlist.joined": {
+        email: {
+          subject: "You're on the waitlist at {{restaurantName}}",
+          heading: "You're on the waitlist",
+          body: "Hi {{guestName}}, we added you to the waitlist for {{partySize}} guests on {{when}}.\n\nWe'll let you know as soon as a table frees up. You can leave the list any time from the link below.",
+        },
+        sms: {
+          body: "{{restaurantName}}: you're on the waitlist for {{partySize}} guests on {{when}}. We'll text you if a table frees up. {{manageUrl}}",
+        },
+      },
+      "waitlist.offered": {
+        email: {
+          subject: "A table is free at {{restaurantName}}",
+          heading: "A table just freed up",
+          body: "Hi {{guestName}}, we have a table for {{partySize}} guests on {{when}}.\n\nConfirm it from the link below: the offer only stays open for a short while, then it goes to the next guest in line.",
+        },
+        sms: {
+          body: "{{restaurantName}}: a table for {{partySize}} is free on {{when}}. Confirm soon: {{manageUrl}}",
+        },
+      },
     },
     restaurant: {
       "booking.confirmed": {
@@ -247,6 +297,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: updated booking of {{guestName}}: {{partySize}} guests, {{when}}.",
+        },
+      },
+      "waitlist.joined": {
+        email: {
+          subject: "Waitlist: {{guestName}}, {{partySize}} guests, {{when}}",
+          heading: "New waitlist request",
+          body: "A guest joined the waitlist. You can offer them a table from the day view.",
+        },
+        sms: {
+          body: "{{restaurantName}}: {{guestName}} joined the waitlist, {{partySize}} guests, {{when}}.",
         },
       },
     },

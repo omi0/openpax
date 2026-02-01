@@ -57,6 +57,7 @@ export const publicWidgetConfigDtoSchema = z.object({
     maxAdvanceDays: z.number().int(),
     minLeadMinutes: z.number().int(),
     autoConfirm: z.boolean(),
+    waitlistEnabled: z.boolean(),
   }),
 });
 export type PublicWidgetConfigDto = z.infer<typeof publicWidgetConfigDtoSchema>;

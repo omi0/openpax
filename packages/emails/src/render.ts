@@ -42,6 +42,8 @@ export interface BookingEmailInput {
   };
   booking: {
     startsAt: Date;
+    /** Replaces the formatted `startsAt` (waitlist entries only know a date). */
+    when?: string;
     partySize: number;
     confirmationCode: string;
     serviceName: string;
@@ -63,12 +65,23 @@ export function formatWhen(startsAt: Date, timezone: string, locale: Locale): st
   return format(zoned, "EEEE d MMMM yyyy, HH:mm", { locale: dateLocales[locale] ?? enGB });
 }
 
+/** "venerdì 12 giugno 2026" for a calendar date, with an optional preferred time appended. */
+export function formatWhenDate(date: string, locale: Locale, time?: string | null): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const text = format(new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1), "EEEE d MMMM yyyy", {
+    locale: dateLocales[locale] ?? enGB,
+  });
+  return time ? `${text}, ${time}` : text;
+}
+
 export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
   const copy = getCopy(input.locale, input.audience, input.event, input.template);
   const vars = {
     restaurantName: input.restaurant.name,
     guestName: input.guest.name,
-    when: formatWhen(input.booking.startsAt, input.restaurant.timezone, input.locale),
+    when:
+      input.booking.when ??
+      formatWhen(input.booking.startsAt, input.restaurant.timezone, input.locale),
     partySize: input.booking.partySize,
     confirmationCode: input.booking.confirmationCode,
     serviceName: input.booking.serviceName,

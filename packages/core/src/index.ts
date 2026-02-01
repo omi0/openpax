@@ -10,3 +10,4 @@ export * from "./errors.js";
 export * from "./events/domain-events.js";
 export * from "./time/local.js";
 export * from "./time/zoned.js";
+export * from "./waitlist/waitlist.js";

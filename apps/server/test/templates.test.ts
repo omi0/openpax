@@ -45,7 +45,8 @@ describe("notification templates", () => {
       fx.session,
     );
     expect(defaults.status).toBe(200);
-    expect(defaults.body).toHaveLength(18);
+    // 5 booking events × 2 audiences (reminder has no restaurant copy) + waitlist joined ×2 and offered ×1, × 2 channels
+    expect(defaults.body).toHaveLength(24);
     expect(defaults.body.every((x) => !x.custom)).toBe(true);
     const guestConfirmed = defaults.body.find(
       (x) => x.event === "booking.confirmed" && x.channel === "email" && x.audience === "guest",

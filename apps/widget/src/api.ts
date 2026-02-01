@@ -2,6 +2,7 @@ import type {
   AvailabilityResponse,
   MonthAvailabilityResponse,
   PublicBookingDto,
+  PublicWaitlistEntryDto,
   PublicWidgetConfigDto,
 } from "@sitli/shared";
 
@@ -70,6 +71,23 @@ export const api = {
     request<PublicBookingDto>(`/api/public/v1/bookings/${encodeURIComponent(token)}`),
   cancel: (token: string) =>
     request<PublicBookingDto>(`/api/public/v1/bookings/${encodeURIComponent(token)}/cancel`, {
+      method: "POST",
+      body: "{}",
+    }),
+  joinWaitlist: (slug: string, body: unknown) =>
+    request<PublicWaitlistEntryDto>(
+      `/api/public/v1/restaurants/${encodeURIComponent(slug)}/waitlist`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  waitlist: (token: string) =>
+    request<PublicWaitlistEntryDto>(`/api/public/v1/waitlist/${encodeURIComponent(token)}`),
+  acceptWaitlist: (token: string) =>
+    request<PublicBookingDto>(`/api/public/v1/waitlist/${encodeURIComponent(token)}/accept`, {
+      method: "POST",
+      body: "{}",
+    }),
+  leaveWaitlist: (token: string) =>
+    request<PublicWaitlistEntryDto>(`/api/public/v1/waitlist/${encodeURIComponent(token)}/leave`, {
       method: "POST",
       body: "{}",
     }),

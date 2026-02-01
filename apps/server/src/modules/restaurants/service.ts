@@ -83,6 +83,9 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
     autoConfirm: row.autoConfirm,
     cancellationCutoffMinutes: row.cancellationCutoffMinutes,
     largePartyThreshold: row.largePartyThreshold,
+    waitlistEnabled: row.waitlistEnabled,
+    waitlistAutoOffer: row.waitlistAutoOffer,
+    waitlistOfferMinutes: row.waitlistOfferMinutes,
   };
 }
 

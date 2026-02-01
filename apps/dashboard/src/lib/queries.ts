@@ -21,6 +21,7 @@ import type {
   ScheduleExceptionDto,
   ServiceDto,
   TeamDto,
+  WaitlistEntryDto,
   WidgetConfigDto,
 } from "@sitli/shared";
 import { queryOptions } from "@tanstack/react-query";
@@ -253,4 +254,15 @@ export const analyticsQuery = (id: string, from: string, to: string) =>
     queryFn: () => api.get<AnalyticsDto>(`/api/v1/restaurants/${id}/analytics`, { from, to }),
     placeholderData: (prev) => prev,
     staleTime: 60_000,
+  });
+
+export const waitlistQuery = (id: string, date: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "waitlist", date],
+    queryFn: () =>
+      api.get<Paginated<WaitlistEntryDto>>(`/api/v1/restaurants/${id}/waitlist`, {
+        date,
+        pageSize: 200,
+      }),
+    refetchInterval: 30_000,
   });

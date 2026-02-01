@@ -42,9 +42,10 @@ export function BookingEmail(p: BookingEmailProps) {
   const rows: Array<[string, string]> = [
     [p.copy.labels.when, p.vars.when],
     [p.copy.labels.party, String(p.vars.partySize)],
-    [p.copy.labels.service, p.vars.serviceName],
-    [p.copy.labels.code, p.vars.confirmationCode],
   ];
+  if (p.vars.serviceName) rows.push([p.copy.labels.service, p.vars.serviceName]);
+  // waitlist messages have no booking code yet
+  if (p.vars.confirmationCode) rows.push([p.copy.labels.code, p.vars.confirmationCode]);
   if (p.audience === "restaurant") {
     rows.push([p.copy.labels.guest, p.guest.name]);
     if (p.guest.phone) rows.push([p.copy.labels.phone, p.guest.phone]);
@@ -83,9 +84,9 @@ export function bookingEmailText(p: BookingEmailProps): string {
     "",
     `${p.copy.labels.when}: ${p.vars.when}`,
     `${p.copy.labels.party}: ${p.vars.partySize}`,
-    `${p.copy.labels.service}: ${p.vars.serviceName}`,
-    `${p.copy.labels.code}: ${p.vars.confirmationCode}`,
   ];
+  if (p.vars.serviceName) lines.push(`${p.copy.labels.service}: ${p.vars.serviceName}`);
+  if (p.vars.confirmationCode) lines.push(`${p.copy.labels.code}: ${p.vars.confirmationCode}`);
   if (p.audience === "restaurant") {
     lines.push(`${p.copy.labels.guest}: ${p.guest.name}`);
     if (p.guest.phone) lines.push(`${p.copy.labels.phone}: ${p.guest.phone}`);

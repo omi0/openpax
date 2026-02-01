@@ -195,7 +195,9 @@
       "booking.pending": "Request received (needs approval)",
       "booking.cancelled": "Booking cancelled",
       "booking.modified": "Booking modified",
-      "booking.reminder": "Reminder before arrival"
+      "booking.reminder": "Reminder before arrival",
+      "waitlist.joined": "Joined the waitlist",
+      "waitlist.offered": "Table offered from the waitlist"
     },
     "audience": {
       "guest": "Guest",
@@ -226,7 +228,12 @@
     "autoConfirm": "Confirm bookings automatically",
     "cutoff": "Online cancellation cutoff (minutes before)",
     "largeParty": "Require approval from party size",
-    "largePartyHint": "Leave empty to confirm every size automatically."
+    "largePartyHint": "Leave empty to confirm every size automatically.",
+    "waitlist": "Waitlist",
+    "waitlistHint": "When a date is full, guests can leave their details from the widget. Freed tables can be offered to them automatically, first come first served; an offer that is not accepted in time moves on to the next guest.",
+    "waitlistEnabled": "Let guests join a waitlist",
+    "waitlistAutoOffer": "Offer freed tables automatically",
+    "waitlistOfferMinutes": "Offer validity (minutes)"
   },
   "weekday": {
     "mon": "Mon",
@@ -550,5 +557,49 @@
       "days_one": "{{count}} day",
       "days_other": "{{count}} days"
     }
+  },
+  "waitlist": {
+    "title": "Waitlist",
+    "count": "{{count}} waiting",
+    "empty": "Nobody is waiting on this day.",
+    "add": "Add to waitlist",
+    "status": {
+      "waiting": "Waiting",
+      "offered": "Offered",
+      "booked": "Booked",
+      "expired": "Expired",
+      "cancelled": "Removed"
+    },
+    "preferred": "prefers {{time}}",
+    "offerUntil": "offer open until {{time}}",
+    "offered": "offered {{time}}",
+    "joined": "joined {{when}}",
+    "actions": {
+      "offer": "Offer a table",
+      "book": "Book in",
+      "remove": "Remove"
+    },
+    "offerTitle": "Offer a table",
+    "bookTitle": "Book the guest in",
+    "addTitle": "Add to waitlist",
+    "form": {
+      "slot": "Time",
+      "noSlots": "No slots on this date",
+      "preferredTime": "Preferred time (optional)",
+      "notes": "Notes",
+      "name": "Guest name",
+      "phone": "Phone",
+      "email": "Email",
+      "party": "Party size",
+      "date": "Date",
+      "ignoreCapacity": "Ignore capacity limits",
+      "full": "full"
+    },
+    "offerHint": "The guest gets a link to confirm the table. The offer stays open for {{minutes}} minutes.",
+    "bookHint": "Creates a confirmed booking right away and notifies the guest.",
+    "confirmRemove": "Remove this guest from the waitlist?",
+    "sendOffer": "Send offer",
+    "confirmBook": "Create booking",
+    "showClosed": "Show settled entries"
   }
 }

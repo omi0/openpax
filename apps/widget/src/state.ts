@@ -3,13 +3,14 @@ import type {
   AvailabilityResponse,
   AvailabilitySlotDto,
   PublicBookingDto,
+  PublicWaitlistEntryDto,
   PublicWidgetConfigDto,
 } from "@sitli/shared";
 import { ApiRequestError, api } from "./api.js";
 import { monthOf, todayLocal } from "./dates.js";
 import { setLocale } from "./i18n.js";
 
-export type Step = "when" | "details" | "done";
+export type Step = "when" | "details" | "done" | "waitlist" | "waitlist_done";
 
 export const slug = signal<string>("");
 export const config = signal<PublicWidgetConfigDto | null>(null);
@@ -28,6 +29,14 @@ export const guest = signal({ name: "", email: "", phone: "", notes: "", marketi
 export const submitting = signal(false);
 export const submitError = signal<string | null>(null);
 export const result = signal<PublicBookingDto | null>(null);
+export const waitlistResult = signal<PublicWaitlistEntryDto | null>(null);
+/** No bookable time on the chosen date: the guest may queue instead. */
+export const canJoinWaitlist = computed(() => {
+  const cfg = config.value;
+  const data = availability.value;
+  if (!cfg?.policy.waitlistEnabled || !data || data.closed) return false;
+  return data.slots.every((s) => !s.available);
+});
 
 export const timezone = computed(() => config.value?.restaurant.timezone ?? "UTC");
 export const today = computed(() => todayLocal(timezone.value));
@@ -93,6 +102,7 @@ export function reset() {
   step.value = "when";
   selectedSlot.value = null;
   result.value = null;
+  waitlistResult.value = null;
   submitError.value = null;
   guest.value = { name: "", email: "", phone: "", notes: "", marketing: false };
   void loadSlots();

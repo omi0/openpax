@@ -1,4 +1,5 @@
 import type { BookingStatus } from "../booking/state-machine.js";
+import type { WaitlistStatus } from "../waitlist/waitlist.js";
 
 export const BOOKING_SOURCES = ["widget", "manual", "phone", "walk_in", "api"] as const;
 export type BookingSource = (typeof BOOKING_SOURCES)[number];
@@ -34,6 +35,21 @@ export interface DomainEventPayloads {
     email: string;
     role: string;
   };
+  "waitlist.joined": {
+    entryId: string;
+    serviceDate: string;
+    partySize: number;
+    source: BookingSource;
+  };
+  "waitlist.offered": { entryId: string; startsAt: string; expiresAt: string };
+  "waitlist.booked": { entryId: string; bookingId: string };
+  "waitlist.expired": { entryId: string; serviceDate: string };
+  "waitlist.cancelled": {
+    entryId: string;
+    serviceDate: string;
+    previousStatus: WaitlistStatus;
+    cancelledBy: "guest" | "staff";
+  };
 }
 
 export type DomainEventType = keyof DomainEventPayloads;
@@ -59,6 +75,11 @@ export const DOMAIN_EVENT_TYPES = [
   "booking.completed",
   "booking.no_show",
   "team.invitation_created",
+  "waitlist.joined",
+  "waitlist.offered",
+  "waitlist.booked",
+  "waitlist.expired",
+  "waitlist.cancelled",
 ] as const satisfies readonly DomainEventType[];
 
 export function isDomainEventType(value: string): value is DomainEventType {

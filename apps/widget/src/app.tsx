@@ -4,13 +4,25 @@ import { GuestForm } from "./components/guest-form.js";
 import { Manage } from "./components/manage.js";
 import { PartyDatePicker } from "./components/party-date-picker.js";
 import { SlotGrid } from "./components/slot-grid.js";
+import { WaitlistDone, WaitlistForm } from "./components/waitlist-form.js";
+import { WaitlistPage } from "./components/waitlist-page.js";
 import { locale, setLocale, t } from "./i18n.js";
 import { scrollParentToTop } from "./resize.js";
-import { config, loadConfig, loadError, result, selectedSlot, step } from "./state.js";
+import {
+  config,
+  loadConfig,
+  loadError,
+  result,
+  selectedSlot,
+  step,
+  waitlistResult,
+} from "./state.js";
 
 export interface Route {
   slug: string;
   token: string | null;
+  /** What the token in the URL refers to. */
+  tokenKind: "manage" | "waitlist";
   embedded: boolean;
   instanceId: string | null;
   lang: string | null;
@@ -33,7 +45,11 @@ export function App({ route }: { route: Route }) {
   if (route.token) {
     return (
       <div class={cls}>
-        <Manage token={route.token} />
+        {route.tokenKind === "waitlist" ? (
+          <WaitlistPage token={route.token} />
+        ) : (
+          <Manage token={route.token} />
+        )}
         <Footer />
       </div>
     );
@@ -57,6 +73,13 @@ export function App({ route }: { route: Route }) {
       </div>
       {step.value === "done" && result.value ? (
         <Confirmation booking={result.value} hosted={!route.embedded} />
+      ) : step.value === "waitlist_done" && waitlistResult.value ? (
+        <WaitlistDone entry={waitlistResult.value} />
+      ) : step.value === "waitlist" ? (
+        <>
+          <h1>{cfg.restaurant.name}</h1>
+          <WaitlistForm onDone={() => scrollParentToTop(route.instanceId)} />
+        </>
       ) : step.value === "details" ? (
         <>
           <h1>{cfg.restaurant.name}</h1>

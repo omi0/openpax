@@ -22,6 +22,7 @@ import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-o
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
+import { upsertCustomer } from "../../lib/customers.js";
 import { ApiError } from "../../lib/errors.js";
 import { normalizePhone } from "../../lib/phone.js";
 import { newConfirmationCode, newToken } from "../../lib/random.js";
@@ -204,6 +205,8 @@ export interface CreateBookingParams {
   ignoreCapacity?: boolean;
   seatNow?: boolean;
   requirePhone?: boolean;
+  /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
+  forceConfirmed?: boolean;
 }
 
 function yyyymmdd(date: string): number {
@@ -217,65 +220,6 @@ async function lockDates(tx: DbOrTx, restaurantId: string, dates: string[]) {
   for (const key of keys) {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${restaurantId}), ${key})`);
   }
-}
-
-async function upsertCustomer(
-  tx: DbOrTx,
-  restaurantId: string,
-  guest: CreateBookingParams["guest"],
-  phone: string | null,
-  marketingConsent: boolean | undefined,
-): Promise<CustomerRow> {
-  const email = guest.email?.trim().toLowerCase() || null;
-  let existing: CustomerRow | undefined;
-  if (guest.id) {
-    [existing] = await tx
-      .select()
-      .from(customer)
-      .where(and(eq(customer.id, guest.id), eq(customer.restaurantId, restaurantId)))
-      .limit(1);
-  }
-  if (!existing && email) {
-    [existing] = await tx
-      .select()
-      .from(customer)
-      .where(and(eq(customer.restaurantId, restaurantId), eq(customer.email, email)))
-      .limit(1);
-  }
-  if (!existing && phone) {
-    [existing] = await tx
-      .select()
-      .from(customer)
-      .where(and(eq(customer.restaurantId, restaurantId), eq(customer.phone, phone)))
-      .limit(1);
-  }
-  if (existing) {
-    const [updated] = await tx
-      .update(customer)
-      .set({
-        name: guest.name || existing.name,
-        ...(email && !existing.email ? { email } : {}),
-        ...(phone && !existing.phone ? { phone } : {}),
-        ...(guest.locale ? { locale: guest.locale } : {}),
-        ...(marketingConsent ? { marketingConsent: true } : {}),
-      })
-      .where(eq(customer.id, existing.id))
-      .returning();
-    return updated ?? existing;
-  }
-  const [created] = await tx
-    .insert(customer)
-    .values({
-      restaurantId,
-      name: guest.name,
-      email,
-      phone,
-      locale: guest.locale ?? null,
-      marketingConsent: marketingConsent ?? false,
-    })
-    .returning();
-  if (!created) throw new Error("customer insert failed");
-  return created;
 }
 
 async function freeConfirmationCode(tx: DbOrTx, restaurantId: string): Promise<string> {
@@ -363,7 +307,7 @@ export async function createBooking(
 
     let status: BookingStatus;
     if (p.seatNow) status = "seated";
-    else if (p.actor.type === "guest") {
+    else if (p.actor.type === "guest" && !p.forceConfirmed) {
       const large =
         policy.largePartyThreshold !== null && p.partySize >= policy.largePartyThreshold;
       status = policy.autoConfirm && !large ? "confirmed" : "pending";

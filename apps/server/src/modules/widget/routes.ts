@@ -73,6 +73,7 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           maxAdvanceDays: policy.maxAdvanceDays,
           minLeadMinutes: policy.minLeadMinutes,
           autoConfirm: policy.autoConfirm,
+          waitlistEnabled: policy.waitlistEnabled,
         },
       };
       c.header("Cache-Control", "public, max-age=60");

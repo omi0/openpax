@@ -55,4 +55,24 @@ export const notificationEventHandlers = [
         await scheduleReminders(ctx, event.payload.bookingId);
     },
   }),
+  defineEventHandler({
+    type: "waitlist.joined",
+    handle: async (event, ctx) => {
+      await queueNotifications(ctx, {
+        waitlistEntryId: event.payload.entryId,
+        event: "waitlist.joined",
+        dedupeBase: event.id,
+      });
+    },
+  }),
+  defineEventHandler({
+    type: "waitlist.offered",
+    handle: async (event, ctx) => {
+      await queueNotifications(ctx, {
+        waitlistEntryId: event.payload.entryId,
+        event: "waitlist.offered",
+        dedupeBase: event.id,
+      });
+    },
+  }),
 ];

@@ -50,6 +50,12 @@ export const bookingPolicy = pgTable("booking_policy", {
   autoConfirm: boolean().notNull().default(true),
   cancellationCutoffMinutes: integer().notNull().default(120),
   largePartyThreshold: integer(),
+  /** Guests can queue for a full date from the widget. */
+  waitlistEnabled: boolean().notNull().default(false),
+  /** Offer freed tables to the queue without staff intervention. */
+  waitlistAutoOffer: boolean().notNull().default(true),
+  /** How long a guest has to accept an offered table. */
+  waitlistOfferMinutes: integer().notNull().default(120),
   updatedAt: updatedAt(),
 });
 

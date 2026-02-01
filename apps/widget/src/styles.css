@@ -314,3 +314,30 @@ body.embedded {
   font-size: 13px;
   background: var(--sitli-soft);
 }
+
+.sitli .waitlist-cta {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--sitli-border);
+  border-radius: var(--sitli-radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.sitli .waitlist-cta p {
+  margin: 0;
+  color: var(--sitli-muted);
+  font-size: 14px;
+  flex: 1 1 200px;
+}
+.sitli select {
+  width: 100%;
+  border: 1px solid var(--sitli-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--sitli-bg);
+  color: var(--sitli-fg);
+}

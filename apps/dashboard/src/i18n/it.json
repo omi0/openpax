@@ -195,7 +195,9 @@
       "booking.pending": "Richiesta ricevuta (da approvare)",
       "booking.cancelled": "Prenotazione annullata",
       "booking.modified": "Prenotazione modificata",
-      "booking.reminder": "Promemoria prima dell'arrivo"
+      "booking.reminder": "Promemoria prima dell'arrivo",
+      "waitlist.joined": "Iscrizione alla lista d'attesa",
+      "waitlist.offered": "Tavolo offerto dalla lista d'attesa"
     },
     "audience": {
       "guest": "Ospite",
@@ -226,7 +228,12 @@
     "autoConfirm": "Conferma automatica",
     "cutoff": "Annullamento online fino a (minuti prima)",
     "largeParty": "Richiedi approvazione da (persone)",
-    "largePartyHint": "Vuoto = conferma automatica per tutti."
+    "largePartyHint": "Vuoto = conferma automatica per tutti.",
+    "waitlist": "Lista d'attesa",
+    "waitlistHint": "Quando una data è piena gli ospiti possono lasciare i loro dati dal widget. I tavoli che si liberano possono essere offerti automaticamente in ordine di arrivo; un'offerta non accettata in tempo passa all'ospite successivo.",
+    "waitlistEnabled": "Consenti la lista d'attesa",
+    "waitlistAutoOffer": "Offri automaticamente i tavoli liberati",
+    "waitlistOfferMinutes": "Validità dell'offerta (minuti)"
   },
   "weekday": {
     "mon": "Lun",
@@ -550,5 +557,49 @@
       "days_one": "{{count}} giorno",
       "days_other": "{{count}} giorni"
     }
+  },
+  "waitlist": {
+    "title": "Lista d'attesa",
+    "count": "{{count}} in attesa",
+    "empty": "Nessuno in attesa in questo giorno.",
+    "add": "Aggiungi alla lista",
+    "status": {
+      "waiting": "In attesa",
+      "offered": "Offerto",
+      "booked": "Prenotato",
+      "expired": "Scaduto",
+      "cancelled": "Rimosso"
+    },
+    "preferred": "preferisce le {{time}}",
+    "offerUntil": "offerta valida fino alle {{time}}",
+    "offered": "offerto {{time}}",
+    "joined": "iscritto {{when}}",
+    "actions": {
+      "offer": "Offri un tavolo",
+      "book": "Prenota",
+      "remove": "Rimuovi"
+    },
+    "offerTitle": "Offri un tavolo",
+    "bookTitle": "Prenota per l'ospite",
+    "addTitle": "Aggiungi alla lista d'attesa",
+    "form": {
+      "slot": "Orario",
+      "noSlots": "Nessun orario in questa data",
+      "preferredTime": "Orario preferito (facoltativo)",
+      "notes": "Note",
+      "name": "Nome ospite",
+      "phone": "Telefono",
+      "email": "Email",
+      "party": "Persone",
+      "date": "Data",
+      "ignoreCapacity": "Ignora i limiti di capienza",
+      "full": "completo"
+    },
+    "offerHint": "L'ospite riceve un link per confermare il tavolo. L'offerta resta valida per {{minutes}} minuti.",
+    "bookHint": "Crea subito una prenotazione confermata e avvisa l'ospite.",
+    "confirmRemove": "Rimuovere questo ospite dalla lista d'attesa?",
+    "sendOffer": "Invia offerta",
+    "confirmBook": "Crea prenotazione",
+    "showClosed": "Mostra le voci chiuse"
   }
 }

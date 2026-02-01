@@ -15,6 +15,13 @@
       "when": 1789067205304,
       "tag": "0001_notification_template",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789076921582,
+      "tag": "0002_waitlist",
+      "breakpoints": true
     }
   ]
 }

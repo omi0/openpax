@@ -19,6 +19,7 @@ import {
   notificationStatusEnum,
 } from "./enums.js";
 import { restaurant } from "./restaurant.js";
+import { waitlistEntry } from "./waitlist.js";
 
 /**
  * Which provider (smtp, resend, twilio, ...) a restaurant or organization uses
@@ -81,6 +82,8 @@ export const notificationLog = pgTable(
       .notNull()
       .references(() => restaurant.id, { onDelete: "cascade" }),
     bookingId: uuid().references(() => booking.id, { onDelete: "cascade" }),
+    /** Set instead of bookingId for waitlist messages. */
+    waitlistEntryId: uuid().references(() => waitlistEntry.id, { onDelete: "cascade" }),
     event: text().notNull(),
     channel: notificationChannelEnum().notNull(),
     audience: notificationAudienceEnum().notNull(),

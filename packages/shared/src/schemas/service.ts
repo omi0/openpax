@@ -86,6 +86,16 @@ export const bookingPolicyDtoSchema = z.object({
     .min(0)
     .max(60 * 24 * 30),
   largePartyThreshold: z.number().int().min(1).max(100).nullable(),
+  /** Guests can queue for a date with no free table. */
+  waitlistEnabled: z.boolean(),
+  /** Offer freed tables to the queue automatically. */
+  waitlistAutoOffer: z.boolean(),
+  /** Minutes a guest has to accept an offered table. */
+  waitlistOfferMinutes: z
+    .number()
+    .int()
+    .min(15)
+    .max(60 * 24 * 7),
 });
 export type BookingPolicyDto = z.infer<typeof bookingPolicyDtoSchema>;
 

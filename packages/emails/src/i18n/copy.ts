@@ -67,12 +67,16 @@ const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> =
     "booking.pending": "Vedi richiesta",
     "booking.modified": "Gestisci prenotazione",
     "booking.reminder": "Gestisci prenotazione",
+    "waitlist.joined": "Vedi la tua richiesta",
+    "waitlist.offered": "Conferma il tavolo",
   },
   en: {
     "booking.confirmed": "Manage booking",
     "booking.pending": "View request",
     "booking.modified": "Manage booking",
     "booking.reminder": "Manage booking",
+    "waitlist.joined": "View your request",
+    "waitlist.offered": "Confirm the table",
   },
 };
 

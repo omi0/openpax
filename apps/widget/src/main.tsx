@@ -5,14 +5,16 @@ import "./styles.css";
 
 function parseRoute(): Route {
   const params = new URLSearchParams(window.location.search);
-  // /book/:slug or /book/:slug/manage/:token ; in Vite dev: /widget/?slug=...
-  const match = window.location.pathname.match(/\/book\/([^/]+)(?:\/manage\/([^/]+))?/);
+  // /book/:slug, /book/:slug/manage/:token or /book/:slug/waitlist/:token ; in Vite dev: /widget/?slug=...
+  const match = window.location.pathname.match(/\/book\/([^/]+)(?:\/(manage|waitlist)\/([^/]+))?/);
   const slug = match?.[1] ?? params.get("slug") ?? "";
-  const token = match?.[2] ?? params.get("token");
+  const kind = match?.[2] ?? params.get("kind") ?? "manage";
+  const token = match?.[3] ?? params.get("token");
   const embedded = params.get("embed") === "1";
   return {
     slug: decodeURIComponent(slug),
     token: token ? decodeURIComponent(token) : null,
+    tokenKind: kind === "waitlist" ? "waitlist" : "manage",
     embedded,
     instanceId: params.get("id"),
     lang: params.get("lang"),

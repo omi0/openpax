@@ -55,17 +55,38 @@ defineModule({
 });
 ```
 
-Modules never import each other's internals. To add a feature (say, a
-waitlist), add a module that subscribes to the events it needs and exposes its
+Modules never import each other's internals. A module may export a small
+public API from its `index.ts` for synchronous flows that another feature has
+to drive (the `bookings` module exports `createBooking` and
+`applyBookingAction`, used by the waitlist to turn an accepted offer into a
+booking); everything else in a module directory is private. To add a
+feature, add a module that subscribes to the events it needs and exposes its
 own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
 totals for the previous period of equal length, party-size and lead-time
 distributions, and can be downloaded as CSV).
+
+### Waitlist
+
+When the booking policy enables it, the widget offers "join the waitlist" on
+a date with no bookable time. An entry (`waitlist_entry`) stores the guest,
+date, party size and an optional preferred time and service; it does **not**
+hold capacity. Staff see the day's queue on the Today page and can offer a
+slot, book the guest straight in, or remove them. An offer sets
+`offered_starts_at` / `offer_expires_at` (validity from the policy, default
+two hours), emails/texts the guest a link (`/book/{slug}/waitlist/{token}`)
+and schedules a `waitlist.expire` job. Accepting creates a normal booking
+through the bookings module (capacity is re-checked, so a table taken in the
+meantime gives a 409 and the guest stays queued). With auto-offer on, every
+`booking.cancelled`, `waitlist.expired` and declined offer re-runs
+`autoOffer` for that date: the first waiting guest who fits an available slot
+(preferred service and closest time win) gets the offer; only one offer is
+open per date at a time.
 
 Most events belong to a restaurant. Organization-level events carry
 `restaurantId: null`: `team.invitation_created` is written by the Better Auth
@@ -137,7 +158,7 @@ audience (`notification_setting`), edited under Settings → Notifications → R
 
 `organization`, `member`, `user`, `session`, `apikey` (Better Auth) ·
 `restaurant` · `area` · `service` · `schedule_exception` · `capacity_rule` ·
-`booking_policy` · `widget_config` · `customer` · `booking` ·
+`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` ·
 `notification_provider_config` · `notification_setting` · `notification_log` ·
 `outbox_event` · `audit_log`.
 

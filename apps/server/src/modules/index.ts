@@ -7,6 +7,7 @@ import type { SitliModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
 import { restaurantsModule } from "./restaurants/index.js";
 import { teamModule } from "./team/index.js";
+import { waitlistModule } from "./waitlist/index.js";
 import { widgetModule } from "./widget/index.js";
 
 /** Order matters only for route registration. */
@@ -15,6 +16,7 @@ export const modules: SitliModule[] = [
   availabilityModule,
   widgetModule,
   bookingsModule,
+  waitlistModule,
   customersModule,
   notificationsModule,
   teamModule,

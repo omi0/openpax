@@ -216,20 +216,25 @@ export function sampleVars(
   ctx: AppContext,
   r: RestaurantRow,
   locale: Locale,
+  event?: NotificationEvent,
 ): TemplateVars & {
   startsAt: Date;
 } {
   const startsAt = new Date(ctx.now().getTime() + 24 * 60 * 60 * 1000);
   startsAt.setUTCMinutes(0, 0, 0);
+  const waitlist = event?.startsWith("waitlist.") ?? false;
   return {
     startsAt,
     restaurantName: r.name,
     guestName: "Mario Rossi",
     when: formatWhen(startsAt, r.timezone, locale),
     partySize: 4,
-    confirmationCode: "AB12CD",
+    // waitlist messages go out before a booking (and its code) exists
+    confirmationCode: waitlist ? "" : "AB12CD",
     serviceName: locale === "it" ? "Cena" : "Dinner",
-    manageUrl: `${ctx.env.PUBLIC_URL}/book/${r.slug}/manage/example`,
+    manageUrl: waitlist
+      ? `${ctx.env.PUBLIC_URL}/book/${r.slug}/waitlist/example`
+      : `${ctx.env.PUBLIC_URL}/book/${r.slug}/manage/example`,
     guestPhone: "+39 333 1234567",
     guestEmail: "mario@example.com",
     notes:
@@ -245,7 +250,7 @@ export async function previewTemplate(
   input: UpsertNotificationTemplateInput,
 ): Promise<NotificationTemplatePreview> {
   validate(input);
-  const vars = sampleVars(ctx, r, input.locale);
+  const vars = sampleVars(ctx, r, input.locale, input.event);
   if (input.channel === "sms") {
     return {
       subject: null,
@@ -273,7 +278,7 @@ export async function previewTemplate(
     booking: {
       startsAt: vars.startsAt,
       partySize: 4,
-      confirmationCode: "AB12CD",
+      confirmationCode: String(vars.confirmationCode),
       serviceName: String(vars.serviceName),
       notes: String(vars.notes),
       cancellationReason: null,

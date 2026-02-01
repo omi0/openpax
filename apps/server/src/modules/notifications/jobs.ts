@@ -2,7 +2,7 @@ import { booking, notificationLog } from "@sitli/db";
 import { eq, sql } from "drizzle-orm";
 import { defineJob } from "../../jobs/queue.js";
 import type { NotificationProvider } from "../../notifications/provider.js";
-import { loadBookingBundle, queueNotifications } from "./dispatch.js";
+import { loadBookingSubject, loadWaitlistSubject, queueNotifications } from "./dispatch.js";
 import { buildEmail, buildSms } from "./render.js";
 import { isNotificationEvent, resolveProvider } from "./service.js";
 
@@ -17,9 +17,13 @@ export const sendNotificationJob = defineJob<{ logId: string }>({
       .where(eq(notificationLog.id, logId))
       .limit(1);
     if (!log || log.status === "sent" || log.status === "skipped") return;
-    if (!log.bookingId || !isNotificationEvent(log.event)) return;
+    if (!isNotificationEvent(log.event)) return;
 
-    const bundle = await loadBookingBundle(ctx, log.bookingId);
+    const bundle = log.bookingId
+      ? await loadBookingSubject(ctx, log.bookingId)
+      : log.waitlistEntryId
+        ? await loadWaitlistSubject(ctx, log.waitlistEntryId, log.event)
+        : null;
     if (!bundle) return;
 
     const fail = async (error: string, final: boolean) => {
