@@ -42,12 +42,35 @@ async function createFromAdminUrl(adminUrl: string): Promise<TestDatabase> {
     connectionString,
     cleanup: async () => {
       await pool.end();
-      const admin2 = new pg.Client({ connectionString: adminUrl });
-      await admin2.connect();
-      await admin2.query(`drop database if exists ${name} with (force)`);
-      await admin2.end();
+      await dropDatabase(adminUrl, name);
     },
   };
+}
+
+/**
+ * Drop a throwaway database. `with (force)` cannot terminate backends owned
+ * by another role (an autovacuum worker, typically), so retry a few times and
+ * leave the database behind rather than fail the suite over cleanup.
+ */
+async function dropDatabase(adminUrl: string, name: string): Promise<void> {
+  const admin = new pg.Client({ connectionString: adminUrl });
+  await admin.connect();
+  try {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      try {
+        await admin.query(`drop database if exists ${name} with (force)`);
+        return;
+      } catch (error) {
+        if (attempt === 5) {
+          console.warn(`could not drop test database ${name}: ${String(error)}`);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 300 * attempt));
+      }
+    }
+  } finally {
+    await admin.end();
+  }
 }
 
 async function createFromContainer(): Promise<TestDatabase> {
