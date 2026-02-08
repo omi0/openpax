@@ -32,6 +32,7 @@ import { Route as AppRRestaurantIdSettingsClosuresRouteImport } from "./routes/_
 import { Route as AppRRestaurantIdSettingsNotificationsRouteImport } from "./routes/_app.r.$restaurantId.settings.notifications";
 import { Route as AppRRestaurantIdSettingsRestaurantRouteImport } from "./routes/_app.r.$restaurantId.settings.restaurant";
 import { Route as AppRRestaurantIdSettingsServicesRouteImport } from "./routes/_app.r.$restaurantId.settings.services";
+import { Route as AppRRestaurantIdSettingsTablesRouteImport } from "./routes/_app.r.$restaurantId.settings.tables";
 import { Route as AppRRestaurantIdSettingsTeamRouteImport } from "./routes/_app.r.$restaurantId.settings.team";
 import { Route as AppRRestaurantIdSettingsWidgetRouteImport } from "./routes/_app.r.$restaurantId.settings.widget";
 
@@ -161,6 +162,12 @@ const AppRRestaurantIdSettingsServicesRoute =
     path: "/services",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsTablesRoute =
+  AppRRestaurantIdSettingsTablesRouteImport.update({
+    id: "/tables",
+    path: "/tables",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsTeamRoute =
   AppRRestaurantIdSettingsTeamRouteImport.update({
     id: "/team",
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
   "/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/r/$restaurantId/customers/": typeof AppRRestaurantIdCustomersIndexRoute;
@@ -219,6 +227,7 @@ export interface FileRoutesByTo {
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
   "/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/r/$restaurantId/customers": typeof AppRRestaurantIdCustomersIndexRoute;
@@ -247,6 +256,7 @@ export interface FileRoutesById {
   "/_app/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/_app/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/_app/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
+  "/_app/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
   "/_app/r/$restaurantId/settings/team": typeof AppRRestaurantIdSettingsTeamRoute;
   "/_app/r/$restaurantId/settings/widget": typeof AppRRestaurantIdSettingsWidgetRoute;
   "/_app/r/$restaurantId/customers/": typeof AppRRestaurantIdCustomersIndexRoute;
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/restaurant"
     | "/r/$restaurantId/settings/services"
+    | "/r/$restaurantId/settings/tables"
     | "/r/$restaurantId/settings/team"
     | "/r/$restaurantId/settings/widget"
     | "/r/$restaurantId/customers/"
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/restaurant"
     | "/r/$restaurantId/settings/services"
+    | "/r/$restaurantId/settings/tables"
     | "/r/$restaurantId/settings/team"
     | "/r/$restaurantId/settings/widget"
     | "/r/$restaurantId/customers"
@@ -326,6 +338,7 @@ export interface FileRouteTypes {
     | "/_app/r/$restaurantId/settings/notifications"
     | "/_app/r/$restaurantId/settings/restaurant"
     | "/_app/r/$restaurantId/settings/services"
+    | "/_app/r/$restaurantId/settings/tables"
     | "/_app/r/$restaurantId/settings/team"
     | "/_app/r/$restaurantId/settings/widget"
     | "/_app/r/$restaurantId/customers/"
@@ -505,6 +518,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsServicesRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/tables": {
+      id: "/_app/r/$restaurantId/settings/tables";
+      path: "/tables";
+      fullPath: "/r/$restaurantId/settings/tables";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsTablesRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/team": {
       id: "/_app/r/$restaurantId/settings/team";
       path: "/team";
@@ -528,6 +548,7 @@ interface AppRRestaurantIdSettingsRouteChildren {
   AppRRestaurantIdSettingsNotificationsRoute: typeof AppRRestaurantIdSettingsNotificationsRoute;
   AppRRestaurantIdSettingsRestaurantRoute: typeof AppRRestaurantIdSettingsRestaurantRoute;
   AppRRestaurantIdSettingsServicesRoute: typeof AppRRestaurantIdSettingsServicesRoute;
+  AppRRestaurantIdSettingsTablesRoute: typeof AppRRestaurantIdSettingsTablesRoute;
   AppRRestaurantIdSettingsTeamRoute: typeof AppRRestaurantIdSettingsTeamRoute;
   AppRRestaurantIdSettingsWidgetRoute: typeof AppRRestaurantIdSettingsWidgetRoute;
   AppRRestaurantIdSettingsIndexRoute: typeof AppRRestaurantIdSettingsIndexRoute;
@@ -544,6 +565,7 @@ const AppRRestaurantIdSettingsRouteChildren: AppRRestaurantIdSettingsRouteChildr
       AppRRestaurantIdSettingsRestaurantRoute,
     AppRRestaurantIdSettingsServicesRoute:
       AppRRestaurantIdSettingsServicesRoute,
+    AppRRestaurantIdSettingsTablesRoute: AppRRestaurantIdSettingsTablesRoute,
     AppRRestaurantIdSettingsTeamRoute: AppRRestaurantIdSettingsTeamRoute,
     AppRRestaurantIdSettingsWidgetRoute: AppRRestaurantIdSettingsWidgetRoute,
     AppRRestaurantIdSettingsIndexRoute: AppRRestaurantIdSettingsIndexRoute,

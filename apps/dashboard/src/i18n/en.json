@@ -131,7 +131,8 @@
         "party_too_small": "party too small",
         "party_too_large": "party too large",
         "full": "full",
-        "not_a_slot": "not a bookable time"
+        "not_a_slot": "not a bookable time",
+        "no_table": "no free table"
       },
       "slotUnavailable": "That time is not available: {{reason}}.",
       "noChanges": "Nothing changed."
@@ -145,7 +146,17 @@
     "cancelReason": "Reason (optional)",
     "cancelReasonHint": "Sent to the guest in the cancellation email when they have an address.",
     "cancelConfirm": "Cancel booking",
-    "keep": "Keep booking"
+    "keep": "Keep booking",
+    "assignTables": "Assign tables",
+    "noTable": "No table",
+    "listView": "List",
+    "floorView": "Floor plan",
+    "floorTime": "Time",
+    "free": "free",
+    "takenBy": "taken by {{name}}",
+    "seatAnyway": "Seat here anyway (the table is taken at that time)",
+    "seatsChosen": "{{count}} seats",
+    "unassigned": "Bookings without a table"
   },
   "services": {
     "title": "Services",
@@ -601,5 +612,35 @@
     "sendOffer": "Send offer",
     "confirmBook": "Create booking",
     "showClosed": "Show settled entries"
+  },
+  "tables": {
+    "title": "Tables",
+    "hint": "Tables are matched to bookings automatically: the smallest free table that fits, or two joinable tables of the same area pushed together. Once you add tables, a time is only bookable if a table is free for the whole visit.",
+    "add": "Add table",
+    "edit": "Edit table",
+    "name": "Name",
+    "area": "Area",
+    "noArea": "No area",
+    "minCovers": "Min guests",
+    "maxCovers": "Max guests",
+    "shape": "Shape",
+    "shapes": {
+      "rect": "Rectangle",
+      "round": "Round"
+    },
+    "joinable": "Joinable",
+    "joinableHint": "Joinable tables in the same area can be combined for larger parties.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "sortOrder": "Priority",
+    "sortOrderHint": "Lower numbers are preferred when several tables fit.",
+    "width": "Width",
+    "height": "Height",
+    "empty": "No tables yet. Add your first table to start assigning bookings to tables.",
+    "floorPlan": "Floor plan",
+    "floorPlanHint": "Drag tables to arrange the room, then save the layout. Click a table to edit it.",
+    "saveLayout": "Save layout",
+    "seats": "{{min}}–{{max}} guests",
+    "allAreas": "All areas"
   }
 }

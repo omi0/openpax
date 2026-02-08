@@ -1,3 +1,4 @@
+import type { TableDef, TableLoad } from "../tables/tables.js";
 import type { LocalDate, LocalTime, Weekday } from "../time/local.js";
 
 /**
@@ -77,6 +78,10 @@ export interface BookingLoad {
 }
 
 export interface AvailabilityInput {
+  /** Tables of the restaurant; when non-empty a slot also needs a free table (or pair) for the party. */
+  tables?: TableDef[];
+  /** Tables taken by active bookings. */
+  tableLoads?: TableLoad[];
   /** IANA timezone of the restaurant, e.g. "Europe/Rome". */
   timezone: string;
   /** Service date being queried, in the restaurant's timezone. */
@@ -102,6 +107,7 @@ export type UnavailableReason =
   | "party_too_small"
   | "party_too_large"
   | "full"
+  | "no_table"
   | "not_a_slot";
 
 export interface Slot {

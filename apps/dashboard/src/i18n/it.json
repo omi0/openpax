@@ -131,7 +131,8 @@
         "party_too_small": "gruppo troppo piccolo",
         "party_too_large": "gruppo troppo grande",
         "full": "completo",
-        "not_a_slot": "orario non prenotabile"
+        "not_a_slot": "orario non prenotabile",
+        "no_table": "nessun tavolo libero"
       },
       "slotUnavailable": "Quell'orario non è disponibile: {{reason}}.",
       "noChanges": "Nessuna modifica."
@@ -145,7 +146,17 @@
     "cancelReason": "Motivo (facoltativo)",
     "cancelReasonHint": "Inviato all'ospite nell'email di annullamento se ha un indirizzo.",
     "cancelConfirm": "Annulla prenotazione",
-    "keep": "Mantieni prenotazione"
+    "keep": "Mantieni prenotazione",
+    "assignTables": "Assegna tavoli",
+    "noTable": "Senza tavolo",
+    "listView": "Elenco",
+    "floorView": "Planimetria",
+    "floorTime": "Orario",
+    "free": "libero",
+    "takenBy": "occupato da {{name}}",
+    "seatAnyway": "Assegna comunque (il tavolo è occupato a quell'ora)",
+    "seatsChosen": "{{count}} posti",
+    "unassigned": "Prenotazioni senza tavolo"
   },
   "services": {
     "title": "Servizi",
@@ -601,5 +612,35 @@
     "sendOffer": "Invia offerta",
     "confirmBook": "Crea prenotazione",
     "showClosed": "Mostra le voci chiuse"
+  },
+  "tables": {
+    "title": "Tavoli",
+    "hint": "I tavoli vengono abbinati alle prenotazioni automaticamente: il tavolo libero più piccolo che basta, oppure due tavoli unibili della stessa sala. Una volta aggiunti i tavoli, un orario è prenotabile solo se c'è un tavolo libero per tutta la visita.",
+    "add": "Aggiungi tavolo",
+    "edit": "Modifica tavolo",
+    "name": "Nome",
+    "area": "Sala",
+    "noArea": "Nessuna sala",
+    "minCovers": "Persone minime",
+    "maxCovers": "Persone massime",
+    "shape": "Forma",
+    "shapes": {
+      "rect": "Rettangolare",
+      "round": "Rotondo"
+    },
+    "joinable": "Unibile",
+    "joinableHint": "I tavoli unibili della stessa sala si possono accostare per i gruppi numerosi.",
+    "active": "Attivo",
+    "inactive": "Non attivo",
+    "sortOrder": "Priorità",
+    "sortOrderHint": "A parità di posti viene scelto il numero più basso.",
+    "width": "Larghezza",
+    "height": "Altezza",
+    "empty": "Nessun tavolo. Aggiungi il primo tavolo per assegnare le prenotazioni ai tavoli.",
+    "floorPlan": "Planimetria",
+    "floorPlanHint": "Trascina i tavoli per disporre la sala, poi salva la disposizione. Clicca un tavolo per modificarlo.",
+    "saveLayout": "Salva disposizione",
+    "seats": "{{min}}–{{max}} persone",
+    "allAreas": "Tutte le sale"
   }
 }

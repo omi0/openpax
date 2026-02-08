@@ -245,7 +245,12 @@ export function Dialog({
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className={cn("relative w-full rounded-xl bg-white shadow-xl", dialogSizes[size])}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={cn("relative w-full rounded-xl bg-white shadow-xl", dialogSizes[size])}
+      >
         <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
           <h2 className="font-semibold">{title}</h2>
           <button

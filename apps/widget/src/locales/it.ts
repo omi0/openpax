@@ -53,6 +53,7 @@ export const it = {
     in_past: "Orario passato",
     outside_lead_time: "Troppo a ridosso",
     full: "Completo",
+    no_table: "Nessun tavolo",
     party_too_large: "Gruppo troppo numeroso",
     party_too_small: "Gruppo troppo piccolo",
   },

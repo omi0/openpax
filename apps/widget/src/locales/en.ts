@@ -55,6 +55,7 @@ export const en: Dictionary = {
     in_past: "In the past",
     outside_lead_time: "Too soon",
     full: "Full",
+    no_table: "No table free",
     party_too_large: "Party too large",
     party_too_small: "Party too small",
   },

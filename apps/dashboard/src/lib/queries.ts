@@ -20,6 +20,7 @@ import type {
   RestaurantSummaryDto,
   ScheduleExceptionDto,
   ServiceDto,
+  TableDto,
   TeamDto,
   WaitlistEntryDto,
   WidgetConfigDto,
@@ -265,4 +266,11 @@ export const waitlistQuery = (id: string, date: string) =>
         pageSize: 200,
       }),
     refetchInterval: 30_000,
+  });
+
+export const tablesQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "tables"],
+    queryFn: () => api.get<TableDto[]>(`/api/v1/restaurants/${id}/tables`),
+    staleTime: 60_000,
   });

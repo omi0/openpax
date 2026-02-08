@@ -65,11 +65,28 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `waitlist`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `tables`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
 totals for the previous period of equal length, party-size and lead-time
 distributions, and can be downloaded as CSV).
+
+### Tables and the floor plan
+
+`dining_table` rows (name, area, min/max guests, shape, position on a
+100 × 70 plan, joinable, priority) are optional. As soon as a restaurant has
+an active table, the availability engine also requires a free table for the
+whole visit: `packages/core/src/tables/tables.ts` picks the single free
+table that wastes the fewest seats, else the pair of joinable tables in the
+same area that does (`findTableAssignment`), and a slot with no fit is
+reported as `no_table`. Booking creation runs the same function inside the
+booking transaction and stores the choice in `booking_table`; modifying the
+time or party size reseats the booking, cancelling frees the tables (only
+active statuses count as load). Staff override (`ignoreCapacity`) creates
+the booking unassigned; the Today page flags it and offers manual
+assignment (`PUT /bookings/{id}/tables`, which refuses a taken table unless
+`force`). Settings → Tables holds the CRUD and a drag-and-drop plan; Today
+has a floor view for any time of the day.
 
 ### Waitlist
 
@@ -158,7 +175,7 @@ audience (`notification_setting`), edited under Settings → Notifications → R
 
 `organization`, `member`, `user`, `session`, `apikey` (Better Auth) ·
 `restaurant` · `area` · `service` · `schedule_exception` · `capacity_rule` ·
-`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` ·
+`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` ·
 `notification_provider_config` · `notification_setting` · `notification_log` ·
 `outbox_event` · `audit_log`.
 

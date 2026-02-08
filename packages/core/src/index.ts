@@ -8,6 +8,7 @@ export * from "./booking/confirmation-code.js";
 export * from "./booking/state-machine.js";
 export * from "./errors.js";
 export * from "./events/domain-events.js";
+export * from "./tables/tables.js";
 export * from "./time/local.js";
 export * from "./time/zoned.js";
 export * from "./waitlist/waitlist.js";

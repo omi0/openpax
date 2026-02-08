@@ -2,16 +2,25 @@ import type { BookingAction } from "@sitli/core";
 import type { BookingDto } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Pencil, Phone, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, List, Pencil, Phone, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
+import { FloorPlan, type TableStatus } from "@/components/floor-plan";
+import { TableAssignDialog } from "@/components/table-assign-dialog";
 import { Badge, Button, Dialog, EmptyState, Field, Spinner, Textarea } from "@/components/ui";
 import { WaitlistPanel } from "@/components/waitlist-panel";
 import { api } from "@/lib/api";
-import { bookingNotificationsQuery, bookingsQuery, meQuery, restaurantQuery } from "@/lib/queries";
-import { addDays, formatDate, formatTime, todayLocal } from "@/lib/utils";
+import {
+  areasQuery,
+  bookingNotificationsQuery,
+  bookingsQuery,
+  meQuery,
+  restaurantQuery,
+  tablesQuery,
+} from "@/lib/queries";
+import { addDays, cn, formatDate, formatTime, todayLocal } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/today")({
   validateSearch: (search: Record<string, unknown>): { date?: string } =>
@@ -45,6 +54,11 @@ function TodayPage() {
   const [editing, setEditing] = useState<BookingDto | null>(null);
   const [cancelling, setCancelling] = useState<BookingDto | null>(null);
   const [reason, setReason] = useState("");
+  const [assigning, setAssigning] = useState<BookingDto | null>(null);
+  const [view, setView] = useState<"list" | "floor">("list");
+  const tables = useQuery(tablesQuery(restaurantId));
+  const areas = useQuery(areasQuery(restaurantId));
+  const hasFloor = (tables.data?.length ?? 0) > 0;
 
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
@@ -105,12 +119,41 @@ function TodayPage() {
         <span className="text-sm text-zinc-500">
           {t("today.bookings", { count: active.length })} · {t("today.covers", { count: covers })}
         </span>
-        <Button className="ml-auto" onClick={() => setOpen(true)}>
+        {hasFloor ? (
+          <div className="ml-auto flex rounded-lg border border-zinc-300 bg-white p-0.5">
+            {(["list", "floor"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm",
+                  view === v ? "bg-zinc-800 text-white" : "text-zinc-600 hover:bg-zinc-100",
+                )}
+              >
+                {v === "list" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+                {t(v === "list" ? "today.listView" : "today.floorView")}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <Button className={hasFloor ? "" : "ml-auto"} onClick={() => setOpen(true)}>
           <Plus className="size-4" /> {t("today.newBooking")}
         </Button>
       </div>
 
-      {bookings.isLoading ? (
+      {view === "floor" && tables.data ? (
+        <FloorView
+          tables={tables.data}
+          areas={areas.data ?? []}
+          bookings={items}
+          timezone={restaurant.timezone}
+          date={date}
+          today={today}
+          onPick={(b) => setAssigning(b)}
+        />
+      ) : bookings.isLoading ? (
         <Spinner />
       ) : items.length === 0 ? (
         <EmptyState>{t("today.noBookings")}</EmptyState>
@@ -144,6 +187,23 @@ function TodayPage() {
                   ) : null}
                 </button>
                 <Badge tone={b.status}>{t(`today.status.${b.status}`)}</Badge>
+                {hasFloor && ["pending", "confirmed", "seated"].includes(b.status) ? (
+                  <button
+                    type="button"
+                    onClick={() => setAssigning(b)}
+                    title={t("today.assignTables")}
+                    className={cn(
+                      "rounded-md border px-1.5 py-0.5 text-xs",
+                      b.tables.length > 0
+                        ? "border-zinc-300 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                        : "border-dashed border-amber-400 text-amber-700 hover:bg-amber-50",
+                    )}
+                  >
+                    {b.tables.length > 0
+                      ? b.tables.map((x) => x.name).join(" + ")
+                      : t("today.noTable")}
+                  </button>
+                ) : null}
                 <span className="text-xs text-zinc-400">{t(`today.source.${b.source}`)}</span>
                 <div className="flex gap-1">
                   {["pending", "confirmed", "seated"].includes(b.status) ? (
@@ -226,6 +286,16 @@ function TodayPage() {
           </div>
         ) : null}
       </Dialog>
+      {assigning && tables.data ? (
+        <TableAssignDialog
+          key={assigning.id}
+          restaurantId={restaurantId}
+          booking={assigning}
+          tables={tables.data}
+          dayBookings={items}
+          onClose={() => setAssigning(null)}
+        />
+      ) : null}
       {editing ? (
         <BookingEditDialog
           key={editing.id}
@@ -292,6 +362,113 @@ function BookingDetails({ restaurantId, booking }: { restaurantId: string; booki
           <p className="text-zinc-400">{t("today.noNotifications")}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+const OCCUPYING = new Set(["pending", "confirmed", "seated"]);
+
+/** The plan at one moment of the day: who sits where, with a time picker. */
+function FloorView({
+  tables,
+  areas,
+  bookings,
+  timezone,
+  date,
+  today,
+  onPick,
+}: {
+  tables: Parameters<typeof FloorPlan>[0]["tables"];
+  areas: Parameters<typeof FloorPlan>[0]["areas"];
+  bookings: BookingDto[];
+  timezone: string;
+  date: string;
+  today: string;
+  onPick: (b: BookingDto) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const nowLocal = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date());
+  const firstStart = bookings[0] ? formatTime(bookings[0].startsAt, timezone, "en-GB") : "20:00";
+  const [time, setTime] = useState(date === today ? nowLocal : firstStart);
+  // the chosen wall-clock time on that date, as an instant, via the bookings' own offsets
+  const probe = (() => {
+    const [h, m] = time.split(":").map(Number);
+    const sample = bookings[0] ? new Date(bookings[0].startsAt) : new Date(`${date}T12:00:00Z`);
+    const sampleLocal = formatTime(sample.toISOString(), timezone, "en-GB");
+    const [sh, sm] = sampleLocal.split(":").map(Number);
+    return sample.getTime() + (((h ?? 0) - (sh ?? 0)) * 60 + ((m ?? 0) - (sm ?? 0))) * 60_000;
+  })();
+  const seatedAt = (tableId: string): BookingDto | null =>
+    bookings.find(
+      (b) =>
+        OCCUPYING.has(b.status) &&
+        b.tables.some((x) => x.id === tableId) &&
+        new Date(b.startsAt).getTime() <= probe &&
+        new Date(b.endsAt).getTime() > probe,
+    ) ?? null;
+  const unassigned = bookings.filter((b) => OCCUPYING.has(b.status) && b.tables.length === 0);
+  const statusOf = (table: (typeof tables)[number]): TableStatus => {
+    if (!table.active) return { tone: "inactive" };
+    const b = seatedAt(table.id);
+    if (!b) return { tone: "free", title: `${table.name} · ${t("today.free")}` };
+    return {
+      tone: b.status === "seated" ? "seated" : "reserved",
+      label: `${b.customer.name} · ${b.partySize}`,
+      title: `${table.name} · ${b.customer.name} · ${formatTime(b.startsAt, timezone, i18n.language)}`,
+    };
+  };
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2 text-zinc-600">
+          {t("today.floorTime")}
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => e.target.value && setTime(e.target.value)}
+            className="h-8 rounded-lg border border-zinc-300 px-2 text-sm"
+          />
+        </label>
+        <span className="flex items-center gap-1 text-xs text-zinc-500">
+          <span className="inline-block size-3 rounded border border-amber-500 bg-amber-100" />
+          {t("today.status.confirmed")}
+          <span className="ml-2 inline-block size-3 rounded border border-blue-500 bg-blue-100" />
+          {t("today.status.seated")}
+        </span>
+      </div>
+      <FloorPlan
+        tables={tables}
+        areas={areas}
+        statusOf={statusOf}
+        onSelect={(table) => {
+          const b = seatedAt(table.id);
+          if (b) onPick(b);
+        }}
+      />
+      {unassigned.length > 0 ? (
+        <div className="rounded-lg border border-dashed border-amber-400 bg-amber-50 px-3 py-2 text-sm">
+          <p className="mb-1 font-medium text-amber-800">{t("today.unassigned")}</p>
+          <ul className="flex flex-wrap gap-2">
+            {unassigned.map((b) => (
+              <li key={b.id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(b)}
+                  className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-xs hover:bg-amber-100"
+                >
+                  {formatTime(b.startsAt, timezone, i18n.language)} · {b.customer.name} ·{" "}
+                  {b.partySize}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -16,6 +16,7 @@ function SettingsLayout() {
     { to: "/r/$restaurantId/settings/restaurant", label: t("restaurant.title") },
     { to: "/r/$restaurantId/settings/services", label: t("services.title") },
     { to: "/r/$restaurantId/settings/closures", label: t("closures.title") },
+    { to: "/r/$restaurantId/settings/tables", label: t("tables.title") },
     { to: "/r/$restaurantId/settings/notifications", label: t("notifications.title") },
     { to: "/r/$restaurantId/settings/widget", label: t("widget.title") },
     { to: "/r/$restaurantId/settings/team", label: t("team.title") },

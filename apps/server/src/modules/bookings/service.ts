@@ -1,9 +1,11 @@
 import {
+  type AvailabilityInput,
   addDaysToLocalDate,
   assertSlotBookable,
   type BookingAction,
   type BookingSource,
   type BookingStatus,
+  findTableAssignment,
   instantToLocal,
   isActiveStatus,
   localDateParts,
@@ -11,7 +13,7 @@ import {
   transition,
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
-import { booking, bookingPolicy, customer, service } from "@sitli/db";
+import { booking, bookingPolicy, bookingTable, customer, service } from "@sitli/db";
 import type {
   BookingDto,
   ListBookingsQuery,
@@ -36,7 +38,14 @@ export interface BookingWithRelations {
   booking: BookingRow;
   customer: CustomerRow;
   serviceName: string;
+  tables: Array<{ id: string; name: string }>;
 }
+
+/** Tables of a booking as a JSON array, so list queries stay a single round trip. */
+export const bookingTablesJson = sql<Array<{ id: string; name: string }>>`coalesce((
+  select json_agg(json_build_object('id', dt.id, 'name', dt.name) order by dt.sort_order, dt.name)
+  from booking_table bt join dining_table dt on dt.id = bt.table_id
+  where bt.booking_id = ${booking.id}), '[]'::json)`;
 
 // ---------- DTOs
 
@@ -65,6 +74,7 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     locale: x.booking.locale as BookingDto["locale"],
     notes: x.booking.notes,
     confirmationCode: x.booking.confirmationCode,
+    tables: x.tables,
     createdAt: x.booking.createdAt.toISOString(),
     updatedAt: x.booking.updatedAt.toISOString(),
   };
@@ -111,7 +121,7 @@ export async function getBookingWithRelations(
   bookingId: string,
 ): Promise<BookingWithRelations> {
   const [row] = await db
-    .select({ booking, customer, serviceName: service.name })
+    .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
@@ -126,7 +136,7 @@ export async function getBookingByToken(
   token: string,
 ): Promise<BookingWithRelations> {
   const [row] = await ctx.db
-    .select({ booking, customer, serviceName: service.name })
+    .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
@@ -157,7 +167,7 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   const where = and(...conditions);
   const [rows, [count]] = await Promise.all([
     ctx.db
-      .select({ booking, customer, serviceName: service.name })
+      .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
       .from(booking)
       .innerJoin(customer, eq(customer.id, booking.customerId))
       .innerJoin(service, eq(service.id, booking.serviceId))
@@ -180,6 +190,20 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
     pageSize: q.pageSize,
     total: count?.total ?? 0,
   };
+}
+
+/** Seat the booking on the best free table(s) of the floor plan, if the restaurant has one. */
+async function assignTables(
+  tx: DbOrTx,
+  bookingId: string,
+  input: AvailabilityInput | null,
+  req: { startsAt: Date; endsAt: Date; partySize: number; areaId: string | null },
+): Promise<void> {
+  await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
+  if (!input?.tables || input.tables.length === 0) return;
+  const chosen = findTableAssignment(input.tables, input.tableLoads ?? [], req);
+  if (!chosen) return; // staff override: stays unassigned, visible on the floor plan
+  await tx.insert(bookingTable).values(chosen.map((t) => ({ bookingId, tableId: t.id })));
 }
 
 // ---------- creation
@@ -264,12 +288,14 @@ export async function createBooking(
     let serviceDate = localDate;
     let endsAt: Date | null = null;
     let lastReason = "not_a_slot";
+    let floor: AvailabilityInput | null = null;
     for (const date of candidateDates) {
       const loaded = await loadAvailabilityInput(tx, ctx, r, {
         date,
         partySize: p.partySize,
         areaId: p.areaId ?? null,
       });
+      floor = loaded.input;
       const verdict = assertSlotBookable(loaded.input, {
         serviceId: p.serviceId,
         startsAt: p.startsAt,
@@ -337,6 +363,12 @@ export async function createBooking(
       })
       .returning();
     if (!row) throw new Error("booking insert failed");
+    await assignTables(tx, row.id, floor, {
+      startsAt: p.startsAt,
+      endsAt,
+      partySize: p.partySize,
+      areaId: p.areaId ?? null,
+    });
 
     if (status === "seated") {
       await tx
@@ -546,6 +578,7 @@ export async function updateBooking(
     const changes: string[] = [];
     let endsAt = row.endsAt;
     let serviceDate = row.serviceDate;
+    let floor: AvailabilityInput | null = null;
     if (timingChanged) {
       const localDate = instantToLocal(startsAt, r.timezone).date;
       const candidates = [localDate, addDaysToLocalDate(localDate, -1)];
@@ -559,6 +592,7 @@ export async function updateBooking(
           areaId,
           excludeBookingId: row.id,
         });
+        floor = loaded.input;
         const verdict = assertSlotBookable(loaded.input, { serviceId, startsAt, partySize });
         if (verdict.ok) {
           ok = true;
@@ -596,6 +630,21 @@ export async function updateBooking(
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       })
       .where(eq(booking.id, row.id));
+    if (timingChanged) {
+      const before = await tx
+        .select({ tableId: bookingTable.tableId })
+        .from(bookingTable)
+        .where(eq(bookingTable.bookingId, row.id));
+      await assignTables(tx, row.id, floor, { startsAt, endsAt, partySize, areaId });
+      const after = await tx
+        .select({ tableId: bookingTable.tableId })
+        .from(bookingTable)
+        .where(eq(bookingTable.bookingId, row.id));
+      const same =
+        before.length === after.length &&
+        before.every((b) => after.some((a) => a.tableId === b.tableId));
+      if (!same) changes.push("tables");
+    }
     await emitEvent(tx, {
       type: "booking.modified",
       restaurantId: r.id,

@@ -10,6 +10,7 @@ import {
   partySizeSchema,
   phoneSchema,
 } from "./common.js";
+import { bookingTableDtoSchema } from "./tables.js";
 
 export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
 export const bookingSourceSchema = z.enum(BOOKING_SOURCES);
@@ -86,6 +87,8 @@ export const bookingDtoSchema = z.object({
   locale: localeSchema,
   notes: z.string().nullable(),
   confirmationCode: z.string(),
+  /** Tables assigned on the floor plan (empty without one). */
+  tables: z.array(bookingTableDtoSchema),
   createdAt: instantSchema,
   updatedAt: instantSchema,
 });

@@ -16,6 +16,7 @@ export const UNAVAILABLE_REASONS = [
   "party_too_small",
   "party_too_large",
   "full",
+  "no_table",
   "not_a_slot",
 ] as const;
 export const unavailableReasonSchema = z.enum(UNAVAILABLE_REASONS);

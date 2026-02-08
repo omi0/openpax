@@ -10,11 +10,21 @@ import {
   resolveServiceWindows,
   type ScheduleExceptionDef,
   type ServiceDef,
+  type TableDef,
+  type TableLoad,
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
-import { booking, bookingPolicy, capacityRule, scheduleException, service } from "@sitli/db";
+import {
+  booking,
+  bookingPolicy,
+  bookingTable,
+  capacityRule,
+  diningTable,
+  scheduleException,
+  service,
+} from "@sitli/db";
 import type { AvailabilityResponse, MonthAvailabilityResponse } from "@sitli/shared";
-import { and, eq, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 
@@ -35,9 +45,25 @@ export function serviceToDef(row: ServiceRow): ServiceDef {
   };
 }
 
+export type TableRow = typeof diningTable.$inferSelect;
+
+export function tableToDef(row: TableRow): TableDef {
+  return {
+    id: row.id,
+    areaId: row.areaId,
+    name: row.name,
+    minCovers: row.minCovers,
+    maxCovers: row.maxCovers,
+    joinable: row.joinable,
+    active: row.active,
+    sortOrder: row.sortOrder,
+  };
+}
+
 export interface LoadedAvailability {
   input: AvailabilityInput;
   services: ServiceRow[];
+  tables: TableRow[];
 }
 
 export interface LoadParams {
@@ -93,6 +119,31 @@ export async function loadAvailabilityInput(
       ),
     );
   if (!policy) throw ApiError.notFound("Booking policy");
+  const tables = await db
+    .select()
+    .from(diningTable)
+    .where(and(eq(diningTable.restaurantId, r.id), eq(diningTable.active, true)))
+    .orderBy(asc(diningTable.sortOrder), asc(diningTable.name));
+  const tableRows =
+    tables.length === 0
+      ? []
+      : await db
+          .select({
+            bookingId: bookingTable.bookingId,
+            tableId: bookingTable.tableId,
+            startsAt: booking.startsAt,
+            endsAt: booking.endsAt,
+          })
+          .from(bookingTable)
+          .innerJoin(booking, eq(booking.id, bookingTable.bookingId))
+          .where(
+            and(
+              eq(booking.restaurantId, r.id),
+              gte(booking.serviceDate, addDaysToLocalDate(params.date, -1)),
+              lte(booking.serviceDate, addDaysToLocalDate(params.date, 1)),
+              inArray(booking.status, [...ACTIVE_BOOKING_STATUSES]),
+            ),
+          );
 
   const existing: BookingLoad[] = bookings
     .filter((b) => b.id !== params.excludeBookingId)
@@ -140,8 +191,18 @@ export async function loadAvailabilityInput(
       maxPartySize: policy.maxPartySize,
     },
     existingBookings: existing,
+    ...(tables.length > 0
+      ? {
+          tables: tables.map(tableToDef),
+          tableLoads: tableRows
+            .filter((t) => t.bookingId !== params.excludeBookingId)
+            .map(
+              (t): TableLoad => ({ tableId: t.tableId, startsAt: t.startsAt, endsAt: t.endsAt }),
+            ),
+        }
+      : {}),
   };
-  return { input, services };
+  return { input, services, tables };
 }
 
 export function toAvailabilityResponse(

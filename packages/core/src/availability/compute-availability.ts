@@ -1,4 +1,5 @@
 import { DomainError } from "../errors.js";
+import { tablesExhausted } from "../tables/tables.js";
 import { isLocalDate, weekdayOf } from "../time/local.js";
 import { isValidTimeZone } from "../time/zoned.js";
 import { evaluateCapacity } from "./capacity.js";
@@ -67,6 +68,18 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
       );
       remainingCovers = capacity.remainingCovers;
       if (reason === null && !capacity.ok) reason = capacity.reason ?? "full";
+      // with a floor plan, a party also needs a table that is free for the whole visit
+      if (
+        reason === null &&
+        input.tables &&
+        tablesExhausted(input.tables, input.tableLoads ?? [], {
+          startsAt: candidate.startsAt,
+          endsAt: candidate.endsAt,
+          partySize: input.partySize,
+          areaId,
+        })
+      )
+        reason = "no_table";
 
       slots.push({
         serviceId: service.id,
