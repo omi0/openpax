@@ -6,6 +6,7 @@ export * from "./schemas/booking.js";
 export * from "./schemas/common.js";
 export * from "./schemas/customer.js";
 export * from "./schemas/notifications.js";
+export * from "./schemas/payments.js";
 export * from "./schemas/restaurant.js";
 export * from "./schemas/service.js";
 export * from "./schemas/tables.js";

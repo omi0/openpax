@@ -71,3 +71,10 @@ export function formatInstant(iso: string, timeZone: string, locale: string): st
     timeZone,
   }).format(new Date(iso));
 }
+
+export function formatMoney(amountCents: number, currency: string, locale: string): string {
+  return new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-GB", {
+    style: "currency",
+    currency,
+  }).format(amountCents / 100);
+}

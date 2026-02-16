@@ -341,3 +341,18 @@ body.embedded {
   background: var(--sitli-bg);
   color: var(--sitli-fg);
 }
+
+.sitli .pay {
+  margin: 12px 0 4px;
+  padding: 14px;
+  border-radius: var(--sitli-radius);
+  background: var(--sitli-soft);
+  text-align: left;
+}
+.sitli .pay p {
+  margin: 0 0 8px;
+}
+.sitli .pay .btn {
+  display: block;
+  text-align: center;
+}

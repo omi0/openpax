@@ -63,6 +63,26 @@ export const en: Dictionary = {
   prevMonth: "Previous month",
   nextMonth: "Next month",
   poweredBy: "Bookings by",
+  payment: {
+    title: "One more step",
+    intro: "To confirm your table we ask for a deposit or a card as guarantee.",
+    depositText:
+      "Deposit required: {amount}. It is deducted from your bill, or refunded if you cancel in time.",
+    cardText:
+      "Save a card as guarantee: nothing is charged now, only {amount} if you don't show up.",
+    until: "Complete it by {time}, otherwise the booking lapses.",
+    payDeposit: "Pay the deposit",
+    saveCard: "Save card",
+    status: {
+      paid: "Deposit of {amount} paid.",
+      card_saved: "Card saved as guarantee ({amount} in case of no-show).",
+      refunded: "Deposit of {amount} refunded.",
+      charged: "No-show fee of {amount} charged.",
+      failed: "Payment failed.",
+      expired: "The time to pay the deposit has run out.",
+      cancelled: "Payment cancelled.",
+    },
+  },
   waitlist: {
     full: "No table free at this time? Leave your details and we'll let you know if one frees up.",
     join: "Join the waitlist",

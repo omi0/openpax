@@ -19,6 +19,7 @@ import {
   type EmailMessage,
   type SmsMessage,
 } from "../src/notifications/provider.js";
+import { FakePaymentGateway } from "../src/payments/fake.js";
 
 export const PUBLIC_URL = "http://localhost:3000";
 /** Wednesday 2026-06-10 12:00 in Rome. */
@@ -30,6 +31,7 @@ export interface TestApp {
   app: OpenAPIHono<AppEnv>;
   ctx: AppContext;
   jobs: MemoryJobQueue;
+  gateway: FakePaymentGateway;
   registry: HandlerRegistry;
   sentEmails: EmailMessage[];
   sentSms: SmsMessage[];
@@ -57,7 +59,8 @@ export async function createTestApp(
   const jobs = new MemoryJobQueue();
   jobs.register(modules.flatMap((m) => m.jobs ?? []));
   const now = options.now ?? NOW;
-  const ctx = buildContext({ env, logger, modules, jobs, now: () => now });
+  const gateway = new FakePaymentGateway();
+  const ctx = buildContext({ env, logger, modules, jobs, now: () => now, paymentGateway: gateway });
 
   const sentEmails: EmailMessage[] = [];
   const sentSms: SmsMessage[] = [];
@@ -95,6 +98,7 @@ export async function createTestApp(
     app,
     ctx,
     jobs,
+    gateway,
     registry,
     sentEmails,
     sentSms,

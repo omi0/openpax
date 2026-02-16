@@ -208,7 +208,8 @@
       "booking.modified": "Prenotazione modificata",
       "booking.reminder": "Promemoria prima dell'arrivo",
       "waitlist.joined": "Iscrizione alla lista d'attesa",
-      "waitlist.offered": "Tavolo offerto dalla lista d'attesa"
+      "waitlist.offered": "Tavolo offerto dalla lista d'attesa",
+      "booking.payment_required": "Caparra richiesta per confermare"
     },
     "audience": {
       "guest": "Ospite",
@@ -642,5 +643,57 @@
     "saveLayout": "Salva disposizione",
     "seats": "{{min}}–{{max}} persone",
     "allAreas": "Tutte le sale"
+  },
+  "payments": {
+    "title": "Pagamenti",
+    "stripe": "Stripe",
+    "stripeHint": "Collega il tuo account Stripe per chiedere una caparra o una carta a garanzia contro i no-show. Le chiavi sono salvate cifrate.",
+    "connected": "Collegato",
+    "notConnected": "Non collegato",
+    "secretKey": "Chiave segreta",
+    "secretSet": "Impostata (finisce con {{last4}}). Incolla una nuova chiave per sostituirla.",
+    "secretUnset": "Dalla dashboard Stripe → Sviluppatori → Chiavi API.",
+    "webhookSecret": "Segreto di firma del webhook",
+    "webhookHint": "Facoltativo ma consigliato: aggiungi l'URL qui sotto come endpoint webhook in Stripe e incolla qui il suo segreto di firma.",
+    "webhookUrl": "URL del webhook",
+    "webhookEvents": "Eventi da inviare: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.expired. Anche senza webhook i pagamenti vengono registrati quando l'ospite torna sulla pagina della prenotazione o alla scadenza del tempo per pagare.",
+    "testConnection": "Prova la connessione",
+    "testOk": "Stripe ha accettato la chiave.",
+    "policy": "Caparra e protezione no-show",
+    "policyHint": "Vale solo per le prenotazioni online. Le prenotazioni inserite dallo staff non chiedono mai un pagamento.",
+    "mode": "Cosa chiedere agli ospiti",
+    "modes": {
+      "off": "Niente",
+      "deposit": "Una caparra, pagata subito",
+      "card_hold": "Una carta a garanzia, addebitata solo in caso di no-show"
+    },
+    "modeHint": {
+      "off": "Le prenotazioni vengono confermate come al solito.",
+      "deposit": "La prenotazione resta in attesa finché la caparra non viene pagata con Stripe Checkout; decade se l'ospite non paga in tempo.",
+      "card_hold": "L'ospite salva una carta al momento della prenotazione. Non viene addebitato nulla a meno che la prenotazione non sia segnata come no-show."
+    },
+    "amount": "Importo per persona ({{currency}})",
+    "amountHint": "Un tavolo da quattro paga {{total}}.",
+    "minParty": "Solo da (persone)",
+    "minPartyHint": "Vuoto = per tutti.",
+    "window": "Tempo per pagare (minuti)",
+    "windowHint": "Solo caparre: dopo questo tempo la prenotazione non pagata viene annullata.",
+    "refundOnCancel": "Rimborsa automaticamente la caparra se la prenotazione viene annullata",
+    "chargeNoShow": "Addebita automaticamente la penale in caso di no-show",
+    "status": {
+      "pending": "Pagamento in attesa",
+      "paid": "Caparra {{amount}} pagata",
+      "card_saved": "Carta salvata ({{amount}} in caso di no-show)",
+      "refunded": "Caparra {{amount}} rimborsata",
+      "charged": "Penale no-show {{amount}} addebitata",
+      "failed": "Pagamento non riuscito",
+      "expired": "Tempo per pagare scaduto",
+      "cancelled": "Pagamento annullato"
+    },
+    "refund": "Rimborsa",
+    "charge": "Addebita penale no-show",
+    "copyLink": "Copia link di pagamento",
+    "confirmRefund": "Rimborsare {{amount}} all'ospite?",
+    "confirmCharge": "Addebitare {{amount}} sulla carta dell'ospite?"
   }
 }

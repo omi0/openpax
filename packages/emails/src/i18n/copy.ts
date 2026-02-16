@@ -69,6 +69,7 @@ const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> =
     "booking.reminder": "Gestisci prenotazione",
     "waitlist.joined": "Vedi la tua richiesta",
     "waitlist.offered": "Conferma il tavolo",
+    "booking.payment_required": "Paga la caparra",
   },
   en: {
     "booking.confirmed": "Manage booking",
@@ -77,6 +78,7 @@ const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> =
     "booking.reminder": "Manage booking",
     "waitlist.joined": "View your request",
     "waitlist.offered": "Confirm the table",
+    "booking.payment_required": "Pay the deposit",
   },
 };
 

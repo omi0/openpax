@@ -53,6 +53,8 @@ export interface BookingEmailInput {
   guest: { name: string; email: string | null; phone: string | null };
   manageUrl?: string;
   dashboardUrl?: string;
+  /** Deposit link and formatted amount for the "pay to confirm" email. */
+  payment?: { paymentUrl: string; depositAmount: string };
   /** Restaurant-specific template replacing the default copy. */
   template?: EmailTemplate | null;
 }
@@ -91,6 +93,8 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
     notes: input.booking.notes ?? "",
     address: input.restaurant.address ?? "",
     cancellationReason: input.booking.cancellationReason ?? "",
+    paymentUrl: input.payment?.paymentUrl ?? "",
+    depositAmount: input.payment?.depositAmount ?? "",
   };
   const props: BookingEmailProps = {
     copy,

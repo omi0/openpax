@@ -65,7 +65,7 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `waitlist`, `tables`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `tables`, `payments`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
 totals for the previous period of equal length, party-size and lead-time
@@ -87,6 +87,25 @@ the booking unassigned; the Today page flags it and offers manual
 assignment (`PUT /bookings/{id}/tables`, which refuses a taken table unless
 `force`). Settings → Tables holds the CRUD and a drag-and-drop plan; Today
 has a floor view for any time of the day.
+
+### Deposits and no-show protection
+
+Settings → Payments stores the restaurant's Stripe secret key and webhook
+signing secret (encrypted in `payment_config`) and the policy: `deposit`
+(pay per guest up front), `card_hold` (save a card, charge the fee on
+no-show) or `off`, with an amount per guest, an optional minimum party size,
+the payment window and the auto refund / auto charge switches. Only online
+bookings are affected. `createBooking` asks the payments module for a
+requirement, creates the booking as `pending` and, once committed, opens a
+Stripe Checkout session (`booking_payment`); the guest sees the pay button in
+the widget confirmation and gets a "pay to confirm" email instead of the
+pending one. Completion arrives through the per-restaurant webhook
+(`/api/public/v1/payments/stripe/webhook/{restaurantId}`) or is settled when
+the guest opens their booking link, and a `payment.expire` job cancels
+unpaid bookings when the window closes. A cancelled booking refunds a paid
+deposit; a no-show charges the saved card off-session. Stripe is called over
+its REST API (`apps/server/src/payments/stripe.ts`) behind a small
+`PaymentGateway` interface so tests use an in-memory fake.
 
 ### Waitlist
 
@@ -175,7 +194,7 @@ audience (`notification_setting`), edited under Settings → Notifications → R
 
 `organization`, `member`, `user`, `session`, `apikey` (Better Auth) ·
 `restaurant` · `area` · `service` · `schedule_exception` · `capacity_rule` ·
-`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` ·
+`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` · `payment_config` · `booking_payment` ·
 `notification_provider_config` · `notification_setting` · `notification_log` ·
 `outbox_event` · `audit_log`.
 

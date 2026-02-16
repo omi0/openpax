@@ -320,6 +320,7 @@ function BookingDetails({ restaurantId, booking }: { restaurantId: string; booki
           <span className="text-zinc-500">{t("today.code")}:</span>{" "}
           <span className="font-mono">{booking.confirmationCode}</span>
         </p>
+        {booking.payment ? <PaymentLine restaurantId={restaurantId} booking={booking} /> : null}
         {booking.customer.email ? <p className="text-zinc-600">{booking.customer.email}</p> : null}
         <Link
           to="/r/$restaurantId/customers/$customerId"
@@ -468,6 +469,71 @@ function FloorView({
             ))}
           </ul>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Deposit / saved card of a booking with the staff actions (refund, charge the no-show fee). */
+function PaymentLine({ restaurantId, booking }: { restaurantId: string; booking: BookingDto }) {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const p = booking.payment;
+  const act = useMutation({
+    mutationFn: (what: "refund" | "charge") =>
+      api.post(`/api/v1/restaurants/${restaurantId}/bookings/${booking.id}/payment/${what}`),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] }),
+  });
+  if (!p) return null;
+  const amount = new Intl.NumberFormat(i18n.language, {
+    style: "currency",
+    currency: p.currency,
+  }).format(p.amountCents / 100);
+  const tone =
+    p.status === "paid" || p.status === "card_saved" || p.status === "charged"
+      ? "confirmed"
+      : p.status === "pending"
+        ? "pending"
+        : p.status === "failed"
+          ? "cancelled"
+          : "neutral";
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <Badge tone={tone}>{t(`payments.status.${p.status}`, { amount })}</Badge>
+      {p.error ? <span className="text-xs text-red-600">{p.error}</span> : null}
+      {p.status === "paid" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          loading={act.isPending}
+          onClick={() => {
+            if (window.confirm(t("payments.confirmRefund", { amount }))) act.mutate("refund");
+          }}
+        >
+          {t("payments.refund")}
+        </Button>
+      ) : null}
+      {p.status === "card_saved" && booking.status === "no_show" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          loading={act.isPending}
+          onClick={() => {
+            if (window.confirm(t("payments.confirmCharge", { amount }))) act.mutate("charge");
+          }}
+        >
+          {t("payments.charge")}
+        </Button>
+      ) : null}
+      {p.status === "pending" && p.checkoutUrl ? (
+        <button
+          type="button"
+          className="text-xs text-brand hover:underline"
+          onClick={() => void navigator.clipboard?.writeText(p.checkoutUrl ?? "")}
+        >
+          {t("payments.copyLink")}
+        </button>
       ) : null}
     </div>
   );

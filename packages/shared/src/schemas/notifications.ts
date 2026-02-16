@@ -13,6 +13,7 @@ export const NOTIFICATION_EVENTS = [
   "booking.reminder",
   "waitlist.joined",
   "waitlist.offered",
+  "booking.payment_required",
 ] as const;
 export const notificationEventSchema = z.enum(NOTIFICATION_EVENTS);
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];

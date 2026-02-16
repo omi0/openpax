@@ -22,7 +22,7 @@ test("closures, capacity rules, areas and the restaurant profile", async ({ page
 
   await page.getByLabel("Area name").fill("Terrace");
   await page.getByRole("button", { name: "Add area" }).click();
-  await expect(page.getByText("Terrace")).toBeVisible();
+  await expect(page.getByText("Terrace", { exact: true })).toBeVisible();
 
   // the closure is visible on the calendar and removes the day's slots
   await page.goto(`/r/${owner.restaurantId}/calendar?week=${date}`);

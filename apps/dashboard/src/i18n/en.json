@@ -208,7 +208,8 @@
       "booking.modified": "Booking modified",
       "booking.reminder": "Reminder before arrival",
       "waitlist.joined": "Joined the waitlist",
-      "waitlist.offered": "Table offered from the waitlist"
+      "waitlist.offered": "Table offered from the waitlist",
+      "booking.payment_required": "Deposit required to confirm"
     },
     "audience": {
       "guest": "Guest",
@@ -642,5 +643,57 @@
     "saveLayout": "Save layout",
     "seats": "{{min}}–{{max}} guests",
     "allAreas": "All areas"
+  },
+  "payments": {
+    "title": "Payments",
+    "stripe": "Stripe",
+    "stripeHint": "Connect your Stripe account to take deposits or hold a card against no-shows. Keys are stored encrypted.",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "secretKey": "Secret key",
+    "secretSet": "Set (ends in {{last4}}). Paste a new key to replace it.",
+    "secretUnset": "From the Stripe dashboard → Developers → API keys.",
+    "webhookSecret": "Webhook signing secret",
+    "webhookHint": "Optional but recommended: add the URL below as a webhook endpoint in Stripe and paste its signing secret here.",
+    "webhookUrl": "Webhook URL",
+    "webhookEvents": "Events to send: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.expired. Without a webhook, payments are still settled when the guest returns to the booking page or when the payment window closes.",
+    "testConnection": "Test connection",
+    "testOk": "Stripe accepted the key.",
+    "policy": "Deposits and no-show protection",
+    "policyHint": "Applies to online bookings only. Staff bookings never ask for a payment.",
+    "mode": "What to ask guests",
+    "modes": {
+      "off": "Nothing",
+      "deposit": "A deposit, paid up front",
+      "card_hold": "A card as guarantee, charged only on no-show"
+    },
+    "modeHint": {
+      "off": "Bookings are confirmed as usual.",
+      "deposit": "The booking stays pending until the deposit is paid through Stripe Checkout; it lapses if the guest does not pay in time.",
+      "card_hold": "The guest saves a card at booking time. Nothing is charged unless the booking is marked as no-show."
+    },
+    "amount": "Amount per guest ({{currency}})",
+    "amountHint": "A table of four pays {{total}}.",
+    "minParty": "Only from party size",
+    "minPartyHint": "Leave empty to ask everyone.",
+    "window": "Time to pay (minutes)",
+    "windowHint": "Deposits only: the booking is cancelled if unpaid after this.",
+    "refundOnCancel": "Refund the deposit automatically when a booking is cancelled",
+    "chargeNoShow": "Charge the fee automatically on no-show",
+    "status": {
+      "pending": "Payment pending",
+      "paid": "Deposit {{amount}} paid",
+      "card_saved": "Card saved ({{amount}} on no-show)",
+      "refunded": "Deposit {{amount}} refunded",
+      "charged": "No-show fee {{amount}} charged",
+      "failed": "Payment failed",
+      "expired": "Payment window expired",
+      "cancelled": "Payment cancelled"
+    },
+    "refund": "Refund",
+    "charge": "Charge no-show fee",
+    "copyLink": "Copy payment link",
+    "confirmRefund": "Refund {{amount}} to the guest?",
+    "confirmCharge": "Charge {{amount}} on the guest's card?"
   }
 }

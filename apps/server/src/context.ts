@@ -7,6 +7,7 @@ import type { JobQueue } from "./jobs/queue.js";
 import type { SecretBox } from "./lib/crypto.js";
 import type { Logger } from "./logger.js";
 import type { ProviderRegistry } from "./notifications/provider.js";
+import type { PaymentGateway } from "./payments/gateway.js";
 
 export type RestaurantRow = typeof restaurant.$inferSelect;
 
@@ -20,6 +21,8 @@ export interface AppContext {
   jobs: JobQueue;
   secrets: SecretBox;
   providers: ProviderRegistry;
+  /** Card payments (Stripe in production, a fake in tests). */
+  payments: PaymentGateway;
   /** Injected clock so tests can freeze time. */
   now: () => Date;
 }

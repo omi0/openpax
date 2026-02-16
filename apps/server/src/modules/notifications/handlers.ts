@@ -16,7 +16,7 @@ export const notificationEventHandlers = [
       } else if (status === "pending") {
         await queueNotifications(ctx, {
           bookingId,
-          event: "booking.pending",
+          event: event.payload.paymentRequired ? "booking.payment_required" : "booking.pending",
           dedupeBase: event.id,
         });
       }

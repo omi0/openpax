@@ -13,7 +13,7 @@ import {
   transition,
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
-import { booking, bookingPolicy, bookingTable, customer, service } from "@sitli/db";
+import { booking, bookingPayment, bookingPolicy, bookingTable, customer, service } from "@sitli/db";
 import type {
   BookingDto,
   ListBookingsQuery,
@@ -30,6 +30,12 @@ import { normalizePhone } from "../../lib/phone.js";
 import { newConfirmationCode, newToken } from "../../lib/random.js";
 import { findRestaurantById } from "../../lib/restaurant-lookup.js";
 import { loadAvailabilityInput } from "../availability/service.js";
+import {
+  requirementFor,
+  startCheckout,
+  toPaymentDto,
+  toPublicPaymentDto,
+} from "../payments/index.js";
 
 type BookingRow = typeof booking.$inferSelect;
 type CustomerRow = typeof customer.$inferSelect;
@@ -39,6 +45,7 @@ export interface BookingWithRelations {
   customer: CustomerRow;
   serviceName: string;
   tables: Array<{ id: string; name: string }>;
+  payment: typeof bookingPayment.$inferSelect | null;
 }
 
 /** Tables of a booking as a JSON array, so list queries stay a single round trip. */
@@ -75,6 +82,7 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     notes: x.booking.notes,
     confirmationCode: x.booking.confirmationCode,
     tables: x.tables,
+    payment: x.payment ? toPaymentDto(x.payment) : null,
     createdAt: x.booking.createdAt.toISOString(),
     updatedAt: x.booking.updatedAt.toISOString(),
   };
@@ -110,6 +118,7 @@ export function toPublicBookingDto(
     },
     canCancel: isActiveStatus(x.booking.status) && ctx.now().getTime() < cutoff,
     manageUrl: manageUrl(ctx, r, x.booking.manageToken),
+    payment: x.payment ? toPublicPaymentDto(x.payment) : null,
   };
 }
 
@@ -121,10 +130,17 @@ export async function getBookingWithRelations(
   bookingId: string,
 ): Promise<BookingWithRelations> {
   const [row] = await db
-    .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
+    .select({
+      booking,
+      customer,
+      serviceName: service.name,
+      tables: bookingTablesJson,
+      payment: bookingPayment,
+    })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
+    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
     .where(and(eq(booking.id, bookingId), eq(booking.restaurantId, restaurantId)))
     .limit(1);
   if (!row) throw ApiError.notFound("Booking");
@@ -136,10 +152,17 @@ export async function getBookingByToken(
   token: string,
 ): Promise<BookingWithRelations> {
   const [row] = await ctx.db
-    .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
+    .select({
+      booking,
+      customer,
+      serviceName: service.name,
+      tables: bookingTablesJson,
+      payment: bookingPayment,
+    })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
+    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
     .where(eq(booking.manageToken, token))
     .limit(1);
   if (!row) throw ApiError.notFound("Booking");
@@ -167,10 +190,17 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   const where = and(...conditions);
   const [rows, [count]] = await Promise.all([
     ctx.db
-      .select({ booking, customer, serviceName: service.name, tables: bookingTablesJson })
+      .select({
+        booking,
+        customer,
+        serviceName: service.name,
+        tables: bookingTablesJson,
+        payment: bookingPayment,
+      })
       .from(booking)
       .innerJoin(customer, eq(customer.id, booking.customerId))
       .innerJoin(service, eq(service.id, booking.serviceId))
+      .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
       .where(where)
       .orderBy(
         q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
@@ -281,6 +311,11 @@ export async function createBooking(
 
   const localDate = instantToLocal(p.startsAt, r.timezone).date;
   const candidateDates = [localDate, addDaysToLocalDate(localDate, -1)];
+  // online bookings may have to pay a deposit (or save a card) before they count as confirmed
+  const requirement =
+    p.actor.type === "guest" && !p.forceConfirmed
+      ? await requirementFor(ctx, r, { partySize: p.partySize, source: p.source })
+      : null;
 
   const created = await ctx.db.transaction(async (tx) => {
     await lockDates(tx, r.id, candidateDates);
@@ -333,6 +368,7 @@ export async function createBooking(
 
     let status: BookingStatus;
     if (p.seatNow) status = "seated";
+    else if (requirement) status = "pending";
     else if (p.actor.type === "guest" && !p.forceConfirmed) {
       const large =
         policy.largePartyThreshold !== null && p.partySize >= policy.largePartyThreshold;
@@ -388,6 +424,7 @@ export async function createBooking(
         source: p.source,
         partySize: row.partySize,
         startsAt: row.startsAt.toISOString(),
+        ...(requirement ? { paymentRequired: true } : {}),
       },
     });
     await writeAudit(tx, {
@@ -406,6 +443,34 @@ export async function createBooking(
     });
     return row;
   });
+
+  if (requirement) {
+    const full = await getBookingWithRelations(ctx.db, r.id, created.id);
+    try {
+      await startCheckout(
+        ctx,
+        r,
+        {
+          id: created.id,
+          startsAt: created.startsAt,
+          partySize: created.partySize,
+          manageToken: created.manageToken,
+          locale: created.locale,
+        },
+        { name: full.customer.name, email: full.customer.email },
+        requirement,
+      );
+    } catch (error) {
+      // no checkout, no booking: free the slot so the guest can try again
+      await applyBookingAction(ctx, r, {
+        bookingId: created.id,
+        action: "cancel",
+        actor: { type: "system", id: null },
+        reason: "payment_unavailable",
+      });
+      throw error;
+    }
+  }
 
   return getBookingWithRelations(ctx.db, r.id, created.id);
 }

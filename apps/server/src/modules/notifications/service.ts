@@ -113,6 +113,20 @@ export const DEFAULT_SETTINGS: NotificationSettingDto[] = [
     offsetMinutes: null,
   },
   {
+    event: "booking.payment_required",
+    channel: "email",
+    audience: "guest",
+    enabled: true,
+    offsetMinutes: null,
+  },
+  {
+    event: "booking.payment_required",
+    channel: "sms",
+    audience: "guest",
+    enabled: true,
+    offsetMinutes: null,
+  },
+  {
     event: "waitlist.joined",
     channel: "email",
     audience: "guest",

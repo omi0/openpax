@@ -3,6 +3,7 @@ import type { Locale, NotificationAudience, NotificationEvent } from "@sitli/sha
 import { renderSms } from "@sitli/shared/sms";
 import type { AppContext } from "../../context.js";
 import type { EmailMessage, SmsMessage } from "../../notifications/provider.js";
+import { formatAmount } from "../payments/index.js";
 import type { MessageSubject } from "./dispatch.js";
 import { effectiveEmailTemplate, getTemplateOverride } from "./templates.js";
 
@@ -12,6 +13,14 @@ const asLocale = (v: string | null | undefined, fallback: Locale): Locale =>
 function localeFor(subject: MessageSubject, audience: NotificationAudience): Locale {
   const restaurantLocale = asLocale(subject.restaurant.locale, "en");
   return audience === "guest" ? asLocale(subject.locale, restaurantLocale) : restaurantLocale;
+}
+
+function paymentVars(subject: MessageSubject, locale: Locale) {
+  const p = subject.payment;
+  return {
+    paymentUrl: p?.checkoutUrl ?? "",
+    depositAmount: p ? formatAmount(p.amountCents, p.currency, locale) : "",
+  };
 }
 
 /** "venerdì 12 giugno 2026, 20:00", or the date alone (plus preferred time) when there is no slot yet. */
@@ -31,6 +40,7 @@ export async function buildEmail(
   const locale = localeFor(subject, audience);
   const key = { event, channel: "email" as const, audience, locale };
   const override = await getTemplateOverride(ctx, subject.restaurant.id, key);
+  const pay = paymentVars(subject, locale);
   const rendered = renderBookingEmail({
     event,
     audience,
@@ -57,8 +67,11 @@ export async function buildEmail(
       email: subject.customer.email,
       phone: subject.customer.phone,
     },
-    manageUrl: subject.manageUrl,
+    // the "pay" email's button goes straight to checkout
+    manageUrl:
+      event === "booking.payment_required" && pay.paymentUrl ? pay.paymentUrl : subject.manageUrl,
     dashboardUrl: subject.dashboardUrl,
+    payment: pay,
   });
   return {
     to,
@@ -103,6 +116,7 @@ export async function buildSms(
       notes: subject.notes ?? "",
       address: subject.restaurant.address ?? "",
       cancellationReason: subject.cancellationReason ?? "",
+      ...paymentVars(subject, locale),
     },
     override ? { body: override.body } : null,
   );

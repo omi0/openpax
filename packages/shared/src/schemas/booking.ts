@@ -10,6 +10,7 @@ import {
   partySizeSchema,
   phoneSchema,
 } from "./common.js";
+import { bookingPaymentDtoSchema, publicPaymentDtoSchema } from "./payments.js";
 import { bookingTableDtoSchema } from "./tables.js";
 
 export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
@@ -89,6 +90,8 @@ export const bookingDtoSchema = z.object({
   confirmationCode: z.string(),
   /** Tables assigned on the floor plan (empty without one). */
   tables: z.array(bookingTableDtoSchema),
+  /** Deposit or saved card, when the restaurant asks for one. */
+  payment: bookingPaymentDtoSchema.nullable(),
   createdAt: instantSchema,
   updatedAt: instantSchema,
 });
@@ -114,6 +117,8 @@ export const publicBookingDtoSchema = z.object({
   }),
   canCancel: z.boolean(),
   manageUrl: z.string(),
+  /** Set when a deposit or card is (or was) required; `checkoutUrl` is open while pending. */
+  payment: publicPaymentDtoSchema.nullable(),
 });
 export type PublicBookingDto = z.infer<typeof publicBookingDtoSchema>;
 

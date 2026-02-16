@@ -18,6 +18,9 @@ function SettingsLayout() {
     { to: "/r/$restaurantId/settings/closures", label: t("closures.title") },
     { to: "/r/$restaurantId/settings/tables", label: t("tables.title") },
     { to: "/r/$restaurantId/settings/notifications", label: t("notifications.title") },
+    ...(role !== "staff"
+      ? [{ to: "/r/$restaurantId/settings/payments", label: t("payments.title") }]
+      : []),
     { to: "/r/$restaurantId/settings/widget", label: t("widget.title") },
     { to: "/r/$restaurantId/settings/team", label: t("team.title") },
     ...(role !== "staff"

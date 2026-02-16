@@ -61,6 +61,26 @@ export const it = {
   prevMonth: "Mese precedente",
   nextMonth: "Mese successivo",
   poweredBy: "Prenotazioni con",
+  payment: {
+    title: "Manca solo un passaggio",
+    intro: "Per confermare il tavolo ti chiediamo una caparra o una carta a garanzia.",
+    depositText:
+      "Caparra richiesta: {amount}. Verrà scalata dal conto o rimborsata se annulli in tempo.",
+    cardText:
+      "Salva una carta a garanzia: non paghi nulla ora, solo {amount} in caso di mancata presentazione.",
+    until: "Completa entro le {time}, altrimenti la prenotazione decade.",
+    payDeposit: "Paga la caparra",
+    saveCard: "Salva la carta",
+    status: {
+      paid: "Caparra di {amount} pagata.",
+      card_saved: "Carta salvata a garanzia ({amount} in caso di no-show).",
+      refunded: "Caparra di {amount} rimborsata.",
+      charged: "Penale no-show di {amount} addebitata.",
+      failed: "Pagamento non riuscito.",
+      expired: "Il tempo per pagare la caparra è scaduto.",
+      cancelled: "Pagamento annullato.",
+    },
+  },
   waitlist: {
     full: "Nessun tavolo libero a quest'ora? Lascia i tuoi dati: ti avvisiamo se si libera.",
     join: "Mettimi in lista d'attesa",

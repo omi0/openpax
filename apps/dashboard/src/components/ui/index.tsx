@@ -248,7 +248,6 @@ export function Dialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
         className={cn("relative w-full rounded-xl bg-white shadow-xl", dialogSizes[size])}
       >
         <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">

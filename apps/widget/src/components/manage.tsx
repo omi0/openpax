@@ -2,8 +2,9 @@ import { useSignal } from "@preact/signals";
 import type { PublicBookingDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
-import { formatInstant } from "../dates.js";
+import { formatInstant, formatMoney } from "../dates.js";
 import { locale, setLocale, t } from "../i18n.js";
+import { PaymentNotice } from "./confirmation.js";
 
 export function Manage({ token }: { token: string }) {
   const booking = useSignal<PublicBookingDto | null>(null);
@@ -73,6 +74,14 @@ export function Manage({ token }: { token: string }) {
         </div>
       </div>
       {b.restaurant.address ? <p class="sub">{b.restaurant.address}</p> : null}
+      {b.payment && b.payment.status !== "pending" ? (
+        <p class="sub">
+          {t(`payment.status.${b.payment.status}`, {
+            amount: formatMoney(b.payment.amountCents, b.payment.currency, locale.value),
+          })}
+        </p>
+      ) : null}
+      <PaymentNotice booking={b} />
       {error.value ? <div class="error">{error.value}</div> : null}
       {b.status === "cancelled" ? (
         <p>{t("cancelled")}</p>

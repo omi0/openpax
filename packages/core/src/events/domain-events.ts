@@ -18,6 +18,8 @@ export interface DomainEventPayloads {
     source: BookingSource;
     partySize: number;
     startsAt: string;
+    /** The booking stays pending until the guest pays a deposit or saves a card. */
+    paymentRequired?: boolean;
   };
   "booking.confirmed": { bookingId: string; previousStatus: BookingStatus };
   "booking.cancelled": {
@@ -50,6 +52,17 @@ export interface DomainEventPayloads {
     previousStatus: WaitlistStatus;
     cancelledBy: "guest" | "staff";
   };
+  /** A deposit was paid or a card saved; the booking is confirmed by the same handler. */
+  "payment.completed": { bookingId: string; paymentId: string; kind: "deposit" | "card_hold" };
+  "payment.refunded": { bookingId: string; paymentId: string; amountCents: number };
+  "payment.charged": {
+    bookingId: string;
+    paymentId: string;
+    amountCents: number;
+    succeeded: boolean;
+  };
+  /** The guest never paid: the booking was cancelled. */
+  "payment.expired": { bookingId: string; paymentId: string };
 }
 
 export type DomainEventType = keyof DomainEventPayloads;
@@ -80,6 +93,10 @@ export const DOMAIN_EVENT_TYPES = [
   "waitlist.booked",
   "waitlist.expired",
   "waitlist.cancelled",
+  "payment.completed",
+  "payment.refunded",
+  "payment.charged",
+  "payment.expired",
 ] as const satisfies readonly DomainEventType[];
 
 export function isDomainEventType(value: string): value is DomainEventType {

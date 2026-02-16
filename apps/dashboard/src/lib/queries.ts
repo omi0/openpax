@@ -13,6 +13,7 @@ import type {
   NotificationLogDto,
   NotificationSettingDto,
   NotificationTemplateDto,
+  PaymentConfigDto,
   ProviderConfigDto,
   ProviderDescriptorDto,
   PublicInvitationDto,
@@ -273,4 +274,10 @@ export const tablesQuery = (id: string) =>
     queryKey: ["restaurant", id, "tables"],
     queryFn: () => api.get<TableDto[]>(`/api/v1/restaurants/${id}/tables`),
     staleTime: 60_000,
+  });
+
+export const paymentConfigQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "payments", "config"],
+    queryFn: () => api.get<PaymentConfigDto>(`/api/v1/restaurants/${id}/payments/config`),
   });

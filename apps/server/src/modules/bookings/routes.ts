@@ -16,6 +16,7 @@ import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam, slugParam } from "../../lib/openapi.js";
 import { findRestaurantById, findRestaurantBySlug } from "../../lib/restaurant-lookup.js";
+import { syncPendingForBooking } from "../payments/index.js";
 import * as svc from "./service.js";
 
 const bookingIdParam = restaurantIdParam.extend({ bookingId: z.uuid() });
@@ -79,7 +80,12 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       responses: { 200: jsonResponse(publicBookingDtoSchema, "Booking") },
     }),
     async (c) => {
-      const found = await svc.getBookingByToken(ctx, c.req.valid("param").token);
+      let found = await svc.getBookingByToken(ctx, c.req.valid("param").token);
+      if (found.payment?.status === "pending") {
+        // the guest is back from checkout: settle it even if the webhook never arrived
+        await syncPendingForBooking(ctx, found.booking.id);
+        found = await svc.getBookingByToken(ctx, c.req.valid("param").token);
+      }
       const r = await findRestaurantById(ctx, found.booking.restaurantId);
       const [policy] = await ctx.db
         .select({ cutoff: bookingPolicy.cancellationCutoffMinutes })

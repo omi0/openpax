@@ -1,5 +1,6 @@
 import {
   booking,
+  bookingPayment,
   customer,
   notificationLog,
   notificationSetting,
@@ -40,6 +41,13 @@ export interface MessageSubject {
   /** Guest-facing link: manage the booking, or the waitlist entry. */
   manageUrl: string;
   dashboardUrl: string;
+  /** Deposit / card hold of the booking, if any. */
+  payment: {
+    status: string;
+    amountCents: number;
+    currency: string;
+    checkoutUrl: string | null;
+  } | null;
 }
 
 export async function loadBookingSubject(
@@ -47,12 +55,20 @@ export async function loadBookingSubject(
   bookingId: string,
 ): Promise<MessageSubject | null> {
   const [row] = await ctx.db
-    .select({ booking, customer, restaurant, serviceName: service.name, widget: widgetConfig })
+    .select({
+      booking,
+      customer,
+      restaurant,
+      serviceName: service.name,
+      widget: widgetConfig,
+      payment: bookingPayment,
+    })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(restaurant, eq(restaurant.id, booking.restaurantId))
     .innerJoin(service, eq(service.id, booking.serviceId))
     .leftJoin(widgetConfig, eq(widgetConfig.restaurantId, booking.restaurantId))
+    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
     .where(eq(booking.id, bookingId))
     .limit(1);
   if (!row) return null;
@@ -74,6 +90,14 @@ export async function loadBookingSubject(
     cancellationReason: row.booking.cancellationReason,
     manageUrl: `${ctx.env.PUBLIC_URL}/book/${row.restaurant.slug}/manage/${row.booking.manageToken}`,
     dashboardUrl: `${ctx.env.PUBLIC_URL}/r/${row.restaurant.id}/today?date=${row.booking.serviceDate}`,
+    payment: row.payment
+      ? {
+          status: row.payment.status,
+          amountCents: row.payment.amountCents,
+          currency: row.payment.currency,
+          checkoutUrl: row.payment.status === "pending" ? row.payment.checkoutUrl : null,
+        }
+      : null,
   };
 }
 
@@ -121,6 +145,7 @@ export async function loadWaitlistSubject(
     cancellationReason: null,
     manageUrl: `${ctx.env.PUBLIC_URL}/book/${row.restaurant.slug}/waitlist/${row.entry.token}`,
     dashboardUrl: `${ctx.env.PUBLIC_URL}/r/${row.restaurant.id}/today?date=${row.entry.serviceDate}`,
+    payment: null,
   };
 }
 

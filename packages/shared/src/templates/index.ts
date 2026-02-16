@@ -15,6 +15,8 @@ export const TEMPLATE_VARIABLES = [
   "notes",
   "address",
   "cancellationReason",
+  "paymentUrl",
+  "depositAmount",
 ] as const;
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
 export type TemplateVars = Partial<Record<TemplateVariable, string | number | null | undefined>>;
@@ -119,6 +121,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: sei in lista d'attesa per {{partySize}} persone il {{when}}. Ti avvisiamo se si libera un tavolo. {{manageUrl}}",
+        },
+      },
+      "booking.payment_required": {
+        email: {
+          subject: "Completa la prenotazione da {{restaurantName}}",
+          heading: "Manca solo un passaggio",
+          body: "Ciao {{guestName}}, per confermare il tavolo ti chiediamo una caparra di {{depositAmount}}.\n\nPaga dal link qui sotto: senza pagamento la prenotazione decade.",
+        },
+        sms: {
+          body: "{{restaurantName}}: per confermare la prenotazione del {{when}} paga la caparra di {{depositAmount}}: {{paymentUrl}}",
         },
       },
       "waitlist.offered": {
@@ -245,6 +257,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: you're on the waitlist for {{partySize}} guests on {{when}}. We'll text you if a table frees up. {{manageUrl}}",
+        },
+      },
+      "booking.payment_required": {
+        email: {
+          subject: "Complete your booking at {{restaurantName}}",
+          heading: "One more step",
+          body: "Hi {{guestName}}, to confirm your table we ask for a deposit of {{depositAmount}}.\n\nPay from the link below: the booking lapses without it.",
+        },
+        sms: {
+          body: "{{restaurantName}}: to confirm your booking on {{when}} pay the {{depositAmount}} deposit: {{paymentUrl}}",
         },
       },
       "waitlist.offered": {

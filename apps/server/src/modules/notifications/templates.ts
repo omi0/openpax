@@ -241,6 +241,8 @@ export function sampleVars(
       locale === "it" ? "Tavolo vicino alla finestra, se possibile" : "Window table if possible",
     address: r.address ?? "",
     cancellationReason: "",
+    paymentUrl: `${ctx.env.PUBLIC_URL}/book/${r.slug}/manage/example?payment=1`,
+    depositAmount: locale === "it" ? "40,00 €" : "€40.00",
   };
 }
 
@@ -284,7 +286,9 @@ export async function previewTemplate(
       cancellationReason: null,
     },
     guest: { name: "Mario Rossi", email: "mario@example.com", phone: "+39 333 1234567" },
-    manageUrl: String(vars.manageUrl),
+    manageUrl:
+      input.event === "booking.payment_required" ? String(vars.paymentUrl) : String(vars.manageUrl),
+    payment: { paymentUrl: String(vars.paymentUrl), depositAmount: String(vars.depositAmount) },
     dashboardUrl: `${ctx.env.PUBLIC_URL}/r/${r.id}/today`,
     template: {
       subject: input.subject || base.subject,

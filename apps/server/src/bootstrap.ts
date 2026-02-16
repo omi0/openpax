@@ -9,6 +9,8 @@ import { createSecretBox } from "./lib/crypto.js";
 import type { Logger } from "./logger.js";
 import type { SitliModule } from "./modules/module.js";
 import { ProviderRegistry } from "./notifications/provider.js";
+import type { PaymentGateway } from "./payments/gateway.js";
+import { stripeGateway } from "./payments/stripe.js";
 
 export interface BuildContextOptions {
   env: Env;
@@ -16,6 +18,7 @@ export interface BuildContextOptions {
   modules: SitliModule[];
   jobs: JobQueue;
   now?: () => Date;
+  paymentGateway?: PaymentGateway;
 }
 
 /** Wire the shared services every module receives. */
@@ -67,6 +70,7 @@ export function buildContext(options: BuildContextOptions): AppContext {
     jobs: options.jobs,
     secrets: createSecretBox(env.APP_ENCRYPTION_KEY),
     providers,
+    payments: options.paymentGateway ?? stripeGateway,
     now: options.now ?? (() => new Date()),
   };
 }

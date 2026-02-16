@@ -30,6 +30,7 @@ import { Route as AppRRestaurantIdSettingsIndexRouteImport } from "./routes/_app
 import { Route as AppRRestaurantIdSettingsApiKeysRouteImport } from "./routes/_app.r.$restaurantId.settings.api-keys";
 import { Route as AppRRestaurantIdSettingsClosuresRouteImport } from "./routes/_app.r.$restaurantId.settings.closures";
 import { Route as AppRRestaurantIdSettingsNotificationsRouteImport } from "./routes/_app.r.$restaurantId.settings.notifications";
+import { Route as AppRRestaurantIdSettingsPaymentsRouteImport } from "./routes/_app.r.$restaurantId.settings.payments";
 import { Route as AppRRestaurantIdSettingsRestaurantRouteImport } from "./routes/_app.r.$restaurantId.settings.restaurant";
 import { Route as AppRRestaurantIdSettingsServicesRouteImport } from "./routes/_app.r.$restaurantId.settings.services";
 import { Route as AppRRestaurantIdSettingsTablesRouteImport } from "./routes/_app.r.$restaurantId.settings.tables";
@@ -150,6 +151,12 @@ const AppRRestaurantIdSettingsNotificationsRoute =
     path: "/notifications",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsPaymentsRoute =
+  AppRRestaurantIdSettingsPaymentsRouteImport.update({
+    id: "/payments",
+    path: "/payments",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsRestaurantRoute =
   AppRRestaurantIdSettingsRestaurantRouteImport.update({
     id: "/restaurant",
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
   "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
+  "/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
   "/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
+  "/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
   "/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
@@ -254,6 +263,7 @@ export interface FileRoutesById {
   "/_app/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
   "/_app/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/_app/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
+  "/_app/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
   "/_app/r/$restaurantId/settings/restaurant": typeof AppRRestaurantIdSettingsRestaurantRoute;
   "/_app/r/$restaurantId/settings/services": typeof AppRRestaurantIdSettingsServicesRoute;
   "/_app/r/$restaurantId/settings/tables": typeof AppRRestaurantIdSettingsTablesRoute;
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/settings/api-keys"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
+    | "/r/$restaurantId/settings/payments"
     | "/r/$restaurantId/settings/restaurant"
     | "/r/$restaurantId/settings/services"
     | "/r/$restaurantId/settings/tables"
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/settings/api-keys"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
+    | "/r/$restaurantId/settings/payments"
     | "/r/$restaurantId/settings/restaurant"
     | "/r/$restaurantId/settings/services"
     | "/r/$restaurantId/settings/tables"
@@ -336,6 +348,7 @@ export interface FileRouteTypes {
     | "/_app/r/$restaurantId/settings/api-keys"
     | "/_app/r/$restaurantId/settings/closures"
     | "/_app/r/$restaurantId/settings/notifications"
+    | "/_app/r/$restaurantId/settings/payments"
     | "/_app/r/$restaurantId/settings/restaurant"
     | "/_app/r/$restaurantId/settings/services"
     | "/_app/r/$restaurantId/settings/tables"
@@ -504,6 +517,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsNotificationsRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/payments": {
+      id: "/_app/r/$restaurantId/settings/payments";
+      path: "/payments";
+      fullPath: "/r/$restaurantId/settings/payments";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsPaymentsRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/restaurant": {
       id: "/_app/r/$restaurantId/settings/restaurant";
       path: "/restaurant";
@@ -546,6 +566,7 @@ interface AppRRestaurantIdSettingsRouteChildren {
   AppRRestaurantIdSettingsApiKeysRoute: typeof AppRRestaurantIdSettingsApiKeysRoute;
   AppRRestaurantIdSettingsClosuresRoute: typeof AppRRestaurantIdSettingsClosuresRoute;
   AppRRestaurantIdSettingsNotificationsRoute: typeof AppRRestaurantIdSettingsNotificationsRoute;
+  AppRRestaurantIdSettingsPaymentsRoute: typeof AppRRestaurantIdSettingsPaymentsRoute;
   AppRRestaurantIdSettingsRestaurantRoute: typeof AppRRestaurantIdSettingsRestaurantRoute;
   AppRRestaurantIdSettingsServicesRoute: typeof AppRRestaurantIdSettingsServicesRoute;
   AppRRestaurantIdSettingsTablesRoute: typeof AppRRestaurantIdSettingsTablesRoute;
@@ -561,6 +582,8 @@ const AppRRestaurantIdSettingsRouteChildren: AppRRestaurantIdSettingsRouteChildr
       AppRRestaurantIdSettingsClosuresRoute,
     AppRRestaurantIdSettingsNotificationsRoute:
       AppRRestaurantIdSettingsNotificationsRoute,
+    AppRRestaurantIdSettingsPaymentsRoute:
+      AppRRestaurantIdSettingsPaymentsRoute,
     AppRRestaurantIdSettingsRestaurantRoute:
       AppRRestaurantIdSettingsRestaurantRoute,
     AppRRestaurantIdSettingsServicesRoute:
