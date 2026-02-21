@@ -65,7 +65,7 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `waitlist`, `tables`, `payments`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
 totals for the previous period of equal length, party-size and lead-time
@@ -106,6 +106,20 @@ unpaid bookings when the window closes. A cancelled booking refunds a paid
 deposit; a no-show charges the saved card off-session. Stripe is called over
 its REST API (`apps/server/src/payments/stripe.ts`) behind a small
 `PaymentGateway` interface so tests use an in-memory fake.
+
+### Post-visit feedback
+
+Every booking that ends up confirmed schedules a `feedback.request` job for
+the end of the visit plus the delay set in Settings → Notifications (the
+"hours after" field of the *Feedback request* rule; default two hours,
+switching every channel off disables requests). The job checks the booking
+still looks like a visit (confirmed, seated or completed) and emits
+`feedback.requested`; the notifications module turns it into the email/SMS
+with the link `/book/{slug}/feedback/{manageToken}`. The guest rates 1–5 with
+an optional comment (`booking_feedback`, one row per booking, editable);
+the first answer emits `feedback.received`, which notifies the restaurant.
+The Feedback page lists answers with the average and the star distribution,
+and the analytics report carries the same summary for its period.
 
 ### Waitlist
 
@@ -194,7 +208,7 @@ audience (`notification_setting`), edited under Settings → Notifications → R
 
 `organization`, `member`, `user`, `session`, `apikey` (Better Auth) ·
 `restaurant` · `area` · `service` · `schedule_exception` · `capacity_rule` ·
-`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` · `payment_config` · `booking_payment` ·
+`booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` · `payment_config` · `booking_payment` · `booking_feedback` ·
 `notification_provider_config` · `notification_setting` · `notification_log` ·
 `outbox_event` · `audit_log`.
 

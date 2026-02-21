@@ -23,6 +23,14 @@ function paymentVars(subject: MessageSubject, locale: Locale) {
   };
 }
 
+function feedbackVars(subject: MessageSubject) {
+  return {
+    feedbackUrl: subject.feedbackUrl,
+    rating: subject.feedback ? String(subject.feedback.rating) : "",
+    feedbackComment: subject.feedback?.comment ?? "",
+  };
+}
+
 /** "venerdì 12 giugno 2026, 20:00", or the date alone (plus preferred time) when there is no slot yet. */
 export function whenText(subject: MessageSubject, locale: Locale): string {
   return subject.startsAt
@@ -67,11 +75,16 @@ export async function buildEmail(
       email: subject.customer.email,
       phone: subject.customer.phone,
     },
-    // the "pay" email's button goes straight to checkout
+    // the "pay" and "rate your visit" emails' buttons go straight to the right page
     manageUrl:
-      event === "booking.payment_required" && pay.paymentUrl ? pay.paymentUrl : subject.manageUrl,
+      event === "booking.payment_required" && pay.paymentUrl
+        ? pay.paymentUrl
+        : event === "booking.feedback_request"
+          ? subject.feedbackUrl
+          : subject.manageUrl,
     dashboardUrl: subject.dashboardUrl,
     payment: pay,
+    feedback: feedbackVars(subject),
   });
   return {
     to,
@@ -117,6 +130,7 @@ export async function buildSms(
       address: subject.restaurant.address ?? "",
       cancellationReason: subject.cancellationReason ?? "",
       ...paymentVars(subject, locale),
+      ...feedbackVars(subject),
     },
     override ? { body: override.body } : null,
   );

@@ -15,6 +15,7 @@ import {
   ClipboardList,
   LogOut,
   Menu,
+  MessageSquareHeart,
   Plus,
   Settings,
   Users,
@@ -42,6 +43,7 @@ const sections = [
   { to: "/r/$restaurantId/bookings", key: "app.bookings", Icon: ClipboardList },
   { to: "/r/$restaurantId/customers", key: "app.customers", Icon: Users },
   { to: "/r/$restaurantId/analytics", key: "app.analytics", Icon: BarChart3 },
+  { to: "/r/$restaurantId/feedback", key: "app.feedback", Icon: MessageSquareHeart },
   { to: "/r/$restaurantId/settings", key: "app.settings", Icon: Settings },
 ] as const;
 

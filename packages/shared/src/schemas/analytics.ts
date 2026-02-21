@@ -76,6 +76,12 @@ export const analyticsDtoSchema = z.object({
     medianHours: z.number().nullable(),
     averageHours: z.number().nullable(),
   }),
+  /** Post-visit ratings of bookings in the range. */
+  feedback: z.object({
+    responses: z.number().int(),
+    averageRating: z.number().nullable(),
+    distribution: z.array(z.number().int()).length(5),
+  }),
 });
 export type AnalyticsDto = z.infer<typeof analyticsDtoSchema>;
 export type BookingSourceSchemaType = (typeof BOOKING_SOURCES)[number];

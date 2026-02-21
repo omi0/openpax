@@ -70,6 +70,7 @@ const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> =
     "waitlist.joined": "Vedi la tua richiesta",
     "waitlist.offered": "Conferma il tavolo",
     "booking.payment_required": "Paga la caparra",
+    "booking.feedback_request": "Racconta com'è andata",
   },
   en: {
     "booking.confirmed": "Manage booking",
@@ -79,6 +80,7 @@ const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> =
     "waitlist.joined": "View your request",
     "waitlist.offered": "Confirm the table",
     "booking.payment_required": "Pay the deposit",
+    "booking.feedback_request": "Rate your visit",
   },
 };
 

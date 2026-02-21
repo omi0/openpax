@@ -25,7 +25,8 @@
     "customers": "Customers",
     "calendar": "Calendar",
     "bookings": "Bookings",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "feedback": "Feedback"
   },
   "auth": {
     "login": "Log in",
@@ -209,7 +210,9 @@
       "booking.reminder": "Reminder before arrival",
       "waitlist.joined": "Joined the waitlist",
       "waitlist.offered": "Table offered from the waitlist",
-      "booking.payment_required": "Deposit required to confirm"
+      "booking.payment_required": "Deposit required to confirm",
+      "booking.feedback_request": "Feedback request after the visit",
+      "booking.feedback_received": "Feedback received"
     },
     "audience": {
       "guest": "Guest",
@@ -217,7 +220,8 @@
     },
     "hoursBefore": "hours before",
     "rulesHint": "Choose which messages go out on each channel. SMS only works once an SMS provider is configured.",
-    "templates": "Templates"
+    "templates": "Templates",
+    "hoursAfter": "h after"
   },
   "widget": {
     "title": "Widget & booking rules",
@@ -568,7 +572,10 @@
       "hours_other": "{{count}} hours",
       "days_one": "{{count}} day",
       "days_other": "{{count}} days"
-    }
+    },
+    "feedback": "Guest feedback",
+    "feedbackHint": "Ratings left after visits in this period.",
+    "feedbackResponses": "{{count}} responses"
   },
   "waitlist": {
     "title": "Waitlist",
@@ -695,5 +702,18 @@
     "copyLink": "Copy payment link",
     "confirmRefund": "Refund {{amount}} to the guest?",
     "confirmCharge": "Charge {{amount}} on the guest's card?"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "hint": "Guests get a link after their visit; here is what they said.",
+    "responses": "Responses",
+    "average": "Average rating",
+    "count": "Responses",
+    "filterRating": "Filter by rating",
+    "anyRating": "Any rating",
+    "stars": "{{count}} stars",
+    "stars_one": "{{count}} star",
+    "empty": "No feedback yet. Requests go out automatically after each visit (Settings → Notifications).",
+    "answered": "answered {{when}}"
   }
 }

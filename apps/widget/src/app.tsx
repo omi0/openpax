@@ -1,5 +1,6 @@
 import { useEffect } from "preact/hooks";
 import { Confirmation } from "./components/confirmation.js";
+import { FeedbackPage } from "./components/feedback-page.js";
 import { GuestForm } from "./components/guest-form.js";
 import { Manage } from "./components/manage.js";
 import { PartyDatePicker } from "./components/party-date-picker.js";
@@ -22,7 +23,7 @@ export interface Route {
   slug: string;
   token: string | null;
   /** What the token in the URL refers to. */
-  tokenKind: "manage" | "waitlist";
+  tokenKind: "manage" | "waitlist" | "feedback";
   embedded: boolean;
   instanceId: string | null;
   lang: string | null;
@@ -47,6 +48,8 @@ export function App({ route }: { route: Route }) {
       <div class={cls}>
         {route.tokenKind === "waitlist" ? (
           <WaitlistPage token={route.token} />
+        ) : route.tokenKind === "feedback" ? (
+          <FeedbackPage token={route.token} />
         ) : (
           <Manage token={route.token} />
         )}

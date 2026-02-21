@@ -341,6 +341,32 @@ function AnalyticsPage() {
             />
           </Card>
 
+          {data.feedback.responses > 0 ? (
+            <Card title={t("analytics.feedback")} description={t("analytics.feedbackHint")}>
+              <div className="flex flex-wrap items-center gap-6">
+                <div>
+                  <p className="text-3xl font-semibold tabular-nums">
+                    {num(data.feedback.averageRating ?? 0, locale, 1)}
+                    <span className="text-base text-zinc-400"> / 5</span>
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {t("analytics.feedbackResponses", { count: data.feedback.responses })}
+                  </p>
+                </div>
+                <div className="min-w-64 flex-1">
+                  <HBars
+                    rows={[5, 4, 3, 2, 1].map((n) => ({
+                      key: String(n),
+                      label: `${n} ★`,
+                      value: data.feedback.distribution[n - 1] ?? 0,
+                      detail: num(data.feedback.distribution[n - 1] ?? 0, locale),
+                    }))}
+                  />
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
           <div className="grid gap-4 lg:grid-cols-2">
             <Card title={t("analytics.byPartySize")} description={t("analytics.byPartySizeHint")}>
               {data.partySizes.length === 0 ? (

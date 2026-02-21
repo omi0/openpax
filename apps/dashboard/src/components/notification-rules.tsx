@@ -78,7 +78,7 @@ export function NotificationRules({
               <tr key={event}>
                 <td className="py-2 pr-4">
                   <p className="font-medium">{t(`notifications.event.${event}`)}</p>
-                  {event === "booking.reminder" ? (
+                  {event === "booking.reminder" || event === "booking.feedback_request" ? (
                     <div className="mt-1 flex flex-wrap gap-2">
                       {columns.map((c) => {
                         const s = rows.get(key({ event, ...c }));
@@ -102,7 +102,9 @@ export function NotificationRules({
                                 })
                               }
                             />
-                            {t("notifications.hoursBefore")}
+                            {event === "booking.reminder"
+                              ? t("notifications.hoursBefore")
+                              : t("notifications.hoursAfter")}
                           </label>
                         );
                       })}

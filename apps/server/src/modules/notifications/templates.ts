@@ -243,6 +243,9 @@ export function sampleVars(
     cancellationReason: "",
     paymentUrl: `${ctx.env.PUBLIC_URL}/book/${r.slug}/manage/example?payment=1`,
     depositAmount: locale === "it" ? "40,00 €" : "€40.00",
+    feedbackUrl: `${ctx.env.PUBLIC_URL}/book/${r.slug}/feedback/example`,
+    rating: "5",
+    feedbackComment: locale === "it" ? "Tutto perfetto, torneremo!" : "Everything was perfect!",
   };
 }
 
@@ -287,8 +290,17 @@ export async function previewTemplate(
     },
     guest: { name: "Mario Rossi", email: "mario@example.com", phone: "+39 333 1234567" },
     manageUrl:
-      input.event === "booking.payment_required" ? String(vars.paymentUrl) : String(vars.manageUrl),
+      input.event === "booking.payment_required"
+        ? String(vars.paymentUrl)
+        : input.event === "booking.feedback_request"
+          ? String(vars.feedbackUrl)
+          : String(vars.manageUrl),
     payment: { paymentUrl: String(vars.paymentUrl), depositAmount: String(vars.depositAmount) },
+    feedback: {
+      feedbackUrl: String(vars.feedbackUrl),
+      rating: String(vars.rating),
+      feedbackComment: String(vars.feedbackComment),
+    },
     dashboardUrl: `${ctx.env.PUBLIC_URL}/r/${r.id}/today`,
     template: {
       subject: input.subject || base.subject,

@@ -18,6 +18,7 @@ import { and, asc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 import { serviceToDef } from "../availability/service.js";
+import { feedbackSummary } from "../feedback/index.js";
 
 const MAX_DAYS = 366;
 
@@ -272,10 +273,11 @@ export async function getAnalytics(
     .from(service)
     .where(eq(service.restaurantId, r.id))
     .orderBy(asc(service.sortOrder), asc(service.name));
-  const [current, previous, dist] = await Promise.all([
+  const [current, previous, dist, feedback] = await Promise.all([
     aggregateRange(ctx, r, dates, services, today),
     aggregateRange(ctx, r, previousDates, services, today),
     distributions(ctx, r, q.from, q.to),
+    feedbackSummary(ctx, r.id, { from: q.from, to: q.to }),
   ]);
 
   return {
@@ -284,6 +286,7 @@ export async function getAnalytics(
     ...current,
     previous: { from: previousFrom, to: previousTo, totals: previous.totals },
     ...dist,
+    feedback,
   };
 }
 

@@ -17,6 +17,9 @@ export const TEMPLATE_VARIABLES = [
   "cancellationReason",
   "paymentUrl",
   "depositAmount",
+  "feedbackUrl",
+  "rating",
+  "feedbackComment",
 ] as const;
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
 export type TemplateVars = Partial<Record<TemplateVariable, string | number | null | undefined>>;
@@ -113,6 +116,16 @@ export const DEFAULT_TEMPLATES: Table = {
           body: "{{restaurantName}}: ti aspettiamo il {{when}} ({{partySize}} persone). Modifica: {{manageUrl}}",
         },
       },
+      "booking.feedback_request": {
+        email: {
+          subject: "Com'è andata da {{restaurantName}}?",
+          heading: "Grazie della visita",
+          body: "Ciao {{guestName}}, grazie per essere stato da noi il {{when}}.\n\nCi farebbe piacere sapere com'è andata: bastano trenta secondi.",
+        },
+        sms: {
+          body: "{{restaurantName}}: grazie della visita! Ci racconti com'è andata? {{feedbackUrl}}",
+        },
+      },
       "waitlist.joined": {
         email: {
           subject: "Sei in lista d'attesa da {{restaurantName}}",
@@ -185,6 +198,16 @@ export const DEFAULT_TEMPLATES: Table = {
           body: "{{restaurantName}}: modificata la prenotazione di {{guestName}}: {{partySize}} persone, {{when}}.",
         },
       },
+      "booking.feedback_received": {
+        email: {
+          subject: "Feedback {{rating}}/5 da {{guestName}}",
+          heading: "Nuovo feedback: {{rating}}/5",
+          body: "{{guestName}} ha valutato la visita del {{when}} con {{rating}} stelle su 5.\n\n{{feedbackComment}}",
+        },
+        sms: {
+          body: "{{restaurantName}}: feedback {{rating}}/5 da {{guestName}} ({{when}}). {{feedbackComment}}",
+        },
+      },
       "waitlist.joined": {
         email: {
           subject: "Lista d'attesa: {{guestName}}, {{partySize}} persone, {{when}}",
@@ -247,6 +270,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: see you on {{when}} ({{partySize}} guests). Change: {{manageUrl}}",
+        },
+      },
+      "booking.feedback_request": {
+        email: {
+          subject: "How was your visit at {{restaurantName}}?",
+          heading: "Thanks for coming",
+          body: "Hi {{guestName}}, thank you for visiting us on {{when}}.\n\nWe'd love to hear how it went: it takes thirty seconds.",
+        },
+        sms: {
+          body: "{{restaurantName}}: thanks for coming! How did it go? {{feedbackUrl}}",
         },
       },
       "waitlist.joined": {
@@ -319,6 +352,16 @@ export const DEFAULT_TEMPLATES: Table = {
         },
         sms: {
           body: "{{restaurantName}}: updated booking of {{guestName}}: {{partySize}} guests, {{when}}.",
+        },
+      },
+      "booking.feedback_received": {
+        email: {
+          subject: "Feedback {{rating}}/5 from {{guestName}}",
+          heading: "New feedback: {{rating}}/5",
+          body: "{{guestName}} rated the visit on {{when}} {{rating}} stars out of 5.\n\n{{feedbackComment}}",
+        },
+        sms: {
+          body: "{{restaurantName}}: feedback {{rating}}/5 from {{guestName}} ({{when}}). {{feedbackComment}}",
         },
       },
       "waitlist.joined": {

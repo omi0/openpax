@@ -1,5 +1,6 @@
 import {
   booking,
+  bookingFeedback,
   bookingPayment,
   customer,
   notificationLog,
@@ -48,6 +49,9 @@ export interface MessageSubject {
     currency: string;
     checkoutUrl: string | null;
   } | null;
+  /** Where the guest rates the visit, and what they answered. */
+  feedbackUrl: string;
+  feedback: { rating: number; comment: string | null } | null;
 }
 
 export async function loadBookingSubject(
@@ -62,6 +66,7 @@ export async function loadBookingSubject(
       serviceName: service.name,
       widget: widgetConfig,
       payment: bookingPayment,
+      feedback: bookingFeedback,
     })
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
@@ -69,6 +74,7 @@ export async function loadBookingSubject(
     .innerJoin(service, eq(service.id, booking.serviceId))
     .leftJoin(widgetConfig, eq(widgetConfig.restaurantId, booking.restaurantId))
     .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
+    .leftJoin(bookingFeedback, eq(bookingFeedback.bookingId, booking.id))
     .where(eq(booking.id, bookingId))
     .limit(1);
   if (!row) return null;
@@ -98,6 +104,8 @@ export async function loadBookingSubject(
           checkoutUrl: row.payment.status === "pending" ? row.payment.checkoutUrl : null,
         }
       : null,
+    feedbackUrl: `${ctx.env.PUBLIC_URL}/book/${row.restaurant.slug}/feedback/${row.booking.manageToken}`,
+    feedback: row.feedback ? { rating: row.feedback.rating, comment: row.feedback.comment } : null,
   };
 }
 
@@ -146,6 +154,8 @@ export async function loadWaitlistSubject(
     manageUrl: `${ctx.env.PUBLIC_URL}/book/${row.restaurant.slug}/waitlist/${row.entry.token}`,
     dashboardUrl: `${ctx.env.PUBLIC_URL}/r/${row.restaurant.id}/today?date=${row.entry.serviceDate}`,
     payment: null,
+    feedbackUrl: "",
+    feedback: null,
   };
 }
 

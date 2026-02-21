@@ -63,6 +63,9 @@ export interface DomainEventPayloads {
   };
   /** The guest never paid: the booking was cancelled. */
   "payment.expired": { bookingId: string; paymentId: string };
+  /** Time to ask the guest how it went. */
+  "feedback.requested": { bookingId: string };
+  "feedback.received": { bookingId: string; feedbackId: string; rating: number };
 }
 
 export type DomainEventType = keyof DomainEventPayloads;
@@ -97,6 +100,8 @@ export const DOMAIN_EVENT_TYPES = [
   "payment.refunded",
   "payment.charged",
   "payment.expired",
+  "feedback.requested",
+  "feedback.received",
 ] as const satisfies readonly DomainEventType[];
 
 export function isDomainEventType(value: string): value is DomainEventType {

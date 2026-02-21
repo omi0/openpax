@@ -25,7 +25,8 @@
     "customers": "Clienti",
     "calendar": "Calendario",
     "bookings": "Prenotazioni",
-    "analytics": "Statistiche"
+    "analytics": "Statistiche",
+    "feedback": "Feedback"
   },
   "auth": {
     "login": "Accedi",
@@ -209,7 +210,9 @@
       "booking.reminder": "Promemoria prima dell'arrivo",
       "waitlist.joined": "Iscrizione alla lista d'attesa",
       "waitlist.offered": "Tavolo offerto dalla lista d'attesa",
-      "booking.payment_required": "Caparra richiesta per confermare"
+      "booking.payment_required": "Caparra richiesta per confermare",
+      "booking.feedback_request": "Richiesta di feedback dopo la visita",
+      "booking.feedback_received": "Feedback ricevuto"
     },
     "audience": {
       "guest": "Ospite",
@@ -217,7 +220,8 @@
     },
     "hoursBefore": "ore prima",
     "rulesHint": "Scegli quali messaggi partono su ogni canale. Gli SMS funzionano solo con un provider SMS configurato.",
-    "templates": "Testi"
+    "templates": "Testi",
+    "hoursAfter": "h dopo"
   },
   "widget": {
     "title": "Widget e regole",
@@ -568,7 +572,10 @@
       "hours_other": "{{count}} ore",
       "days_one": "{{count}} giorno",
       "days_other": "{{count}} giorni"
-    }
+    },
+    "feedback": "Feedback degli ospiti",
+    "feedbackHint": "Valutazioni lasciate dopo le visite in questo periodo.",
+    "feedbackResponses": "{{count}} risposte"
   },
   "waitlist": {
     "title": "Lista d'attesa",
@@ -695,5 +702,18 @@
     "copyLink": "Copia link di pagamento",
     "confirmRefund": "Rimborsare {{amount}} all'ospite?",
     "confirmCharge": "Addebitare {{amount}} sulla carta dell'ospite?"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "hint": "Gli ospiti ricevono un link dopo la visita; ecco cosa hanno detto.",
+    "responses": "Risposte",
+    "average": "Valutazione media",
+    "count": "Risposte",
+    "filterRating": "Filtra per valutazione",
+    "anyRating": "Tutte le valutazioni",
+    "stars": "{{count}} stelle",
+    "stars_one": "{{count}} stella",
+    "empty": "Nessun feedback ancora. Le richieste partono automaticamente dopo ogni visita (Impostazioni → Notifiche).",
+    "answered": "risposto {{when}}"
   }
 }

@@ -127,6 +127,27 @@ export const DEFAULT_SETTINGS: NotificationSettingDto[] = [
     offsetMinutes: null,
   },
   {
+    event: "booking.feedback_request",
+    channel: "email",
+    audience: "guest",
+    enabled: true,
+    offsetMinutes: 120,
+  },
+  {
+    event: "booking.feedback_request",
+    channel: "sms",
+    audience: "guest",
+    enabled: false,
+    offsetMinutes: 120,
+  },
+  {
+    event: "booking.feedback_received",
+    channel: "email",
+    audience: "restaurant",
+    enabled: true,
+    offsetMinutes: null,
+  },
+  {
     event: "waitlist.joined",
     channel: "email",
     audience: "guest",

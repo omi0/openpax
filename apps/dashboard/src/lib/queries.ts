@@ -9,6 +9,8 @@ import type {
   CustomerDto,
   CustomerSort,
   CustomerTagDto,
+  FeedbackDto,
+  FeedbackSummaryDto,
   NotificationChannel,
   NotificationLogDto,
   NotificationSettingDto,
@@ -280,4 +282,22 @@ export const paymentConfigQuery = (id: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "payments", "config"],
     queryFn: () => api.get<PaymentConfigDto>(`/api/v1/restaurants/${id}/payments/config`),
+  });
+
+export const feedbackSummaryQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "feedback", "summary"],
+    queryFn: () => api.get<FeedbackSummaryDto>(`/api/v1/restaurants/${id}/feedback/summary`),
+  });
+
+export const feedbackQuery = (id: string, params: { rating?: number; page?: number }) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "feedback", params],
+    queryFn: () =>
+      api.get<Paginated<FeedbackDto>>(`/api/v1/restaurants/${id}/feedback`, {
+        rating: params.rating,
+        page: params.page,
+        pageSize: 50,
+      }),
+    placeholderData: (prev) => prev,
   });

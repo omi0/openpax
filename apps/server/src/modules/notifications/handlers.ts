@@ -56,6 +56,26 @@ export const notificationEventHandlers = [
     },
   }),
   defineEventHandler({
+    type: "feedback.requested",
+    handle: async (event, ctx) => {
+      await queueNotifications(ctx, {
+        bookingId: event.payload.bookingId,
+        event: "booking.feedback_request",
+        dedupeBase: event.id,
+      });
+    },
+  }),
+  defineEventHandler({
+    type: "feedback.received",
+    handle: async (event, ctx) => {
+      await queueNotifications(ctx, {
+        bookingId: event.payload.bookingId,
+        event: "booking.feedback_received",
+        dedupeBase: event.id,
+      });
+    },
+  }),
+  defineEventHandler({
     type: "waitlist.joined",
     handle: async (event, ctx) => {
       await queueNotifications(ctx, {

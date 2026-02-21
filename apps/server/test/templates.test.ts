@@ -45,8 +45,9 @@ describe("notification templates", () => {
       fx.session,
     );
     expect(defaults.status).toBe(200);
-    // guest: 5 booking events + payment_required + waitlist joined/offered = 8; restaurant: 4 booking events + waitlist joined = 5; × 2 channels
-    expect(defaults.body).toHaveLength(26);
+    // guest: 5 booking events + payment_required + feedback_request + waitlist joined/offered = 9;
+    // restaurant: 4 booking events + feedback_received + waitlist joined = 6; × 2 channels
+    expect(defaults.body).toHaveLength(30);
     expect(defaults.body.every((x) => !x.custom)).toBe(true);
     const guestConfirmed = defaults.body.find(
       (x) => x.event === "booking.confirmed" && x.channel === "email" && x.audience === "guest",
