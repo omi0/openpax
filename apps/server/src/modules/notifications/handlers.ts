@@ -6,6 +6,7 @@ export const notificationEventHandlers = [
     type: "booking.created",
     handle: async (event, ctx) => {
       const { bookingId, status } = event.payload;
+      if (event.payload.imported) return;
       if (status === "confirmed" || status === "seated") {
         await queueNotifications(ctx, {
           bookingId,

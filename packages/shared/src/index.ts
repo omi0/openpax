@@ -4,6 +4,7 @@ export * from "./schemas/api-key.js";
 export * from "./schemas/availability.js";
 export * from "./schemas/booking.js";
 export * from "./schemas/common.js";
+export * from "./schemas/csv.js";
 export * from "./schemas/customer.js";
 export * from "./schemas/feedback.js";
 export * from "./schemas/notifications.js";

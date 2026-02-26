@@ -1,9 +1,10 @@
 import { BOOKING_STATUSES } from "@sitli/core";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CsvActions } from "@/components/csv-actions";
 import { Badge, Button, EmptyState, Input, Select, Spinner } from "@/components/ui";
 import { bookingsSearchQuery, restaurantQuery } from "@/lib/queries";
 import { formatDate, formatTime, todayLocal } from "@/lib/utils";
@@ -37,6 +38,7 @@ function BookingsPage() {
   const { restaurantId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const queryClient = useQueryClient();
   const { data: restaurant } = useSuspenseQuery(restaurantQuery(restaurantId));
   const today = todayLocal(restaurant.timezone);
   const [term, setTerm] = useState(search.q ?? "");
@@ -83,6 +85,19 @@ function BookingsPage() {
             {t("bookings.count", { count: data.total })}
           </span>
         ) : null}
+        <CsvActions
+          kind="bookings"
+          restaurantId={restaurantId}
+          exportQuery={{
+            search: search.q || undefined,
+            status: search.status || undefined,
+            from: search.from || undefined,
+            to: search.to || undefined,
+          }}
+          onImported={() =>
+            queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] })
+          }
+        />
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-60 flex-1">

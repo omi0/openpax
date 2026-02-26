@@ -65,7 +65,7 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 areas, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `csv`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
 totals for the previous period of equal length, party-size and lead-time
@@ -120,6 +120,21 @@ an optional comment (`booking_feedback`, one row per booking, editable);
 the first answer emits `feedback.received`, which notifies the restaurant.
 The Feedback page lists answers with the average and the star distribution,
 and the analytics report carries the same summary for its period.
+
+### CSV import and export
+
+The `csv` module exports bookings (with the list filters) and the guest book
+as UTF-8 CSV with a BOM, and imports both from CSV posted as `text/csv`
+(`?dryRun=1` validates and counts without writing). Headers are matched
+loosely (English, Italian and the export's own names; `;` and tab
+delimiters are detected). Guests are matched by email, then phone, and
+updated (tags merged, notes appended); bookings are created with
+`imported: { status }`, which skips capacity, lands straight in the given
+status (past rows default to `completed`, future ones to `confirmed`),
+counts the visit or no-show on the guest, and flags the `booking.created`
+event so no message or feedback request goes out. Rows that duplicate an
+existing booking (same instant and guest) are skipped. The parser lives in
+`apps/server/src/lib/csv.ts`.
 
 ### Waitlist
 

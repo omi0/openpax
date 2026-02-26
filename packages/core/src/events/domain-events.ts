@@ -20,6 +20,8 @@ export interface DomainEventPayloads {
     startsAt: string;
     /** The booking stays pending until the guest pays a deposit or saves a card. */
     paymentRequired?: boolean;
+    /** Loaded from a CSV (history from another system): no messages, no feedback request. */
+    imported?: boolean;
   };
   "booking.confirmed": { bookingId: string; previousStatus: BookingStatus };
   "booking.cancelled": {

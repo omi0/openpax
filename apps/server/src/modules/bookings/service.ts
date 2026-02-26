@@ -261,6 +261,8 @@ export interface CreateBookingParams {
   requirePhone?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
   forceConfirmed?: boolean;
+  /** CSV import: land in this status straight away, count the visit, send nothing. */
+  imported?: { status: BookingStatus };
 }
 
 function yyyymmdd(date: string): number {
@@ -367,7 +369,8 @@ export async function createBooking(
     if (!policy) throw ApiError.notFound("Booking policy");
 
     let status: BookingStatus;
-    if (p.seatNow) status = "seated";
+    if (p.imported) status = p.imported.status;
+    else if (p.seatNow) status = "seated";
     else if (requirement) status = "pending";
     else if (p.actor.type === "guest" && !p.forceConfirmed) {
       const large =
@@ -406,10 +409,18 @@ export async function createBooking(
       areaId: p.areaId ?? null,
     });
 
-    if (status === "seated") {
+    if (status === "seated" || (p.imported && status === "completed")) {
       await tx
         .update(customer)
-        .set({ visitCount: sql`${customer.visitCount} + 1`, lastVisitAt: ctx.now() })
+        .set({
+          visitCount: sql`${customer.visitCount} + 1`,
+          lastVisitAt: sql`greatest(coalesce(${customer.lastVisitAt}, 'epoch'::timestamptz), ${(p.imported ? p.startsAt : ctx.now()).toISOString()}::timestamptz)`,
+        })
+        .where(eq(customer.id, cust.id));
+    } else if (p.imported && status === "no_show") {
+      await tx
+        .update(customer)
+        .set({ noShowCount: sql`${customer.noShowCount} + 1` })
         .where(eq(customer.id, cust.id));
     }
 
@@ -425,6 +436,7 @@ export async function createBooking(
         partySize: row.partySize,
         startsAt: row.startsAt.toISOString(),
         ...(requirement ? { paymentRequired: true } : {}),
+        ...(p.imported ? { imported: true } : {}),
       },
     });
     await writeAudit(tx, {
@@ -439,6 +451,7 @@ export async function createBooking(
         partySize: row.partySize,
         startsAt: row.startsAt.toISOString(),
         ignoreCapacity: p.ignoreCapacity ?? false,
+        ...(p.imported ? { imported: true } : {}),
       },
     });
     return row;

@@ -715,5 +715,26 @@
     "stars_one": "{{count}} stella",
     "empty": "Nessun feedback ancora. Le richieste partono automaticamente dopo ogni visita (Impostazioni → Notifiche).",
     "answered": "risposto {{when}}"
+  },
+  "csv": {
+    "export": "Esporta CSV",
+    "import": "Importa CSV",
+    "importTitle": {
+      "bookings": "Importa prenotazioni da CSV",
+      "customers": "Importa ospiti da CSV"
+    },
+    "hint": {
+      "bookings": "Una prenotazione per riga. Colonne: date (AAAA-MM-GG), time (HH:mm), guests, name, email, phone, service, status, notes, source. Le date passate vengono importate come concluse e non inviano email; la capienza non viene verificata.",
+      "customers": "Un ospite per riga. Colonne: name, email, phone, tags (separati da virgola), notes, locale, marketing_consent. Gli ospiti già presenti (stessa email o telefono) vengono aggiornati."
+    },
+    "file": "File CSV",
+    "dryRun": "Solo anteprima (non salvare)",
+    "run": "Importa",
+    "preview": "Anteprima",
+    "result": "{{created}} creati, {{updated}} aggiornati, {{skipped}} saltati",
+    "errors": "Righe con problemi",
+    "line": "Riga {{line}}",
+    "done": "Importazione completata",
+    "template": "Scarica un modello"
   }
 }

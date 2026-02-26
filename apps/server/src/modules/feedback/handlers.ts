@@ -50,6 +50,7 @@ export const feedbackEventHandlers = [
   defineEventHandler({
     type: "booking.created",
     handle: async (event, ctx) => {
+      if (event.payload.imported) return;
       if (event.payload.status === "confirmed" || event.payload.status === "seated")
         await schedule(ctx, event.payload.bookingId);
     },
