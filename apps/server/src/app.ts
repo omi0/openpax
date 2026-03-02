@@ -9,6 +9,7 @@ import { attachSession } from "./auth/middleware.js";
 import type { AppContext, AppEnv } from "./context.js";
 import { ApiError } from "./lib/errors.js";
 import { createOpenAPIApp } from "./lib/openapi.js";
+import { rateLimit } from "./lib/rate-limit.js";
 import { registerStatic, type StaticDirs } from "./lib/static.js";
 import type { SitliModule } from "./modules/module.js";
 
@@ -44,6 +45,40 @@ export function createApp(
   app.use(
     "/api/public/*",
     cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"], maxAge: 600 }),
+  );
+  // Anonymous traffic is throttled per client address; writes (bookings, waitlist, feedback)
+  // much tighter than reads. Stripe webhooks are signed, so they are exempt.
+  const limits = { enabled: ctx.env.RATE_LIMIT === "on", trustProxy: ctx.env.TRUST_PROXY };
+  app.use(
+    "/api/public/*",
+    rateLimit(
+      ctx.limiter,
+      { name: "public-read", limit: 300, windowMs: 60_000, skip: (c) => c.req.method !== "GET" },
+      limits,
+    ),
+  );
+  app.use(
+    "/api/public/*",
+    rateLimit(
+      ctx.limiter,
+      {
+        name: "public-write",
+        limit: 30,
+        windowMs: 60_000,
+        skip: (c) =>
+          c.req.method !== "POST" || c.req.path.includes("/api/public/v1/payments/stripe/webhook/"),
+      },
+      limits,
+    ),
+  );
+  // Sign-in, sign-up and password reset: Better Auth throttles too, this caps the noise before it.
+  app.use(
+    "/api/auth/*",
+    rateLimit(
+      ctx.limiter,
+      { name: "auth", limit: 60, windowMs: 60_000, skip: (c) => c.req.method !== "POST" },
+      limits,
+    ),
   );
   // Dashboard and auth: same origin in production, the Vite dev server in development.
   const dashboardOrigins = [ctx.env.PUBLIC_URL, ctx.env.DASHBOARD_ORIGIN].filter(

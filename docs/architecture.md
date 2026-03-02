@@ -231,6 +231,16 @@ Times are stored as `timestamptz`; every booking also carries its
 `service_date` in the restaurant's timezone (an after-midnight slot belongs to
 the previous day).
 
+## Hardening
+
+Public routes (`/api/public/*`), the auth endpoints and the "send test"
+actions go through `rateLimit()` (`apps/server/src/lib/rate-limit.ts`): fixed
+windows per client address (or per restaurant for test sends) kept in process
+memory, `429` + `Retry-After` when exceeded, off with `RATE_LIMIT=off`.
+Secrets at rest use `SecretBox` (AES-256-GCM); with
+`APP_ENCRYPTION_KEY_PREVIOUS` set, decryption falls back to the old keys and
+`rotateStoredSecrets()` re-encrypts every provider and payment secret at boot.
+
 ## Adding a migration
 
 Edit `packages/db/src/schema/*.ts`, then `pnpm db:generate`. Migrations run

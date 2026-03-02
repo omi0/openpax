@@ -53,6 +53,8 @@ export async function createTestApp(
     LOG_LEVEL: "silent",
     // fixtures sign up many owners; the default first_user mode is covered by signup.test.ts
     SIGNUP_MODE: "open",
+    // every request in tests comes from the same (missing) address; rate-limit.test.ts turns it on
+    RATE_LIMIT: "off",
     ...options.env,
   });
   const logger = createLogger("silent", false);

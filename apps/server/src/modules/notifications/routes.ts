@@ -21,6 +21,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";
+import { rateLimit } from "../../lib/rate-limit.js";
 import { describeProvider } from "../../notifications/provider.js";
 import * as svc from "./service.js";
 import * as templates from "./templates.js";
@@ -120,7 +121,14 @@ export function notificationRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       path: "/api/v1/restaurants/{restaurantId}/notification-providers/{channel}/test",
       tags,
       summary: "Send a test message through the configured provider",
-      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      middleware: [
+        requireRestaurant(ctx, { settings: ["update"] }),
+        rateLimit(
+          ctx.limiter,
+          { name: "test-send", limit: 5, windowMs: 60_000, keyOf: (c) => c.get("restaurant").id },
+          { enabled: ctx.env.RATE_LIMIT === "on", trustProxy: ctx.env.TRUST_PROXY },
+        ),
+      ] as const,
       request: { params: channelParam, body: jsonBody(testProviderInputSchema) },
       responses: {
         200: jsonResponse(

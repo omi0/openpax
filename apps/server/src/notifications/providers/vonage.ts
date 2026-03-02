@@ -37,7 +37,7 @@ export const vonageProvider = defineProvider({
       messages?: Array<{ status: string; "message-id"?: string; "error-text"?: string }>;
     };
     const first = body.messages?.[0];
-    if (!first || first.status !== "0")
+    if (first?.status !== "0")
       throw new Error(`Vonage rejected the message: ${first?.["error-text"] ?? "unknown error"}`);
     return { providerMessageId: first["message-id"] };
   },

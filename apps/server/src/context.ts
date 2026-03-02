@@ -5,6 +5,7 @@ import type { Auth, AuthSession } from "./auth/create-auth.js";
 import type { Env } from "./env.js";
 import type { JobQueue } from "./jobs/queue.js";
 import type { SecretBox } from "./lib/crypto.js";
+import type { RateLimiter } from "./lib/rate-limit.js";
 import type { Logger } from "./logger.js";
 import type { ProviderRegistry } from "./notifications/provider.js";
 import type { PaymentGateway } from "./payments/gateway.js";
@@ -23,6 +24,8 @@ export interface AppContext {
   providers: ProviderRegistry;
   /** Card payments (Stripe in production, a fake in tests). */
   payments: PaymentGateway;
+  /** Per-process counters behind the public and test-send rate limits. */
+  limiter: RateLimiter;
   /** Injected clock so tests can freeze time. */
   now: () => Date;
 }

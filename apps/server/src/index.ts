@@ -8,6 +8,7 @@ import { buildContext } from "./bootstrap.js";
 import { loadEnv } from "./env.js";
 import { buildHandlerRegistry, startOutboxRelay } from "./events/dispatch.js";
 import { createBoss, PgBossQueue, registerJobs } from "./jobs/boss.js";
+import { rotateStoredSecrets } from "./lib/secret-rotation.js";
 import { createLogger } from "./logger.js";
 import { modules } from "./modules/index.js";
 
@@ -24,6 +25,16 @@ const ctx = buildContext({ env, logger, modules, jobs: new PgBossQueue(boss) });
 
 await runMigrations(ctx.db, process.env.MIGRATIONS_DIR);
 logger.info("database migrated");
+
+if (env.APP_ENCRYPTION_KEY_PREVIOUS.length > 0) {
+  const { rotated, failed } = await rotateStoredSecrets(ctx);
+  logger.warn(
+    { rotated, failed },
+    failed === 0
+      ? "stored secrets re-encrypted with APP_ENCRYPTION_KEY; you can now remove APP_ENCRYPTION_KEY_PREVIOUS"
+      : "some stored secrets could not be decrypted with any configured key",
+  );
+}
 
 const jobs = modules.flatMap((m) => m.jobs ?? []);
 const runWorkers = env.ROLE !== "api";

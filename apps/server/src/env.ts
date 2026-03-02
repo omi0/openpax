@@ -22,6 +22,22 @@ const envSchema = z.object({
       (v) => Buffer.from(v, "base64").length === 32,
       "APP_ENCRYPTION_KEY must be 32 bytes, base64 encoded",
     ),
+  /** Comma-separated older keys, kept only while stored secrets are re-encrypted at boot. */
+  APP_ENCRYPTION_KEY_PREVIOUS: z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k !== ""),
+    )
+    .refine(
+      (keys) => keys.every((k) => Buffer.from(k, "base64").length === 32),
+      "APP_ENCRYPTION_KEY_PREVIOUS must be 32-byte base64 keys separated by commas",
+    ),
+  /** Per-IP limits on public endpoints and test sends; "off" only for tests and load tools. */
+  RATE_LIMIT: z.enum(["on", "off"]).default("on"),
   PUBLIC_URL: z.url().transform((v) => v.replace(/\/+$/, "")),
   DASHBOARD_ORIGIN: z.url().optional(),
   SMTP_URL: z.string().optional(),

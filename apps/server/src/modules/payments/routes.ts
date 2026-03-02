@@ -8,6 +8,7 @@ import {
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";
+import { rateLimit } from "../../lib/rate-limit.js";
 import * as svc from "./service.js";
 
 const tags = ["Payments"];
@@ -75,7 +76,14 @@ export function paymentRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       path: `${base}/test`,
       tags,
       summary: "Check that the stored secret key is accepted by Stripe",
-      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      middleware: [
+        requireRestaurant(ctx, { settings: ["update"] }),
+        rateLimit(
+          ctx.limiter,
+          { name: "test-send", limit: 5, windowMs: 60_000, keyOf: (c) => c.get("restaurant").id },
+          { enabled: ctx.env.RATE_LIMIT === "on", trustProxy: ctx.env.TRUST_PROXY },
+        ),
+      ] as const,
       request: { params: restaurantIdParam },
       responses: { 200: jsonResponse(z.object({ ok: z.literal(true) }), "Key accepted") },
     }),

@@ -6,6 +6,7 @@ import type { Env } from "./env.js";
 import { emitEvent } from "./events/outbox.js";
 import type { JobQueue } from "./jobs/queue.js";
 import { createSecretBox } from "./lib/crypto.js";
+import { RateLimiter } from "./lib/rate-limit.js";
 import type { Logger } from "./logger.js";
 import type { SitliModule } from "./modules/module.js";
 import { ProviderRegistry } from "./notifications/provider.js";
@@ -68,9 +69,10 @@ export function buildContext(options: BuildContextOptions): AppContext {
     pool,
     auth,
     jobs: options.jobs,
-    secrets: createSecretBox(env.APP_ENCRYPTION_KEY),
+    secrets: createSecretBox(env.APP_ENCRYPTION_KEY, env.APP_ENCRYPTION_KEY_PREVIOUS),
     providers,
     payments: options.paymentGateway ?? stripeGateway,
+    limiter: new RateLimiter(),
     now: options.now ?? (() => new Date()),
   };
 }
