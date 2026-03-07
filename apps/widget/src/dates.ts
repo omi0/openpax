@@ -68,6 +68,7 @@ export function formatInstant(iso: string, timeZone: string, locale: string): st
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone,
   }).format(new Date(iso));
 }

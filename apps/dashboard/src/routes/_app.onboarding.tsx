@@ -1,12 +1,14 @@
 import type { RestaurantDto, UpsertServiceInput } from "@sitli/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Check } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { defaultServiceInput, ServiceForm } from "@/components/service-form";
 import { Alert, Button, Card, Field, Input, Select } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { TIMEZONES } from "@/lib/timezones";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/onboarding")({ component: OnboardingPage });
 
@@ -38,6 +40,7 @@ function OnboardingPage() {
     onSuccess: async (r) => {
       setRestaurant(r);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
+      window.scrollTo({ top: 0 });
     },
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
@@ -67,18 +70,46 @@ function OnboardingPage() {
     createRestaurant.mutate(body);
   };
 
+  const step = restaurant ? 2 : 1;
+  const steps = [t("onboarding.step1"), t("onboarding.step2")];
+
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold">{t("onboarding.title")}</h1>
-      <p className="mt-1 text-zinc-500">{t("onboarding.subtitle")}</p>
-      <ol className="my-6 flex gap-4 text-sm">
-        <li className={restaurant ? "text-zinc-400" : "font-semibold text-brand"}>
-          1. {t("onboarding.step1")}
-        </li>
-        <li className={restaurant ? "font-semibold text-brand" : "text-zinc-400"}>
-          2. {t("onboarding.step2")}
-        </li>
+      <p className="text-sm font-medium text-brand-700">{t("onboarding.welcome")}</p>
+      <h1 className="mt-1 text-3xl font-bold tracking-tight">{t("onboarding.title")}</h1>
+      <p className="mt-2 text-[15px] text-stone-500">{t("onboarding.subtitle")}</p>
+
+      <ol className="my-6 flex items-center gap-3">
+        {steps.map((label, i) => {
+          const n = i + 1;
+          const done = n < step;
+          const active = n === step;
+          return (
+            <li key={label} className="flex items-center gap-3">
+              <span
+                className={cn(
+                  "inline-flex size-8 items-center justify-center rounded-full text-sm font-bold",
+                  done && "bg-brand-600 text-white",
+                  active && "bg-brand-600 text-white ring-4 ring-brand-100",
+                  !done && !active && "bg-stone-200 text-stone-600",
+                )}
+              >
+                {done ? <Check className="size-4" strokeWidth={3} /> : n}
+              </span>
+              <span
+                className={cn(
+                  "text-[15px] font-medium",
+                  active ? "text-stone-900" : "text-stone-500",
+                )}
+              >
+                {label}
+              </span>
+              {i < steps.length - 1 ? <span className="mx-1 h-px w-8 bg-stone-300" /> : null}
+            </li>
+          );
+        })}
       </ol>
+
       {error ? (
         <div className="mb-4">
           <Alert>{error}</Alert>
@@ -87,8 +118,8 @@ function OnboardingPage() {
       {!restaurant ? (
         <Card>
           <form onSubmit={submitRestaurant} className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("onboarding.name")} className="sm:col-span-2">
-              <Input name="name" required maxLength={120} />
+            <Field label={t("onboarding.name")} className="sm:col-span-2" required>
+              <Input name="name" required maxLength={120} autoFocus />
             </Field>
             <Field label={t("onboarding.timezone")}>
               <Select name="timezone" defaultValue="Europe/Rome">
@@ -115,7 +146,7 @@ function OnboardingPage() {
               <Input name="address" />
             </Field>
             <div className="flex justify-end sm:col-span-2">
-              <Button type="submit" loading={createRestaurant.isPending}>
+              <Button type="submit" size="lg" loading={createRestaurant.isPending}>
                 {t("onboarding.continue")}
               </Button>
             </div>

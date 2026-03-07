@@ -17,8 +17,9 @@ test("API keys authenticate the staff API until revoked", async ({ page, request
   expect((await request.get(url)).status()).toBe(401);
   expect((await request.get(url, { headers: { "x-api-key": key } })).status()).toBe(200);
 
-  page.on("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "Revoke" }).click();
+  // the styled confirmation dialog repeats the action label
+  await page.getByRole("dialog").getByRole("button", { name: "Revoke" }).click();
   await expect(page.getByText("No API keys yet.")).toBeVisible();
   expect((await request.get(url, { headers: { "x-api-key": key } })).status()).toBe(401);
 });

@@ -3,7 +3,8 @@ import type { PublicBookingDto, PublicWaitlistEntryDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
 import { formatDateLong, formatInstant } from "../dates.js";
-import { locale, setLocale, t } from "../i18n.js";
+import { locale, t } from "../i18n.js";
+import { DoneIcon, ErrorBox, Header, Loading } from "./chrome.js";
 
 /** The guest's waitlist link: shows the queue status, the open offer, and lets them accept or leave. */
 export function WaitlistPage({ token }: { token: string }) {
@@ -55,24 +56,11 @@ export function WaitlistPage({ token }: { token: string }) {
   };
 
   const e = entry.value;
-  if (!e) return <p class="sub">{error.value ?? "…"}</p>;
+  if (!e) return error.value ? <ErrorBox>{error.value}</ErrorBox> : <Loading />;
   const tz = e.restaurant.timezone;
   return (
     <div>
-      <div class="lang">
-        {(["it", "en"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            aria-pressed={locale.value === l}
-            onClick={() => setLocale(l)}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
-      <h1>{t("waitlist.pageTitle")}</h1>
-      <p class="sub">{e.restaurant.name}</p>
+      <Header title={t("waitlist.pageTitle")} subtitle={e.restaurant.name} />
       <div class="summary">
         <div>
           <span>{t("date")}</span>
@@ -80,7 +68,9 @@ export function WaitlistPage({ token }: { token: string }) {
         </div>
         <div>
           <span>{t("guests")}</span>
-          <strong>{e.partySize}</strong>
+          <strong>
+            {e.partySize === 1 ? t("guestsOne") : t("guestsMany", { n: e.partySize })}
+          </strong>
         </div>
         {e.preferredTime ? (
           <div>
@@ -89,11 +79,11 @@ export function WaitlistPage({ token }: { token: string }) {
           </div>
         ) : null}
       </div>
-      {error.value ? <div class="error">{error.value}</div> : null}
+      {error.value ? <ErrorBox>{error.value}</ErrorBox> : null}
 
       {e.status === "booked" ? (
         <div class="done">
-          <div class="icon">✓</div>
+          <DoneIcon />
           <p>{t("waitlist.booked")}</p>
           {booking.value ? (
             <p>
@@ -105,7 +95,7 @@ export function WaitlistPage({ token }: { token: string }) {
           ) : null}
           {e.bookingManageUrl ? (
             <div class="actions">
-              <a class="btn" href={e.bookingManageUrl} style={{ textDecoration: "none" }}>
+              <a class="btn" href={e.bookingManageUrl}>
                 {t("waitlist.viewBooking")}
               </a>
             </div>
@@ -121,7 +111,7 @@ export function WaitlistPage({ token }: { token: string }) {
             </div>
             {e.offer.serviceName ? (
               <div>
-                <span />
+                <span>{t("service")}</span>
                 <strong>{e.offer.serviceName}</strong>
               </div>
             ) : null}
@@ -145,7 +135,7 @@ export function WaitlistPage({ token }: { token: string }) {
         </div>
       ) : e.status === "waiting" || e.status === "offered" ? (
         <div>
-          <p>{t("waitlist.waiting")}</p>
+          <p class="note">{t("waitlist.waiting")}</p>
           <div class="actions">
             <button
               type="button"
@@ -158,9 +148,9 @@ export function WaitlistPage({ token }: { token: string }) {
           </div>
         </div>
       ) : e.status === "expired" ? (
-        <p>{t("waitlist.expired")}</p>
+        <p class="note">{t("waitlist.expired")}</p>
       ) : (
-        <p>{t("waitlist.cancelled")}</p>
+        <p class="note">{t("waitlist.cancelled")}</p>
       )}
     </div>
   );

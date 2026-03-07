@@ -6,9 +6,22 @@ import {
   type UpsertNotificationTemplateInput,
 } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Mail, MessageSquare, Pencil, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Badge, Button, Dialog, Field, Input, Spinner, Textarea } from "@/components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Dialog,
+  Field,
+  Input,
+  Segmented,
+  Spinner,
+  Textarea,
+  useConfirm,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { restaurantQuery, templatesQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -24,24 +37,25 @@ export function NotificationTemplates({ restaurantId }: { restaurantId: string }
 
   const rows = templates.data ?? [];
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-zinc-500">{t("templates.language")}</span>
-        {(["it", "en"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            onClick={() => setLocale(l)}
-            className={cn(
-              "rounded px-2 py-0.5 text-xs uppercase",
-              locale === l ? "bg-zinc-200 font-semibold" : "text-zinc-500 hover:bg-zinc-100",
-            )}
-          >
-            {l}
-          </button>
-        ))}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-stone-700">{t("templates.language")}</span>
+        <Segmented
+          size="sm"
+          ariaLabel={t("templates.language")}
+          value={locale}
+          onChange={setLocale}
+          options={[
+            { value: "it", label: "Italiano" },
+            { value: "en", label: "English" },
+          ]}
+        />
       </div>
-      {templates.isLoading ? <Spinner /> : null}
+      {templates.isLoading ? (
+        <div className="flex justify-center py-6">
+          <Spinner />
+        </div>
+      ) : null}
       {NOTIFICATION_AUDIENCES.map((audience) => {
         const events = [
           ...new Set(rows.filter((r) => r.audience === audience).map((r) => r.event)),
@@ -49,31 +63,45 @@ export function NotificationTemplates({ restaurantId }: { restaurantId: string }
         if (events.length === 0) return null;
         return (
           <div key={audience}>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              {t(`notifications.audience.${audience}`)}
+            <p className="mb-2 text-[13px] font-semibold text-stone-500 uppercase tracking-wide">
+              {t("templates.forAudience", { audience: t(`notifications.audience.${audience}`) })}
             </p>
-            <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
+            <ul className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200">
               {events.map((event) => (
-                <li key={event} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                  <span className="min-w-0 flex-1 font-medium">
+                <li
+                  key={event}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-[15px]"
+                >
+                  <span className="min-w-0 flex-1 basis-40 font-medium text-stone-900">
                     {t(`notifications.event.${event}`)}
                   </span>
-                  {rows
-                    .filter((r) => r.audience === audience && r.event === event)
-                    .map((r) => (
-                      <button
-                        key={r.channel}
-                        type="button"
-                        onClick={() => setEditing(r)}
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-zinc-50",
-                          r.custom ? "border-brand text-brand" : "border-zinc-300 text-zinc-600",
-                        )}
-                      >
-                        {t(`notifications.${r.channel}`)}
-                        {r.custom ? <Badge tone="confirmed">{t("templates.custom")}</Badge> : null}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap gap-2">
+                    {rows
+                      .filter((r) => r.audience === audience && r.event === event)
+                      .map((r) => (
+                        <button
+                          key={r.channel}
+                          type="button"
+                          onClick={() => setEditing(r)}
+                          className={cn(
+                            "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-colors [&_svg]:size-4",
+                            r.custom
+                              ? "border-brand-300 bg-brand-50 text-brand-800 hover:bg-brand-100"
+                              : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50",
+                          )}
+                        >
+                          {r.channel === "email" ? <Mail /> : <MessageSquare />}
+                          {t(`notifications.${r.channel}`)}
+                          {r.custom ? (
+                            <Badge tone="brand" size="sm">
+                              {t("templates.custom")}
+                            </Badge>
+                          ) : (
+                            <Pencil className="text-stone-400" />
+                          )}
+                        </button>
+                      ))}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -103,6 +131,8 @@ function TemplateEditor({
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const confirm = useConfirm();
   const isEmail = template.channel === "email";
   const [subject, setSubject] = useState(template.subject ?? "");
   const [heading, setHeading] = useState(template.heading ?? "");
@@ -155,6 +185,7 @@ function TemplateEditor({
     mutationFn: () => api.put<NotificationTemplateDto>(base, input()),
     onSuccess: async () => {
       await invalidate();
+      toast.success(t("app.saved"));
       onClose();
     },
     onError: showError,
@@ -192,10 +223,38 @@ function TemplateEditor({
       open
       size="xl"
       onClose={onClose}
-      title={`${t("templates.edit")} · ${t(`notifications.event.${template.event}`)} · ${t(`notifications.${template.channel}`)} · ${t(`notifications.audience.${template.audience}`)} · ${template.locale.toUpperCase()}`}
+      title={t("templates.editChannel", { channel: t(`notifications.${template.channel}`) })}
+      description={`${t(`notifications.event.${template.event}`)} · ${t(`notifications.audience.${template.audience}`)} · ${template.locale.toUpperCase()}`}
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          {template.custom ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RotateCcw />}
+              loading={reset.isPending}
+              onClick={async () => {
+                if (await confirm({ title: t("templates.confirmReset") })) reset.mutate();
+              }}
+            >
+              {t("templates.reset")}
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onClose}>
+              {t("app.cancel")}
+            </Button>
+            <Button loading={save.isPending} onClick={() => save.mutate()}>
+              {t("app.save")}
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-3">
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-4">
           {isEmail ? (
             <>
               <Field label={t("templates.subject")}>
@@ -229,19 +288,21 @@ function TemplateEditor({
               onKeyUp={rememberCaret}
               onClick={rememberCaret}
               maxLength={4000}
-              className={isEmail ? "min-h-40" : "min-h-24"}
+              className={isEmail ? "min-h-44" : "min-h-28"}
             />
           </Field>
           <div>
-            <p className="mb-1 text-xs font-medium text-zinc-500">{t("templates.placeholders")}</p>
-            <div className="flex flex-wrap gap-1">
+            <p className="mb-1.5 text-[13px] font-medium text-stone-500">
+              {t("templates.placeholders")}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_VARIABLES.map((name) => (
                 <button
                   key={name}
                   type="button"
                   title={t("templates.insert", { name: `{{${name}}}` })}
                   onClick={() => insert(name)}
-                  className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100"
+                  className="h-8 rounded-full border border-stone-300 bg-white px-3 text-[13px] font-medium text-stone-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-800"
                 >
                   {t(`templates.variable.${name}`)}
                 </button>
@@ -251,14 +312,14 @@ function TemplateEditor({
           {error ? <Alert>{error}</Alert> : null}
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium text-zinc-500">
+          <p className="mb-1.5 text-[13px] font-medium text-stone-500">
             {t("templates.preview")} · {t("templates.previewHint")}
           </p>
           {preview ? (
             isEmail && preview.html ? (
-              <div className="overflow-hidden rounded-lg border border-zinc-200">
-                <p className="border-b border-zinc-100 bg-zinc-50 px-3 py-1.5 text-xs">
-                  <span className="text-zinc-500">{t("templates.subject")}:</span>{" "}
+              <div className="overflow-hidden rounded-xl border border-stone-200">
+                <p className="border-b border-stone-100 bg-stone-50 px-3 py-2 text-sm">
+                  <span className="text-stone-500">{t("templates.subject")}:</span>{" "}
                   <span className="font-medium">{preview.subject}</span>
                 </p>
                 <iframe
@@ -269,37 +330,21 @@ function TemplateEditor({
                 />
               </div>
             ) : (
-              <pre className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm whitespace-pre-wrap">
-                {preview.text}
-              </pre>
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <div className="mx-auto max-w-xs rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap shadow-card">
+                  {preview.text}
+                </div>
+              </div>
             )
+          ) : body.trim() ? (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
           ) : (
-            <Spinner />
+            <p className="rounded-xl border border-dashed border-stone-300 px-4 py-8 text-center text-sm text-stone-500">
+              {t("templates.noPreview")}
+            </p>
           )}
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-        {template.custom ? (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={reset.isPending}
-            onClick={() => {
-              if (window.confirm(t("templates.confirmReset"))) reset.mutate();
-            }}
-          >
-            {t("templates.reset")}
-          </Button>
-        ) : (
-          <span />
-        )}
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button loading={save.isPending} onClick={() => save.mutate()}>
-            {t("app.save")}
-          </Button>
         </div>
       </div>
     </Dialog>

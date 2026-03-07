@@ -23,10 +23,10 @@ export interface Position {
 }
 
 const fills: Record<TableTone, string> = {
-  free: "fill-white stroke-zinc-400",
+  free: "fill-white stroke-stone-400",
   reserved: "fill-amber-100 stroke-amber-500",
-  seated: "fill-blue-100 stroke-blue-500",
-  inactive: "fill-zinc-100 stroke-zinc-300",
+  seated: "fill-sky-100 stroke-sky-500",
+  inactive: "fill-stone-100 stroke-stone-300",
 };
 
 /**
@@ -106,17 +106,18 @@ export function FloorPlan({
   return (
     <div className={className}>
       {areas.length > 0 ? (
-        <div className="mb-2 flex flex-wrap gap-1">
+        <div className="mb-2 flex flex-wrap gap-1.5">
           {[{ id: "all" as const, name: t("tables.allAreas") }, ...areas].map((a) => (
             <button
               key={a.id}
               type="button"
+              aria-pressed={areaFilter === a.id}
               onClick={() => setAreaFilter(a.id)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs",
+                "h-8 rounded-full px-3 text-sm font-medium transition-colors",
                 areaFilter === a.id
-                  ? "bg-zinc-800 text-white"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
+                  ? "bg-stone-900 text-white"
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200",
               )}
             >
               {a.name}
@@ -128,7 +129,7 @@ export function FloorPlan({
         ref={svgRef}
         viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
         className={cn(
-          "w-full select-none rounded-xl border border-zinc-200 bg-[linear-gradient(to_right,#f4f4f5_1px,transparent_1px),linear-gradient(to_bottom,#f4f4f5_1px,transparent_1px)] bg-[size:5%_7.142%] bg-white",
+          "w-full select-none rounded-2xl border border-stone-200 bg-[linear-gradient(to_right,#f0efeb_1px,transparent_1px),linear-gradient(to_bottom,#f0efeb_1px,transparent_1px)] bg-[size:5%_7.142%] bg-[#fbfaf8] shadow-card",
           onMove && "touch-none",
         )}
         role="img"
@@ -142,6 +143,12 @@ export function FloorPlan({
           const cx = x + table.width / 2;
           const cy = y + table.height / 2;
           const selected = selectedId === table.id;
+          // fit the guest name to the table width (roughly 1.1 units per character at size 2)
+          const maxChars = Math.max(6, Math.floor(table.width / 1.15));
+          const label =
+            status.label && status.label.length > maxChars
+              ? `${status.label.slice(0, maxChars - 1)}…`
+              : status.label;
           return (
             // biome-ignore lint/a11y/noStaticElementInteractions: drag surface; the list below the plan exposes the same actions
             <g
@@ -163,8 +170,8 @@ export function FloorPlan({
                   cy={cy}
                   rx={table.width / 2}
                   ry={table.height / 2}
-                  strokeWidth={selected ? 0.8 : 0.4}
-                  className={cn(fills[status.tone], selected && "stroke-brand")}
+                  strokeWidth={selected ? 0.8 : 0.45}
+                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
                 />
               ) : (
                 <rect
@@ -172,30 +179,31 @@ export function FloorPlan({
                   y={y}
                   width={table.width}
                   height={table.height}
-                  rx={1.2}
-                  strokeWidth={selected ? 0.8 : 0.4}
-                  className={cn(fills[status.tone], selected && "stroke-brand")}
+                  rx={1.4}
+                  strokeWidth={selected ? 0.8 : 0.45}
+                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
                 />
               )}
               <text
                 x={cx}
-                y={status.label ? cy - 0.6 : cy + 1}
+                y={label ? cy - 0.6 : cy + 1}
                 textAnchor="middle"
                 fontSize={2.6}
-                fontWeight={600}
-                className="fill-zinc-800"
+                fontWeight={700}
+                className={cn(status.tone === "inactive" ? "fill-stone-400" : "fill-stone-800")}
               >
                 {table.name}
               </text>
-              {status.label ? (
+              {label ? (
                 <text
                   x={cx}
                   y={cy + 2.6}
                   textAnchor="middle"
                   fontSize={2}
-                  className="fill-zinc-600"
+                  fontWeight={500}
+                  className="fill-stone-700"
                 >
-                  {status.label.length > 14 ? `${status.label.slice(0, 13)}…` : status.label}
+                  {label}
                 </text>
               ) : (
                 <text
@@ -203,7 +211,7 @@ export function FloorPlan({
                   y={cy + 3.8}
                   textAnchor="middle"
                   fontSize={1.8}
-                  className="fill-zinc-500"
+                  className="fill-stone-500"
                 >
                   {table.maxCovers}
                 </text>

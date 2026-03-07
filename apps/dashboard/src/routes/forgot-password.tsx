@@ -40,7 +40,7 @@ function ForgotPasswordPage() {
       title={t("auth.forgotTitle")}
       subtitle={t("auth.forgotHint")}
       footer={
-        <Link to="/login" className="font-medium text-brand">
+        <Link to="/login" className="font-semibold text-brand-700 hover:underline">
           {t("auth.backToLogin")}
         </Link>
       }
@@ -53,7 +53,7 @@ function ForgotPasswordPage() {
             <Input name="email" type="email" required autoComplete="email" defaultValue={prefill} />
           </Field>
           {error ? <Alert>{error}</Alert> : null}
-          <Button type="submit" className="w-full" loading={busy}>
+          <Button type="submit" size="lg" className="w-full" loading={busy}>
             {t("auth.sendReset")}
           </Button>
         </form>

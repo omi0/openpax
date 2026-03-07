@@ -3,7 +3,8 @@ import type { PublicFeedbackDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
 import { formatInstant } from "../dates.js";
-import { locale, setLocale, t } from "../i18n.js";
+import { locale, t } from "../i18n.js";
+import { DoneIcon, ErrorBox, Header, Loading, StarIcon } from "./chrome.js";
 
 /** The guest rates the visit: five stars and an optional comment. */
 export function FeedbackPage({ token }: { token: string }) {
@@ -51,35 +52,23 @@ export function FeedbackPage({ token }: { token: string }) {
   };
 
   const p = page.value;
-  if (!p) return <p class="sub">{error.value ?? "…"}</p>;
+  if (!p) return error.value ? <ErrorBox>{error.value}</ErrorBox> : <Loading />;
   return (
     <div>
-      <div class="lang">
-        {(["it", "en"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            aria-pressed={locale.value === l}
-            onClick={() => setLocale(l)}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
-      <h1>{p.restaurant.name}</h1>
-      <p class="sub">
-        {t("feedback.visit", {
+      <Header
+        title={p.restaurant.name}
+        subtitle={t("feedback.visit", {
           when: formatInstant(p.booking.startsAt, p.restaurant.timezone, locale.value),
         })}
-      </p>
+      />
       {done.value ? (
         <div class="done">
-          <div class="icon">✓</div>
+          <DoneIcon />
           <h2>{t("feedback.thanksTitle")}</h2>
           <p class="sub">{t("feedback.thanksText")}</p>
         </div>
       ) : !p.canAnswer ? (
-        <p>{t("feedback.notVisited")}</p>
+        <p class="note">{t("feedback.notVisited")}</p>
       ) : (
         <form onSubmit={(e) => void submit(e)}>
           <h2>{p.feedback ? t("feedback.changeTitle") : t("feedback.title")}</h2>
@@ -96,7 +85,7 @@ export function FeedbackPage({ token }: { token: string }) {
                   rating.value = n;
                 }}
               >
-                ★
+                <StarIcon />
               </button>
             ))}
           </fieldset>
@@ -111,7 +100,7 @@ export function FeedbackPage({ token }: { token: string }) {
               }}
             />
           </div>
-          {error.value ? <div class="error">{error.value}</div> : null}
+          {error.value ? <ErrorBox>{error.value}</ErrorBox> : null}
           <div class="actions">
             <button type="submit" class="btn" disabled={busy.value || rating.value === 0}>
               {busy.value ? t("feedback.sending") : t("feedback.send")}

@@ -14,6 +14,7 @@ import {
   step,
   waitlistResult,
 } from "../state.js";
+import { DoneIcon, ErrorBox } from "./chrome.js";
 
 /** Contact form shown when the chosen date has no bookable time. */
 export function WaitlistForm({ onDone }: { onDone: () => void }) {
@@ -54,12 +55,21 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
       busy.value = false;
     }
   };
+  const back = () => {
+    step.value = "when";
+  };
 
   return (
     <form onSubmit={(e) => void submit(e)}>
       <h2>{t("waitlist.title")}</h2>
       <p class="sub">{t("waitlist.intro")}</p>
       <div class="summary">
+        <div class="summary-head">
+          <strong>{t("yourTable")}</strong>
+          <button type="button" class="change" onClick={back}>
+            {t("change")}
+          </button>
+        </div>
         <div>
           <span>{t("date")}</span>
           <strong>{formatDateLong(date.value, locale.value)}</strong>
@@ -106,17 +116,22 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
           type="email"
           required
           autocomplete="email"
+          inputMode="email"
           value={g.email}
           onInput={(e) => update({ email: (e.target as HTMLInputElement).value })}
         />
       </div>
       <div class="field">
-        <label for="sitli-wl-phone">{t("phone")}</label>
+        <label for="sitli-wl-phone">
+          {t("phone")}
+          {!cfg.widget.requirePhone ? ` (${t("optional")})` : ""}
+        </label>
         <input
           id="sitli-wl-phone"
           type="tel"
           required={cfg.widget.requirePhone}
           autocomplete="tel"
+          inputMode="tel"
           value={g.phone}
           onInput={(e) => update({ phone: (e.target as HTMLInputElement).value })}
         />
@@ -130,15 +145,9 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
           onInput={(e) => update({ notes: (e.target as HTMLTextAreaElement).value })}
         />
       </div>
-      {error.value ? <div class="error">{error.value}</div> : null}
+      {error.value ? <ErrorBox>{error.value}</ErrorBox> : null}
       <div class="actions">
-        <button
-          type="button"
-          class="btn secondary"
-          onClick={() => {
-            step.value = "when";
-          }}
-        >
+        <button type="button" class="btn secondary" onClick={back}>
           {t("back")}
         </button>
         <button type="submit" class="btn" disabled={busy.value}>
@@ -152,30 +161,26 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
 export function WaitlistDone({ entry }: { entry: PublicWaitlistEntryDto }) {
   return (
     <div class="done">
-      <div class="icon">✓</div>
+      <DoneIcon kind="wait" />
       <h1>{t("waitlist.doneTitle")}</h1>
       <p class="sub">{t("waitlist.doneText")}</p>
-      <div class="summary" style={{ textAlign: "left" }}>
+      <div class="summary">
         <div>
           <span>{t("date")}</span>
           <strong>{formatDateLong(entry.serviceDate, locale.value)}</strong>
         </div>
         <div>
           <span>{t("guests")}</span>
-          <strong>{entry.partySize}</strong>
+          <strong>
+            {entry.partySize === 1 ? t("guestsOne") : t("guestsMany", { n: entry.partySize })}
+          </strong>
         </div>
       </div>
       <div class="actions">
         <button type="button" class="btn secondary" onClick={reset}>
           {t("back")}
         </button>
-        <a
-          class="btn"
-          href={entry.manageUrl}
-          target="_blank"
-          rel="noreferrer"
-          style={{ textDecoration: "none", textAlign: "center" }}
-        >
+        <a class="btn" href={entry.manageUrl} target="_blank" rel="noreferrer">
           {t("waitlist.viewRequest")}
         </a>
       </div>

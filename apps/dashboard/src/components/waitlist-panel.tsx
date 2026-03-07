@@ -6,25 +6,38 @@ import type {
 } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Phone, Plus } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { CalendarCheck, Hourglass, Phone, Plus, Send, Trash, Users } from "lucide-react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SlotPicker } from "@/components/slot-picker";
 import {
   Alert,
+  Avatar,
   Badge,
   Button,
+  Checkbox,
   Dialog,
   EmptyState,
   Field,
   Input,
-  Select,
+  Spinner,
+  Stepper,
   Textarea,
+  useConfirm,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { availabilityQuery, policyQuery, waitlistQuery } from "@/lib/queries";
-import { formatDateTime, formatTime } from "@/lib/utils";
+import { cn, formatDateTime, formatTime } from "@/lib/utils";
 
 const OPEN = ["waiting", "offered"];
+
+const statusTone: Record<string, string> = {
+  waiting: "neutral",
+  offered: "warning",
+  booked: "success",
+  expired: "neutral",
+  cancelled: "danger",
+};
 
 /** Guests queued for a date, with the staff actions: offer a slot, book them in, remove. */
 export function WaitlistPanel({
@@ -38,6 +51,7 @@ export function WaitlistPanel({
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const entries = useQuery(waitlistQuery(restaurant.id, date));
   const policy = useQuery(policyQuery(restaurant.id));
   const [showClosed, setShowClosed] = useState(false);
@@ -63,14 +77,18 @@ export function WaitlistPanel({
   if (!entries.data || (all.length === 0 && !policy.data?.waitlistEnabled)) return null;
 
   return (
-    <section className="mt-6">
-      <div className="mb-2 flex flex-wrap items-center gap-3">
-        <h2 className="font-semibold">{t("waitlist.title")}</h2>
-        <span className="text-sm text-zinc-500">{t("waitlist.count", { count: open.length })}</span>
+    <section className="mt-8">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <Hourglass className="size-5 text-stone-400" /> {t("waitlist.title")}
+        </h2>
+        <span className="text-sm text-stone-500">
+          {t("waitlist.count", { count: open.length })}
+        </span>
         {closed.length > 0 ? (
           <button
             type="button"
-            className="text-xs text-zinc-500 hover:text-zinc-900"
+            className="text-sm text-stone-500 underline-offset-2 hover:text-stone-900 hover:underline"
             onClick={() => setShowClosed(!showClosed)}
           >
             {t("waitlist.showClosed")} ({closed.length})
@@ -79,89 +97,98 @@ export function WaitlistPanel({
         <Button
           size="sm"
           variant="outline"
+          icon={<Plus />}
           className="ml-auto"
           onClick={() => setDialog({ kind: "add" })}
         >
-          <Plus className="size-4" /> {t("waitlist.add")}
+          {t("waitlist.add")}
         </Button>
       </div>
       {rows.length === 0 ? (
-        <EmptyState>{t("waitlist.empty")}</EmptyState>
+        <EmptyState icon={<Hourglass />}>{t("waitlist.empty")}</EmptyState>
       ) : (
-        <ul className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
-          {rows.map((e) => (
-            <li key={e.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
-              <span className="w-8 text-center text-sm font-semibold">{e.partySize}</span>
-              <div className="min-w-0 flex-1">
-                <Link
-                  to="/r/$restaurantId/customers/$customerId"
-                  params={{ restaurantId: restaurant.id, customerId: e.customer.id }}
-                  className="font-medium hover:text-brand"
-                >
-                  {e.customer.name}
-                </Link>
-                {e.customer.phone ? (
-                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-zinc-500">
-                    <Phone className="size-3" /> {e.customer.phone}
-                  </span>
-                ) : null}
-                <p className="text-xs text-zinc-500">
-                  {e.preferredTime
-                    ? `${t("waitlist.preferred", { time: e.preferredTime })} · `
-                    : ""}
-                  {e.serviceName ? `${e.serviceName} · ` : ""}
-                  {t("waitlist.joined", {
-                    when: formatDateTime(e.createdAt, restaurant.timezone, i18n.language),
-                  })}
-                  {e.offer && e.status === "offered"
-                    ? ` · ${t("waitlist.offered", { time: formatTime(e.offer.startsAt, restaurant.timezone, i18n.language) })}, ${t("waitlist.offerUntil", { time: formatDateTime(e.offer.expiresAt, restaurant.timezone, i18n.language) })}`
-                    : ""}
-                </p>
-                {e.notes ? <p className="text-sm text-zinc-600">{e.notes}</p> : null}
-              </div>
-              <Badge
-                tone={
-                  e.status === "offered"
-                    ? "pending"
-                    : e.status === "booked"
-                      ? "confirmed"
-                      : e.status === "waiting"
-                        ? "neutral"
-                        : "cancelled"
-                }
+        <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
+          {rows.map((e) => {
+            const isOpen = OPEN.includes(e.status);
+            return (
+              <li
+                key={e.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 md:px-4",
+                  !isOpen && "bg-stone-50/60",
+                )}
               >
-                {t(`waitlist.status.${e.status}`)}
-              </Badge>
-              {OPEN.includes(e.status) ? (
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setDialog({ kind: "offer", entry: e })}
+                <Avatar name={e.customer.name} className={cn(!isOpen && "opacity-50")} />
+                <div className="min-w-0 flex-1 basis-40">
+                  <Link
+                    to="/r/$restaurantId/customers/$customerId"
+                    params={{ restaurantId: restaurant.id, customerId: e.customer.id }}
+                    className="block truncate text-base font-semibold hover:text-brand-700"
                   >
-                    {t("waitlist.actions.offer")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setDialog({ kind: "book", entry: e })}
-                  >
-                    {t("waitlist.actions.book")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={remove.isPending}
-                    onClick={() => {
-                      if (window.confirm(t("waitlist.confirmRemove"))) remove.mutate(e.id);
-                    }}
-                  >
-                    {t("waitlist.actions.remove")}
-                  </Button>
+                    {e.customer.name}
+                  </Link>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-stone-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="size-3.5" /> {t("today.guests", { count: e.partySize })}
+                    </span>
+                    {e.customer.phone ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone className="size-3.5" /> {e.customer.phone}
+                      </span>
+                    ) : null}
+                    {e.preferredTime ? (
+                      <span>{t("waitlist.preferred", { time: e.preferredTime })}</span>
+                    ) : null}
+                    {e.serviceName ? <span>{e.serviceName}</span> : null}
+                  </p>
+                  <p className="text-[13px] text-stone-400">
+                    {t("waitlist.joined", {
+                      when: formatDateTime(e.createdAt, restaurant.timezone, i18n.language),
+                    })}
+                    {e.offer && e.status === "offered"
+                      ? ` · ${t("waitlist.offered", { time: formatTime(e.offer.startsAt, restaurant.timezone, i18n.language) })}, ${t("waitlist.offerUntil", { time: formatDateTime(e.offer.expiresAt, restaurant.timezone, i18n.language) })}`
+                      : ""}
+                  </p>
+                  {e.notes ? <p className="mt-1 text-sm text-stone-600">{e.notes}</p> : null}
                 </div>
-              ) : null}
-            </li>
-          ))}
+                <Badge tone={statusTone[e.status] ?? "neutral"}>
+                  {t(`waitlist.status.${e.status}`)}
+                </Badge>
+                {isOpen ? (
+                  <div className="flex basis-full flex-wrap gap-2 md:basis-auto">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={<Send />}
+                      onClick={() => setDialog({ kind: "offer", entry: e })}
+                    >
+                      {t("waitlist.actions.offer")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={<CalendarCheck />}
+                      onClick={() => setDialog({ kind: "book", entry: e })}
+                    >
+                      {t("waitlist.actions.book")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Trash />}
+                      disabled={remove.isPending}
+                      onClick={async () => {
+                        if (await confirm({ title: t("waitlist.confirmRemove") }))
+                          remove.mutate(e.id);
+                      }}
+                    >
+                      {t("waitlist.actions.remove")}
+                    </Button>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -243,56 +270,57 @@ function SlotDialog({
       open
       onClose={onClose}
       title={mode === "offer" ? t("waitlist.offerTitle") : t("waitlist.bookTitle")}
-    >
-      <div className="space-y-3">
-        <p className="text-sm text-zinc-600">
-          {entry.customer.name} · {entry.partySize} ·{" "}
-          {entry.preferredTime ? t("waitlist.preferred", { time: entry.preferredTime }) : ""}
-        </p>
-        <p className="text-xs text-zinc-500">
-          {mode === "offer"
-            ? t("waitlist.offerHint", { minutes: policy?.waitlistOfferMinutes ?? 120 })
-            : t("waitlist.bookHint")}
-        </p>
-        <Field label={t("waitlist.form.slot")}>
-          <Select value={slot} onChange={(e) => setSlot(e.target.value)}>
-            <option value="">{slots.length === 0 ? t("waitlist.form.noSlots") : "—"}</option>
-            {slots.map((s) => (
-              <option
-                key={`${s.serviceId}|${s.startsAt}`}
-                value={`${s.serviceId}|${s.startsAt}`}
-                disabled={!s.available && !allowUnavailable}
-              >
-                {s.startLocal}
-                {services.length > 1
-                  ? ` · ${services.find((x) => x.id === s.serviceId)?.name ?? ""}`
-                  : ""}
-                {!s.available
-                  ? ` (${s.reason === "full" ? t("waitlist.form.full") : s.reason})`
-                  : ""}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        {allowUnavailable ? (
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={ignoreCapacity}
-              onChange={(e) => setIgnoreCapacity(e.target.checked)}
-            />
-            {t("waitlist.form.ignoreCapacity")}
-          </label>
-        ) : null}
-        {error ? <Alert>{error}</Alert> : null}
-        <div className="flex justify-end gap-2">
+      description={`${entry.customer.name} · ${t("today.guests", { count: entry.partySize })}${
+        entry.preferredTime ? ` · ${t("waitlist.preferred", { time: entry.preferredTime })}` : ""
+      }`}
+      footer={
+        <>
           <Button variant="secondary" onClick={onClose}>
             {t("app.cancel")}
           </Button>
           <Button disabled={!slot} loading={run.isPending} onClick={() => run.mutate()}>
             {mode === "offer" ? t("waitlist.sendOffer") : t("waitlist.confirmBook")}
           </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Alert tone="info">
+          {mode === "offer"
+            ? t("waitlist.offerHint", { minutes: policy?.waitlistOfferMinutes ?? 120 })
+            : t("waitlist.bookHint")}
+        </Alert>
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("waitlist.form.slot")}</p>
+          {availability.isLoading ? (
+            <div className="flex justify-center py-4">
+              <Spinner />
+            </div>
+          ) : (
+            <SlotPicker
+              options={slots.map((s) => ({
+                key: `${s.serviceId}|${s.startsAt}`,
+                serviceId: s.serviceId,
+                label: s.startLocal,
+                available: s.available,
+                reason: s.reason,
+              }))}
+              services={services}
+              value={slot}
+              onChange={setSlot}
+              allowUnavailable={allowUnavailable}
+              emptyLabel={t("waitlist.form.noSlots")}
+            />
+          )}
         </div>
+        {allowUnavailable ? (
+          <Checkbox
+            checked={ignoreCapacity}
+            onChange={(e) => setIgnoreCapacity(e.target.checked)}
+            label={t("waitlist.form.ignoreCapacity")}
+          />
+        ) : null}
+        {error ? <Alert>{error}</Alert> : null}
       </div>
     </Dialog>
   );
@@ -310,6 +338,8 @@ function AddDialog({
   onDone: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const formId = useId();
+  const [partySize, setPartySize] = useState(2);
   const [error, setError] = useState<string | null>(null);
   const create = useMutation({
     mutationFn: (body: CreateWaitlistEntryInput) =>
@@ -323,7 +353,7 @@ function AddDialog({
     setError(null);
     create.mutate({
       serviceDate: String(f.get("date")),
-      partySize: Number(f.get("partySize")) || 2,
+      partySize,
       preferredTime: String(f.get("preferredTime") || "") || null,
       customer: {
         name: String(f.get("name")),
@@ -335,22 +365,36 @@ function AddDialog({
     });
   };
   return (
-    <Dialog open onClose={onClose} title={t("waitlist.addTitle")}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <Dialog
+      open
+      onClose={onClose}
+      title={t("waitlist.addTitle")}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={create.isPending}>
+            {t("waitlist.add")}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <Field label={t("waitlist.form.date")}>
           <Input type="date" name="date" defaultValue={date} required />
         </Field>
         <Field label={t("waitlist.form.party")}>
-          <Input type="number" name="partySize" min={1} max={100} defaultValue={2} required />
+          <Stepper value={partySize} onChange={setPartySize} min={1} max={100} />
         </Field>
-        <Field label={t("waitlist.form.name")} className="sm:col-span-2">
+        <Field label={t("waitlist.form.name")} className="sm:col-span-2" required>
           <Input name="name" required />
         </Field>
         <Field label={t("waitlist.form.phone")}>
-          <Input name="phone" type="tel" />
+          <Input name="phone" type="tel" inputMode="tel" />
         </Field>
         <Field label={t("waitlist.form.email")}>
-          <Input name="email" type="email" />
+          <Input name="email" type="email" inputMode="email" />
         </Field>
         <Field label={t("waitlist.form.preferredTime")}>
           <Input name="preferredTime" type="time" />
@@ -363,14 +407,6 @@ function AddDialog({
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 sm:col-span-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button type="submit" loading={create.isPending}>
-            {t("waitlist.add")}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );

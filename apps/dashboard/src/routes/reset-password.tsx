@@ -56,7 +56,7 @@ function ResetPasswordPage() {
     <AuthLayout
       title={t("auth.resetTitle")}
       footer={
-        <Link to="/login" className="font-medium text-brand">
+        <Link to="/login" className="font-semibold text-brand-700 hover:underline">
           {t("auth.backToLogin")}
         </Link>
       }
@@ -66,7 +66,10 @@ function ResetPasswordPage() {
       ) : invalid ? (
         <div className="space-y-3">
           <Alert>{t("auth.resetInvalid")}</Alert>
-          <Link to="/forgot-password" className="block text-center text-sm font-medium text-brand">
+          <Link
+            to="/forgot-password"
+            className="block text-center text-[15px] font-semibold text-brand-700 hover:underline"
+          >
             {t("auth.forgotTitle")}
           </Link>
         </div>
@@ -91,7 +94,7 @@ function ResetPasswordPage() {
             />
           </Field>
           {error ? <Alert>{error}</Alert> : null}
-          <Button type="submit" className="w-full" loading={busy}>
+          <Button type="submit" size="lg" className="w-full" loading={busy}>
             {t("auth.setPassword")}
           </Button>
         </form>

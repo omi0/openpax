@@ -1,8 +1,20 @@
 import type { BookingDto, RestaurantDto, UpdateBookingInput } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Button, Dialog, Field, Input, Select, Textarea } from "@/components/ui";
+import { SlotPicker } from "@/components/slot-picker";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Dialog,
+  Field,
+  Input,
+  Spinner,
+  Stepper,
+  Textarea,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { availabilityQuery } from "@/lib/queries";
 import { formatTime } from "@/lib/utils";
@@ -23,7 +35,9 @@ export function BookingEditDialog({
   canOverride: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const queryClient = useQueryClient();
+  const formId = useId();
   const [partySize, setPartySize] = useState(booking.partySize);
   const [day, setDay] = useState(booking.serviceDate);
   const [slot, setSlot] = useState(`${booking.serviceId}|${at(booking.startsAt)}`);
@@ -41,6 +55,7 @@ export function BookingEditDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurant.id, "bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["availability"] });
+      toast.success(t("app.saved"));
       onClose();
     },
     onError: (e) => {
@@ -63,11 +78,10 @@ export function BookingEditDialog({
     key: `${s.serviceId}|${at(s.startsAt)}`,
     startsAt: s.startsAt,
     serviceId: s.serviceId,
-    label: `${s.startLocal}${
-      services.length > 1 ? ` · ${services.find((x) => x.id === s.serviceId)?.name ?? ""}` : ""
-    }`,
+    label: s.startLocal,
     available: s.available,
     reason: s.reason,
+    current: day === booking.serviceDate && `${s.serviceId}|${at(s.startsAt)}` === currentKey,
   }));
   // The booking's own slot always stays selectable, even when it shows as full because of itself.
   if (day === booking.serviceDate && !options.some((o) => o.key === currentKey)) {
@@ -75,9 +89,10 @@ export function BookingEditDialog({
       key: currentKey,
       startsAt: booking.startsAt,
       serviceId: booking.serviceId,
-      label: `${formatTime(booking.startsAt, restaurant.timezone, i18n.language)} · ${booking.serviceName}`,
+      label: formatTime(booking.startsAt, restaurant.timezone, i18n.language),
       available: true,
       reason: undefined,
+      current: true,
     });
   }
 
@@ -100,68 +115,71 @@ export function BookingEditDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title={t("today.editBooking")}>
-      <p className="mb-3 text-sm text-zinc-500">
-        {booking.customer.name} · <span className="font-mono">{booking.confirmationCode}</span>
-      </p>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("today.editBooking")}
+      description={`${booking.customer.name} · ${booking.confirmationCode}`}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={update.isPending} disabled={!slot}>
+            {t("today.form.save")}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <Field label={t("today.form.date")}>
           <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} required />
         </Field>
         <Field label={t("today.form.party")}>
-          <Input
-            type="number"
+          <Stepper
+            value={partySize}
+            onChange={setPartySize}
             min={1}
             max={100}
-            value={partySize}
-            onChange={(e) => setPartySize(Number(e.target.value) || 1)}
-            required
+            ariaLabel={t("today.form.party")}
           />
         </Field>
-        <Field label={t("today.form.slot")} className="sm:col-span-2">
-          <Select value={slot} onChange={(e) => setSlot(e.target.value)} required>
-            {options.length === 0 ? <option value="">{t("today.form.noSlots")}</option> : null}
-            {options.map((o) => (
-              <option
-                key={o.key}
-                value={o.key}
-                disabled={!o.available && !canOverride && o.key !== currentKey}
-              >
-                {o.label}
-                {o.key === currentKey ? ` (${t("today.form.current")})` : ""}
-                {!o.available && o.key !== currentKey
-                  ? ` (${t(`today.form.reason.${o.reason ?? "full"}`, { defaultValue: o.reason })})`
-                  : ""}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("today.form.slot")}</p>
+          {availability.isLoading ? (
+            <div className="flex justify-center py-4">
+              <Spinner />
+            </div>
+          ) : (
+            <SlotPicker
+              options={options}
+              services={services}
+              value={slot}
+              onChange={setSlot}
+              allowUnavailable={canOverride}
+              emptyLabel={t("today.form.noSlots")}
+            />
+          )}
+        </div>
         <Field label={t("today.form.notes")} className="sm:col-span-2">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         </Field>
         {canOverride ? (
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input
-              type="checkbox"
+          <div className="sm:col-span-2">
+            <Checkbox
               checked={ignoreCapacity}
               onChange={(e) => setIgnoreCapacity(e.target.checked)}
-            />{" "}
-            {t("today.form.ignoreCapacity")}
-          </label>
+              label={t("today.form.ignoreCapacity")}
+              description={t("today.form.ignoreCapacityHint")}
+            />
+          </div>
         ) : null}
         {error ? (
           <div className="sm:col-span-2">
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 sm:col-span-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button type="submit" loading={update.isPending} disabled={!slot}>
-            {t("today.form.save")}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );

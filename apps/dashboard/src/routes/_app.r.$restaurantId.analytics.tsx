@@ -1,10 +1,31 @@
 import type { AnalyticsDto, AnalyticsTotalsDto } from "@sitli/shared";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Download } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import {
+  Ban,
+  ChartColumn,
+  ClipboardList,
+  Download,
+  Percent,
+  Star,
+  Table,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  UserX,
+} from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Card, EmptyState, Input, Spinner } from "@/components/ui";
+import {
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  PageLoader,
+  Stat,
+} from "@/components/ui";
 import { analyticsQuery, restaurantQuery } from "@/lib/queries";
 import { addDays, cn, formatDate, todayLocal } from "@/lib/utils";
 
@@ -23,6 +44,7 @@ export const Route = createFileRoute("/_app/r/$restaurantId/analytics")({
 });
 
 type Preset = "7" | "30" | "90" | "month" | "lastMonth" | "next30";
+const PRESETS: Preset[] = ["7", "30", "90", "month", "lastMonth", "next30"];
 
 function presetRange(preset: Preset, today: string): { from: string; to: string } {
   const [y, m] = today.split("-").map(Number);
@@ -55,6 +77,17 @@ const num = (v: number, locale: string, digits = 0) =>
 const signed = (v: number, locale: string, digits = 0) =>
   new Intl.NumberFormat(locale, { maximumFractionDigits: digits, signDisplay: "always" }).format(v);
 
+/* chart ink: one brand hue for the data, stone text tokens for everything else */
+const INK = {
+  bar: "#1f6f5f",
+  barHover: "#1a5b4e",
+  track: "#f5f5f4",
+  grid: "#e7e5e4",
+  axis: "#d6d3d1",
+  text: "#78716c",
+  label: "#44403c",
+};
+
 /** Change against the previous period: relative for counts, percentage points for rates. */
 function Delta({
   current,
@@ -81,12 +114,20 @@ function Delta({
     diff = (current - previous) / previous;
     label = `${signed(diff * 100, locale, 0)}%`;
   }
-  if (Math.abs(diff) < 0.05) return <p className="text-xs text-zinc-400">{t("analytics.same")}</p>;
+  if (Math.abs(diff) < 0.05)
+    return <span className="block text-[13px] text-stone-400">{t("analytics.same")}</span>;
   const good = lowerIsBetter ? diff < 0 : diff > 0;
   return (
-    <p className={cn("text-xs tabular-nums", good ? "text-emerald-700" : "text-red-600")}>
-      {label} <span className="text-zinc-400">{t("analytics.vsPrevious")}</span>
-    </p>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[13px] font-medium tabular-nums",
+        good ? "text-emerald-700" : "text-red-600",
+      )}
+    >
+      {diff > 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+      {label}
+      <span className="font-normal text-stone-400">{t("analytics.vsPrevious")}</span>
+    </span>
   );
 }
 
@@ -103,85 +144,91 @@ function AnalyticsPage() {
   const analytics = useQuery(analyticsQuery(restaurantId, from, to));
   const setRange = (r: { from: string; to: string }) =>
     void navigate({ search: r.from === defaults.from && r.to === defaults.to ? {} : r });
-  const activePreset = (["7", "30", "90", "month", "lastMonth", "next30"] as Preset[]).find((p) => {
+  const activePreset = PRESETS.find((p) => {
     const r = presetRange(p, today);
     return r.from === from && r.to === to;
   });
   const data = analytics.data;
   const prev: AnalyticsTotalsDto | undefined = data?.previous.totals;
   const locale = i18n.language;
+  const rangeLabel = `${formatDate(from, locale, { day: "numeric", month: "short", year: "numeric" })} – ${formatDate(to, locale, { day: "numeric", month: "short", year: "numeric" })}`;
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{t("analytics.title")}</h1>
-        <span className="text-sm text-zinc-500">
-          {formatDate(from, locale, { day: "numeric", month: "short", year: "numeric" })} –{" "}
-          {formatDate(to, locale, { day: "numeric", month: "short", year: "numeric" })}
-        </span>
-        <a
-          href={`/api/v1/restaurants/${restaurantId}/analytics/export?from=${from}&to=${to}`}
-          download
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium hover:bg-zinc-50"
-        >
-          <Download className="size-4" /> {t("analytics.exportCsv")}
-        </a>
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {(["7", "30", "90", "month", "lastMonth", "next30"] as Preset[]).map((p) => (
-          <Button
-            key={p}
-            size="sm"
-            variant={activePreset === p ? "secondary" : "outline"}
-            onClick={() => setRange(presetRange(p, today))}
+      <PageHeader
+        title={t("analytics.title")}
+        description={rangeLabel}
+        actions={
+          <a
+            href={`/api/v1/restaurants/${restaurantId}/analytics/export?from=${from}&to=${to}`}
+            download
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 text-[15px] font-semibold text-stone-800 shadow-xs hover:bg-stone-50"
           >
-            {t(`analytics.range.${p}`)}
-          </Button>
-        ))}
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
-        <label className="flex items-center gap-1 text-sm text-zinc-500">
-          {t("analytics.from")}
-          <Input
-            type="date"
-            value={from}
-            onChange={(e) => e.target.value && setRange({ from: e.target.value, to })}
-            className="h-8 w-auto"
-          />
-        </label>
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
-        <label className="flex items-center gap-1 text-sm text-zinc-500">
-          {t("analytics.to")}
-          <Input
-            type="date"
-            value={to}
-            onChange={(e) => e.target.value && setRange({ from, to: e.target.value })}
-            className="h-8 w-auto"
-          />
-        </label>
+            <Download className="size-[18px]" /> {t("analytics.exportCsv")}
+          </a>
+        }
+      />
+
+      <div className="mb-5 rounded-2xl border border-stone-200 bg-white p-3 shadow-card md:p-4">
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={activePreset === p ? "primary" : "outline"}
+              onClick={() => setRange(presetRange(p, today))}
+            >
+              {t(`analytics.range.${p}`)}
+            </Button>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-md">
+          <Field label={t("analytics.from")}>
+            <Input
+              type="date"
+              value={from}
+              onChange={(e) => e.target.value && setRange({ from: e.target.value, to })}
+            />
+          </Field>
+          <Field label={t("analytics.to")}>
+            <Input
+              type="date"
+              value={to}
+              onChange={(e) => e.target.value && setRange({ from, to: e.target.value })}
+            />
+          </Field>
+        </div>
       </div>
 
       {!data || !prev ? (
-        <Spinner />
+        <PageLoader />
       ) : (
-        <div className={cn("space-y-4", analytics.isFetching && "opacity-70")}>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className={cn("space-y-5", analytics.isFetching && "opacity-70")}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <Stat
               label={t("analytics.kpi.bookings")}
               value={num(data.totals.bookings, locale)}
-              hint={t("analytics.kpiHint.bookings", { cancelled: data.totals.cancelled })}
-              delta={
-                <Delta
-                  current={data.totals.bookings}
-                  previous={prev.bookings}
-                  kind="count"
-                  locale={locale}
-                />
+              icon={<ClipboardList />}
+              tone="brand"
+              hint={
+                <>
+                  {t("analytics.kpiHint.bookings", { cancelled: data.totals.cancelled })}
+                  <br />
+                  <Delta
+                    current={data.totals.bookings}
+                    previous={prev.bookings}
+                    kind="count"
+                    locale={locale}
+                  />
+                </>
               }
             />
             <Stat
               label={t("analytics.kpi.covers")}
               value={num(data.totals.covers, locale)}
-              delta={
+              icon={<Users />}
+              tone="brand"
+              hint={
                 <Delta
                   current={data.totals.covers}
                   previous={prev.covers}
@@ -197,7 +244,8 @@ function AnalyticsPage() {
                   ? t("analytics.na")
                   : num(data.totals.averagePartySize, locale, 1)
               }
-              delta={
+              icon={<Users />}
+              hint={
                 <Delta
                   current={data.totals.averagePartySize}
                   previous={prev.averagePartySize}
@@ -209,57 +257,66 @@ function AnalyticsPage() {
             <Stat
               label={t("analytics.kpi.noShowRate")}
               value={percent(data.totals.noShowRate, locale) ?? t("analytics.na")}
-              hint={t("analytics.kpiHint.noShowRate")}
+              icon={<UserX />}
               tone={
-                data.totals.noShowRate !== null && data.totals.noShowRate > 0.1
-                  ? "text-red-600"
-                  : undefined
+                data.totals.noShowRate !== null && data.totals.noShowRate > 0.1 ? "bad" : "neutral"
               }
-              delta={
-                <Delta
-                  current={data.totals.noShowRate}
-                  previous={prev.noShowRate}
-                  kind="rate"
-                  lowerIsBetter
-                  locale={locale}
-                />
+              hint={
+                <>
+                  {t("analytics.kpiHint.noShowRate")}
+                  <br />
+                  <Delta
+                    current={data.totals.noShowRate}
+                    previous={prev.noShowRate}
+                    kind="rate"
+                    lowerIsBetter
+                    locale={locale}
+                  />
+                </>
               }
             />
             <Stat
               label={t("analytics.kpi.cancellationRate")}
               value={percent(data.totals.cancellationRate, locale) ?? t("analytics.na")}
-              hint={t("analytics.kpiHint.cancellationRate", { created: data.totals.created })}
-              delta={
-                <Delta
-                  current={data.totals.cancellationRate}
-                  previous={prev.cancellationRate}
-                  kind="rate"
-                  lowerIsBetter
-                  locale={locale}
-                />
+              icon={<Ban />}
+              hint={
+                <>
+                  {t("analytics.kpiHint.cancellationRate", { created: data.totals.created })}
+                  <br />
+                  <Delta
+                    current={data.totals.cancellationRate}
+                    previous={prev.cancellationRate}
+                    kind="rate"
+                    lowerIsBetter
+                    locale={locale}
+                  />
+                </>
               }
             />
             <Stat
               label={t("analytics.kpi.occupancy")}
               value={percent(data.totals.occupancy, locale) ?? t("analytics.na")}
+              icon={<Percent />}
+              tone="good"
               hint={
-                data.totals.capacity
-                  ? t("analytics.kpiHint.occupancy", {
-                      capacity: num(data.totals.capacity, locale),
-                    })
-                  : t("analytics.kpiHint.occupancyUnknown")
-              }
-              delta={
-                <Delta
-                  current={data.totals.occupancy}
-                  previous={prev.occupancy}
-                  kind="rate"
-                  locale={locale}
-                />
+                <>
+                  {data.totals.capacity
+                    ? t("analytics.kpiHint.occupancy", {
+                        capacity: num(data.totals.capacity, locale),
+                      })
+                    : t("analytics.kpiHint.occupancyUnknown")}
+                  <br />
+                  <Delta
+                    current={data.totals.occupancy}
+                    previous={prev.occupancy}
+                    kind="rate"
+                    locale={locale}
+                  />
+                </>
               }
             />
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-[13px] text-stone-500">
             {t("analytics.previousPeriod", {
               from: formatDate(data.previous.from, locale, { day: "numeric", month: "short" }),
               to: formatDate(data.previous.to, locale, {
@@ -274,45 +331,55 @@ function AnalyticsPage() {
 
           <Card title={t("analytics.coversPerDay")} description={t("analytics.coversPerDayHint")}>
             {data.totals.created === 0 ? (
-              <EmptyState>{t("analytics.noData")}</EmptyState>
+              <EmptyState icon={<ChartColumn />}>{t("analytics.noData")}</EmptyState>
             ) : (
               <DailyChart data={data} restaurantId={restaurantId} />
             )}
           </Card>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card title={t("analytics.byService")}>
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-                  <tr>
-                    <th className="py-1 font-medium">{t("analytics.columns.service")}</th>
-                    <th className="py-1 text-right font-medium">
-                      {t("analytics.columns.bookings")}
-                    </th>
-                    <th className="py-1 text-right font-medium">{t("analytics.columns.covers")}</th>
-                    <th className="py-1 pl-4 font-medium">{t("analytics.columns.occupancy")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {data.services.map((s) => {
-                    const occ = s.capacity ? s.covers / s.capacity : null;
-                    return (
-                      <tr key={s.serviceId}>
-                        <td className="py-2 font-medium">{s.name}</td>
-                        <td className="py-2 text-right tabular-nums">{num(s.bookings, locale)}</td>
-                        <td className="py-2 text-right tabular-nums">{num(s.covers, locale)}</td>
-                        <td className="py-2 pl-4">
-                          {occ === null ? (
-                            <span className="text-zinc-400">{t("analytics.na")}</span>
-                          ) : (
-                            <Meter value={occ} label={percent(occ, locale) ?? ""} />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <Card title={t("analytics.byService")} flush>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-stone-50 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">
+                    <tr>
+                      <th className="px-5 py-2 font-semibold">{t("analytics.columns.service")}</th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        {t("analytics.columns.bookings")}
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        {t("analytics.columns.covers")}
+                      </th>
+                      <th className="px-5 py-2 font-semibold">
+                        {t("analytics.columns.occupancy")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {data.services.map((s) => {
+                      const occ = s.capacity ? s.covers / s.capacity : null;
+                      return (
+                        <tr key={s.serviceId}>
+                          <td className="px-5 py-3 text-[15px] font-semibold">{s.name}</td>
+                          <td className="px-3 py-3 text-right tabular-nums">
+                            {num(s.bookings, locale)}
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums">
+                            {num(s.covers, locale)}
+                          </td>
+                          <td className="px-5 py-3">
+                            {occ === null ? (
+                              <span className="text-stone-400">{t("analytics.na")}</span>
+                            ) : (
+                              <Meter value={occ} label={percent(occ, locale) ?? ""} />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </Card>
             <Card title={t("analytics.bySource")}>
               {data.sources.length === 0 ? (
@@ -344,14 +411,19 @@ function AnalyticsPage() {
           {data.feedback.responses > 0 ? (
             <Card title={t("analytics.feedback")} description={t("analytics.feedbackHint")}>
               <div className="flex flex-wrap items-center gap-6">
-                <div>
-                  <p className="text-3xl font-semibold tabular-nums">
-                    {num(data.feedback.averageRating ?? 0, locale, 1)}
-                    <span className="text-base text-zinc-400"> / 5</span>
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {t("analytics.feedbackResponses", { count: data.feedback.responses })}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                    <Star className="size-6 fill-amber-400 text-amber-400" />
+                  </span>
+                  <div>
+                    <p className="text-3xl font-bold">
+                      {num(data.feedback.averageRating ?? 0, locale, 1)}
+                      <span className="text-base font-medium text-stone-400"> / 5</span>
+                    </p>
+                    <p className="text-[13px] text-stone-500">
+                      {t("analytics.feedbackResponses", { count: data.feedback.responses })}
+                    </p>
+                  </div>
                 </div>
                 <div className="min-w-64 flex-1">
                   <HBars
@@ -413,29 +485,6 @@ function AnalyticsPage() {
   );
 }
 
-function Stat({
-  label,
-  value,
-  hint,
-  tone,
-  delta,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: string;
-  delta?: ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className={cn("text-2xl font-semibold tabular-nums", tone)}>{value}</p>
-      {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
-      {delta}
-    </div>
-  );
-}
-
 /** Sizes above eight are rare enough to share one bar. */
 function groupPartySizes(rows: AnalyticsDto["partySizes"]) {
   const out: Array<{ label: string; bookings: number }> = [];
@@ -454,14 +503,15 @@ function humanHours(hours: number, t: (key: string, opts?: Record<string, unknow
   return t("analytics.duration.days", { count: Math.round(hours / 24) });
 }
 
+/** Fill on a lighter step of the same hue, so the whole bar reads as one scale. */
 function Meter({ value, label }: { value: number; label: string }) {
   const pct = Math.min(100, Math.round(value * 100));
   return (
     <div className="flex items-center gap-2">
-      <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-100">
-        <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+      <div className="h-2.5 w-28 overflow-hidden rounded-r bg-brand-100">
+        <div className="h-full rounded-r bg-brand-600" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs tabular-nums text-zinc-600">{label}</span>
+      <span className="text-[13px] tabular-nums text-stone-600">{label}</span>
     </div>
   );
 }
@@ -474,21 +524,23 @@ function HBars({
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {rows.map((r) => (
         <li
           key={r.key}
-          className="grid grid-cols-[5rem_1fr_auto] items-center gap-3 text-sm"
+          className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3 text-sm"
           title={r.detail}
         >
-          <span className="truncate text-zinc-600">{r.label}</span>
+          <span className="truncate text-[15px] text-stone-700">{r.label}</span>
           <span className="block h-3 w-full">
             <span
-              className="block h-3 rounded-r bg-brand"
+              className="block h-3 rounded-r bg-brand-600"
               style={{ width: `${Math.max(1, (r.value / max) * 100)}%` }}
             />
           </span>
-          <span className="text-xs whitespace-nowrap tabular-nums text-zinc-600">{r.detail}</span>
+          <span className="text-[13px] whitespace-nowrap tabular-nums text-stone-600">
+            {r.detail}
+          </span>
         </li>
       ))}
     </ul>
@@ -529,8 +581,8 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
         >
           {ticks.map((v) => (
             <g key={v}>
-              <line x1={padL} x2={W - 8} y1={y(v)} y2={y(v)} stroke="#e4e4e7" strokeWidth={1} />
-              <text x={padL - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="#71717a">
+              <line x1={padL} x2={W - 8} y1={y(v)} y2={y(v)} stroke={INK.grid} strokeWidth={1} />
+              <text x={padL - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill={INK.text}>
                 {v}
               </text>
             </g>
@@ -544,12 +596,12 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
               <g key={d.date} onMouseEnter={() => setHover(i)}>
                 <rect x={padL + i * band} y={padT} width={band} height={plotH} fill="transparent" />
                 {cap > 0 ? (
-                  <rect x={x} y={y(cap)} width={barW} height={y(0) - y(cap)} fill="#f4f4f5" />
+                  <rect x={x} y={y(cap)} width={barW} height={y(0) - y(cap)} fill={INK.track} />
                 ) : null}
                 {d.covers > 0 ? (
                   <path
                     d={`M${x},${y(0)} V${y(d.covers) + 4} a4,4 0 0 1 4,-4 h${barW - 8} a4,4 0 0 1 4,4 V${y(0)} Z`}
-                    fill={hover === i ? "#185a4d" : "#1f6f5f"}
+                    fill={hover === i ? INK.barHover : INK.bar}
                   />
                 ) : null}
                 {isPeak ? (
@@ -558,31 +610,38 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
                     y={y(d.covers) - 6}
                     textAnchor="middle"
                     fontSize={11}
-                    fill="#3f3f46"
+                    fontWeight={600}
+                    fill={INK.label}
                   >
                     {d.covers}
                   </text>
                 ) : null}
                 {i % labelEvery === 0 ? (
-                  <text x={x + barW / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="#71717a">
+                  <text
+                    x={x + barW / 2}
+                    y={H - 8}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fill={INK.text}
+                  >
                     {formatDate(d.date, i18n.language, { day: "numeric", month: "short" })}
                   </text>
                 ) : null}
               </g>
             );
           })}
-          <line x1={padL} x2={W - 8} y1={y(0)} y2={y(0)} stroke="#d4d4d8" strokeWidth={1} />
+          <line x1={padL} x2={W - 8} y1={y(0)} y2={y(0)} stroke={INK.axis} strokeWidth={1} />
         </svg>
         {hovered ? (
-          <div className="pointer-events-none absolute top-2 right-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs shadow">
-            <p className="font-medium capitalize">
+          <div className="pointer-events-none absolute top-2 right-2 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-[13px] shadow-pop">
+            <p className="font-semibold capitalize">
               {formatDate(hovered.date, i18n.language, {
                 weekday: "short",
                 day: "numeric",
                 month: "short",
               })}
             </p>
-            <p>
+            <p className="tabular-nums">
               {hovered.covers} {t("analytics.columns.covers").toLowerCase()} · {hovered.bookings}{" "}
               {t("analytics.columns.bookings").toLowerCase()}
               {hovered.capacity
@@ -590,7 +649,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
                 : ""}
             </p>
             {hovered.cancelled || hovered.noShows ? (
-              <p className="text-zinc-500">
+              <p className="text-stone-500">
                 {hovered.cancelled} {t("analytics.columns.cancelled").toLowerCase()} ·{" "}
                 {hovered.noShows} {t("analytics.columns.noShows").toLowerCase()}
               </p>
@@ -598,45 +657,49 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
           </div>
         ) : null}
       </div>
-      <button
-        type="button"
-        className="mt-2 text-xs text-zinc-500 hover:text-zinc-900"
-        onClick={() => setTable(!table)}
-      >
-        {t("analytics.tableView")}
-      </button>
+      <div className="mt-3">
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Table />}
+          aria-expanded={table}
+          onClick={() => setTable(!table)}
+        >
+          {table ? t("analytics.hideTable") : t("analytics.tableView")}
+        </Button>
+      </div>
       {table ? (
-        <div className="mt-2 max-h-72 overflow-auto rounded-lg border border-zinc-200">
+        <div className="mt-2 max-h-72 overflow-auto rounded-xl border border-stone-200">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="sticky top-0 bg-stone-50 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">
               <tr>
-                <th className="px-3 py-1 font-medium">{t("analytics.columns.date")}</th>
-                <th className="px-3 py-1 text-right font-medium">
+                <th className="px-3 py-2 font-semibold">{t("analytics.columns.date")}</th>
+                <th className="px-3 py-2 text-right font-semibold">
                   {t("analytics.columns.bookings")}
                 </th>
-                <th className="px-3 py-1 text-right font-medium">
+                <th className="px-3 py-2 text-right font-semibold">
                   {t("analytics.columns.covers")}
                 </th>
-                <th className="px-3 py-1 text-right font-medium">
+                <th className="px-3 py-2 text-right font-semibold">
                   {t("analytics.columns.cancelled")}
                 </th>
-                <th className="px-3 py-1 text-right font-medium">
+                <th className="px-3 py-2 text-right font-semibold">
                   {t("analytics.columns.noShows")}
                 </th>
-                <th className="px-3 py-1 text-right font-medium">
+                <th className="px-3 py-2 text-right font-semibold">
                   {t("analytics.columns.capacity")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-stone-100">
               {days.map((d) => (
-                <tr key={d.date}>
-                  <td className="px-3 py-1">
+                <tr key={d.date} className="hover:bg-stone-50">
+                  <td className="px-3 py-1.5">
                     <Link
                       to="/r/$restaurantId/today"
                       params={{ restaurantId }}
                       search={{ date: d.date }}
-                      className="hover:text-brand"
+                      className="font-medium capitalize hover:text-brand-700"
                     >
                       {formatDate(d.date, i18n.language, {
                         weekday: "short",
@@ -645,11 +708,11 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
                       })}
                     </Link>
                   </td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.bookings}</td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.covers}</td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.cancelled}</td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.noShows}</td>
-                  <td className="px-3 py-1 text-right tabular-nums text-zinc-500">
+                  <td className="px-3 py-1.5 text-right tabular-nums">{d.bookings}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{d.covers}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{d.cancelled}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{d.noShows}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-stone-500">
                     {d.capacity ?? "—"}
                   </td>
                 </tr>

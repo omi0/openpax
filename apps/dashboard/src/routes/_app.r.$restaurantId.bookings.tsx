@@ -1,13 +1,25 @@
 import { BOOKING_STATUSES } from "@sitli/core";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { CalendarDays, ClipboardList, Phone, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CsvActions } from "@/components/csv-actions";
-import { Badge, Button, EmptyState, Input, Select, Spinner } from "@/components/ui";
+import {
+  Avatar,
+  Button,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  PageLoader,
+  SearchInput,
+  Segmented,
+  Select,
+  StatusBadge,
+} from "@/components/ui";
 import { bookingsSearchQuery, restaurantQuery } from "@/lib/queries";
-import { formatDate, formatTime, todayLocal } from "@/lib/utils";
+import { cn, formatDate, formatTime, todayLocal } from "@/lib/utils";
 
 interface BookingsSearch {
   q?: string;
@@ -32,6 +44,8 @@ export const Route = createFileRoute("/_app/r/$restaurantId/bookings")({
   }),
   component: BookingsPage,
 });
+
+const ACTIVE = new Set(["pending", "confirmed", "seated"]);
 
 function BookingsPage() {
   const { t, i18n } = useTranslation();
@@ -74,181 +88,216 @@ function BookingsPage() {
   const page = search.page ?? 1;
   const upcoming = search.from === today && !search.to;
   const past = search.to === today && !search.from;
+  const period: "all" | "upcoming" | "past" = upcoming ? "upcoming" : past ? "past" : "all";
   const filtered = !!(search.q || search.status || search.from || search.to);
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{t("bookings.title")}</h1>
-        {data ? (
-          <span className="text-sm text-zinc-500">
-            {t("bookings.count", { count: data.total })}
-          </span>
-        ) : null}
-        <CsvActions
-          kind="bookings"
-          restaurantId={restaurantId}
-          exportQuery={{
-            search: search.q || undefined,
-            status: search.status || undefined,
-            from: search.from || undefined,
-            to: search.to || undefined,
-          }}
-          onImported={() =>
-            queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] })
-          }
-        />
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-60 flex-1">
-          <Search className="pointer-events-none absolute top-3 left-3 size-4 text-zinc-400" />
-          <Input
+      <PageHeader
+        title={t("bookings.title")}
+        description={data ? t("bookings.count", { count: data.total }) : t("bookings.hint")}
+        actions={
+          <CsvActions
+            kind="bookings"
+            restaurantId={restaurantId}
+            exportQuery={{
+              search: search.q || undefined,
+              status: search.status || undefined,
+              from: search.from || undefined,
+              to: search.to || undefined,
+            }}
+            onImported={() =>
+              queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] })
+            }
+          />
+        }
+      />
+
+      <div className="mb-4 rounded-2xl border border-stone-200 bg-white p-3 shadow-card md:p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <SearchInput
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder={t("bookings.search")}
             aria-label={t("bookings.search")}
-            className="pl-9"
+            className="min-w-0 flex-1"
+          />
+          <Segmented
+            ariaLabel={t("bookings.period")}
+            value={period}
+            onChange={(v) =>
+              update(
+                v === "upcoming"
+                  ? { from: today, to: "", page: 1 }
+                  : v === "past"
+                    ? { from: "", to: today, page: 1 }
+                    : { from: "", to: "", page: 1 },
+              )
+            }
+            options={[
+              { value: "all", label: t("bookings.all") },
+              { value: "upcoming", label: t("bookings.upcoming") },
+              { value: "past", label: t("bookings.past") },
+            ]}
           />
         </div>
-        <Select
-          value={search.status ?? ""}
-          onChange={(e) => update({ status: e.target.value, page: 1 })}
-          className="w-auto"
-          aria-label={t("bookings.columns.status")}
-        >
-          <option value="">{t("bookings.allStatuses")}</option>
-          {BOOKING_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {t(`today.status.${s}`)}
-            </option>
-          ))}
-        </Select>
-        <Button
-          size="sm"
-          variant={upcoming ? "secondary" : "outline"}
-          onClick={() =>
-            update(upcoming ? { from: "", to: "", page: 1 } : { from: today, to: "", page: 1 })
-          }
-        >
-          {t("bookings.upcoming")}
-        </Button>
-        <Button
-          size="sm"
-          variant={past ? "secondary" : "outline"}
-          onClick={() =>
-            update(past ? { from: "", to: "", page: 1 } : { from: "", to: today, page: 1 })
-          }
-        >
-          {t("bookings.past")}
-        </Button>
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
-        <label className="flex items-center gap-1 text-sm text-zinc-500">
-          {t("bookings.from")}
-          <Input
-            type="date"
-            value={search.from ?? ""}
-            onChange={(e) => update({ from: e.target.value, page: 1 })}
-            className="h-8 w-auto"
-          />
-        </label>
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: wraps an Input component */}
-        <label className="flex items-center gap-1 text-sm text-zinc-500">
-          {t("bookings.to")}
-          <Input
-            type="date"
-            value={search.to ?? ""}
-            onChange={(e) => update({ to: e.target.value, page: 1 })}
-            className="h-8 w-auto"
-          />
-        </label>
-        {filtered ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setTerm("");
-              update({ q: "", status: "", from: "", to: "", page: 1 });
-            }}
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <Select
+            value={search.status ?? ""}
+            onChange={(e) => update({ status: e.target.value, page: 1 })}
+            aria-label={t("bookings.columns.status")}
           >
-            {t("bookings.clear")}
-          </Button>
+            <option value="">{t("bookings.allStatuses")}</option>
+            {BOOKING_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {t(`today.status.${s}`)}
+              </option>
+            ))}
+          </Select>
+          <Field label={t("bookings.from")} className="[&>span]:sr-only">
+            <Input
+              type="date"
+              value={search.from ?? ""}
+              onChange={(e) => update({ from: e.target.value, page: 1 })}
+              aria-label={t("bookings.from")}
+            />
+          </Field>
+          <Field label={t("bookings.to")} className="[&>span]:sr-only">
+            <Input
+              type="date"
+              value={search.to ?? ""}
+              onChange={(e) => update({ to: e.target.value, page: 1 })}
+              aria-label={t("bookings.to")}
+            />
+          </Field>
+        </div>
+        {filtered ? (
+          <div className="mt-2 flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setTerm("");
+                update({ q: "", status: "", from: "", to: "", page: 1 });
+              }}
+            >
+              {t("bookings.clear")}
+            </Button>
+          </div>
         ) : null}
       </div>
 
       {bookings.isLoading ? (
-        <Spinner />
+        <PageLoader />
       ) : !data || data.items.length === 0 ? (
-        <EmptyState>{t("bookings.empty")}</EmptyState>
+        <EmptyState icon={<ClipboardList />} title={t("bookings.empty")}>
+          {filtered ? t("bookings.emptyFiltered") : t("bookings.hint")}
+        </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-4 py-2 font-medium">{t("bookings.columns.when")}</th>
-                <th className="px-4 py-2 font-medium">{t("bookings.columns.guest")}</th>
-                <th className="px-4 py-2 text-right font-medium">{t("bookings.columns.party")}</th>
-                <th className="px-4 py-2 font-medium">{t("bookings.columns.service")}</th>
-                <th className="px-4 py-2 font-medium">{t("bookings.columns.status")}</th>
-                <th className="px-4 py-2 font-medium">{t("bookings.columns.code")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {data.items.map((b) => (
-                <tr key={b.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <Link
-                      to="/r/$restaurantId/today"
-                      params={{ restaurantId }}
-                      search={{ date: b.serviceDate }}
-                      title={t("bookings.openDay")}
-                      className="hover:text-brand"
-                    >
-                      <span className="capitalize">
-                        {formatDate(b.serviceDate, i18n.language, {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </span>{" "}
-                      <span className="font-mono">
-                        {formatTime(b.startsAt, restaurant.timezone, i18n.language)}
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">
-                    <Link
-                      to="/r/$restaurantId/customers/$customerId"
-                      params={{ restaurantId, customerId: b.customer.id }}
-                      className="font-medium hover:text-brand"
-                    >
-                      {b.customer.name}
-                    </Link>
-                    {b.customer.phone ? (
-                      <span className="ml-2 text-xs text-zinc-500">{b.customer.phone}</span>
-                    ) : null}
-                    {b.notes ? <p className="text-xs text-zinc-500">{b.notes}</p> : null}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums">{b.partySize}</td>
-                  <td className="px-4 py-2 text-zinc-600">{b.serviceName}</td>
-                  <td className="px-4 py-2">
-                    <Badge tone={b.status}>{t(`today.status.${b.status}`)}</Badge>
-                    <span className="ml-2 text-xs text-zinc-400">
-                      {t(`today.source.${b.source}`)}
+        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
+          <div className="hidden grid-cols-[10rem_minmax(0,1fr)_4.5rem_7rem_10rem_5.5rem_3rem] gap-3 border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500 md:grid">
+            <span>{t("bookings.columns.when")}</span>
+            <span>{t("bookings.columns.guest")}</span>
+            <span className="text-right">{t("bookings.columns.party")}</span>
+            <span>{t("bookings.columns.service")}</span>
+            <span>{t("bookings.columns.status")}</span>
+            <span>{t("bookings.columns.code")}</span>
+            <span />
+          </div>
+          <ul className="divide-y divide-stone-100">
+            {data.items.map((b) => {
+              const inactive = !ACTIVE.has(b.status);
+              return (
+                <li
+                  key={b.id}
+                  className={cn(
+                    "grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-stone-50 md:grid-cols-[10rem_minmax(0,1fr)_4.5rem_7rem_10rem_5.5rem_3rem] md:items-center md:gap-3",
+                    inactive && "bg-stone-50/50",
+                  )}
+                >
+                  <div className="order-1 flex flex-wrap items-baseline gap-x-2 md:order-none md:block">
+                    <span className="text-[15px] font-bold tabular-nums text-stone-900">
+                      {formatTime(b.startsAt, restaurant.timezone, i18n.language)}
                     </span>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs text-zinc-500">
+                    <span className="text-[15px] font-semibold capitalize md:block md:text-sm md:font-medium">
+                      {formatDate(b.serviceDate, i18n.language, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                    <span className="hidden text-[13px] text-stone-500 md:block">
+                      {formatDate(b.serviceDate, i18n.language, { year: "numeric" })}
+                    </span>
+                  </div>
+                  <div className="order-3 col-span-2 flex min-w-0 items-center gap-3 md:order-none md:col-span-1">
+                    <Avatar
+                      name={b.customer.name}
+                      size="sm"
+                      className={cn(inactive && "opacity-50")}
+                    />
+                    <div className="min-w-0">
+                      <Link
+                        to="/r/$restaurantId/customers/$customerId"
+                        params={{ restaurantId, customerId: b.customer.id }}
+                        className={cn(
+                          "block truncate text-[15px] font-semibold hover:text-brand-700",
+                          inactive && "text-stone-500",
+                        )}
+                      >
+                        {b.customer.name}
+                      </Link>
+                      <p className="flex flex-wrap items-center gap-x-3 text-[13px] text-stone-500">
+                        {b.customer.phone ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="size-3" /> {b.customer.phone}
+                          </span>
+                        ) : null}
+                        <span className="md:hidden">
+                          {t("today.guests", { count: b.partySize })} · {b.serviceName}
+                        </span>
+                        <span className="text-stone-400">{t(`today.source.${b.source}`)}</span>
+                      </p>
+                      {b.notes ? (
+                        <p className="mt-0.5 flex items-start gap-1 text-[13px] text-amber-900">
+                          <StickyNote className="mt-0.5 size-3 shrink-0 text-amber-600" />
+                          <span className="truncate">{b.notes}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <span className="hidden text-right text-[15px] font-semibold tabular-nums md:block">
+                    {b.partySize}
+                  </span>
+                  <span className="hidden truncate text-[15px] text-stone-600 md:block">
+                    {b.serviceName}
+                  </span>
+                  <div className="order-2 justify-self-end md:order-none md:justify-self-start">
+                    <StatusBadge status={b.status} size="sm" />
+                  </div>
+                  <span className="hidden font-mono text-[13px] tracking-wider text-stone-500 md:block">
                     {b.confirmationCode}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                  <Link
+                    to="/r/$restaurantId/today"
+                    params={{ restaurantId }}
+                    search={{ date: b.serviceDate }}
+                    title={t("bookings.openDay")}
+                    aria-label={t("bookings.openDay")}
+                    className="order-4 col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-stone-200 text-sm font-medium text-stone-700 hover:bg-stone-100 md:order-none md:col-span-1 md:size-9 md:border-0 md:text-stone-400 md:hover:text-brand-700"
+                  >
+                    <CalendarDays className="size-4" />
+                    <span className="md:hidden">{t("bookings.openDay")}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
       {pages > 1 ? (
-        <div className="mt-3 flex items-center justify-end gap-2 text-sm text-zinc-500">
+        <div className="mt-3 flex items-center justify-end gap-2 text-sm text-stone-500">
           <span>{t("customers.page", { page, pages })}</span>
           <Button
             size="sm"

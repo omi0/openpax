@@ -1,8 +1,21 @@
 import type { BookingDto, CreateStaffBookingInput, RestaurantDto } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Button, Dialog, Field, Input, Select, Textarea } from "@/components/ui";
+import { SlotPicker } from "@/components/slot-picker";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Dialog,
+  Field,
+  Input,
+  Select,
+  Spinner,
+  Stepper,
+  Textarea,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { availabilityQuery } from "@/lib/queries";
 
@@ -20,7 +33,9 @@ export function BookingFormDialog({
   canOverride: boolean;
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const queryClient = useQueryClient();
+  const formId = useId();
   const [partySize, setPartySize] = useState(2);
   const [day, setDay] = useState(date);
   const [slot, setSlot] = useState("");
@@ -33,9 +48,10 @@ export function BookingFormDialog({
   const create = useMutation({
     mutationFn: (body: CreateStaffBookingInput) =>
       api.post<BookingDto>(`/api/v1/restaurants/${restaurant.id}/bookings`, body),
-    onSuccess: async () => {
+    onSuccess: async (b) => {
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurant.id, "bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["availability"] });
+      toast.success(t("today.created", { name: b.customer.name }));
       onClose();
     },
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
@@ -68,47 +84,66 @@ export function BookingFormDialog({
   const services = availability.data?.services ?? [];
 
   return (
-    <Dialog open={open} onClose={onClose} title={t("today.newBooking")}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("today.newBooking")}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={create.isPending} disabled={!slot}>
+            {t("today.form.create")}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <Field label={t("today.form.date")}>
           <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} required />
         </Field>
         <Field label={t("today.form.party")}>
-          <Input
-            type="number"
+          <Stepper
+            value={partySize}
+            onChange={setPartySize}
             min={1}
             max={100}
-            value={partySize}
-            onChange={(e) => setPartySize(Number(e.target.value) || 1)}
-            required
+            ariaLabel={t("today.form.party")}
           />
         </Field>
-        <Field label={t("today.form.slot")} className="sm:col-span-2">
-          <Select value={slot} onChange={(e) => setSlot(e.target.value)} required>
-            <option value="">{slots.length === 0 ? t("today.form.noSlots") : "—"}</option>
-            {slots.map((s) => (
-              <option
-                key={`${s.serviceId}|${s.startsAt}`}
-                value={`${s.serviceId}|${s.startsAt}`}
-                disabled={!s.available && !canOverride}
-              >
-                {s.startLocal}
-                {services.length > 1
-                  ? ` · ${services.find((x) => x.id === s.serviceId)?.name ?? ""}`
-                  : ""}
-                {!s.available ? ` (${s.reason === "full" ? t("today.form.full") : s.reason})` : ""}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("today.form.name")} className="sm:col-span-2">
-          <Input name="name" required />
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("today.form.slot")}</p>
+          {availability.isLoading ? (
+            <div className="flex justify-center py-4">
+              <Spinner />
+            </div>
+          ) : (
+            <SlotPicker
+              options={slots.map((s) => ({
+                key: `${s.serviceId}|${s.startsAt}`,
+                serviceId: s.serviceId,
+                label: s.startLocal,
+                available: s.available,
+                reason: s.reason,
+              }))}
+              services={services}
+              value={slot}
+              onChange={setSlot}
+              allowUnavailable={canOverride}
+              emptyLabel={t("today.form.noSlots")}
+            />
+          )}
+        </div>
+        <Field label={t("today.form.name")} className="sm:col-span-2" required>
+          <Input name="name" required autoComplete="off" />
         </Field>
         <Field label={t("today.form.phone")}>
-          <Input name="phone" type="tel" />
+          <Input name="phone" type="tel" inputMode="tel" autoComplete="off" />
         </Field>
         <Field label={t("today.form.email")}>
-          <Input name="email" type="email" />
+          <Input name="email" type="email" inputMode="email" autoComplete="off" />
         </Field>
         <Field label={t("today.form.source")}>
           <Select name="source" defaultValue="phone">
@@ -118,29 +153,23 @@ export function BookingFormDialog({
           </Select>
         </Field>
         <Field label={t("today.form.notes")} className="sm:col-span-2">
-          <Textarea name="notes" />
+          <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="seatNow" /> {t("today.form.seatNow")}
-        </label>
-        {canOverride ? (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="ignoreCapacity" /> {t("today.form.ignoreCapacity")}
-          </label>
-        ) : null}
+        <div className="space-y-3 sm:col-span-2">
+          <Checkbox name="seatNow" label={t("today.form.seatNow")} />
+          {canOverride ? (
+            <Checkbox
+              name="ignoreCapacity"
+              label={t("today.form.ignoreCapacity")}
+              description={t("today.form.ignoreCapacityHint")}
+            />
+          ) : null}
+        </div>
         {error ? (
           <div className="sm:col-span-2">
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 sm:col-span-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button type="submit" loading={create.isPending} disabled={!slot}>
-            {t("today.form.create")}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );

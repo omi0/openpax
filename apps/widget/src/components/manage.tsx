@@ -3,7 +3,8 @@ import type { PublicBookingDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
 import { formatInstant, formatMoney } from "../dates.js";
-import { locale, setLocale, t } from "../i18n.js";
+import { locale, t } from "../i18n.js";
+import { ErrorBox, Header, Loading } from "./chrome.js";
 import { PaymentNotice } from "./confirmation.js";
 
 export function Manage({ token }: { token: string }) {
@@ -38,53 +39,47 @@ export function Manage({ token }: { token: string }) {
   };
 
   const b = booking.value;
-  if (!b) return <p class="sub">{error.value ?? "…"}</p>;
+  if (!b) return error.value ? <ErrorBox>{error.value}</ErrorBox> : <Loading />;
   return (
     <div>
-      <div class="lang">
-        {(["it", "en"] as const).map((l) => (
-          <button
-            key={l}
-            type="button"
-            aria-pressed={locale.value === l}
-            onClick={() => setLocale(l)}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
-      <h1>{t("manageTitle")}</h1>
-      <p class="sub">{b.restaurant.name}</p>
+      <Header title={t("manageTitle")} subtitle={b.restaurant.name} />
       <div class="summary">
+        <div>
+          <span>{t("status.label")}</span>
+          <span class={`status ${b.status}`}>{t(`status.${b.status}`)}</span>
+        </div>
         <div>
           <span>{t("date")}</span>
           <strong>{formatInstant(b.startsAt, b.restaurant.timezone, locale.value)}</strong>
         </div>
         <div>
           <span>{t("guests")}</span>
-          <strong>{b.partySize}</strong>
+          <strong>
+            {b.partySize === 1 ? t("guestsOne") : t("guestsMany", { n: b.partySize })}
+          </strong>
         </div>
         <div>
           <span>{t("code")}</span>
           <strong class="code">{b.confirmationCode}</strong>
         </div>
-        <div>
-          <span />
-          <span class="status">{t(`status.${b.status}`)}</span>
-        </div>
+        {b.restaurant.address ? (
+          <div>
+            <span>{t("address")}</span>
+            <strong>{b.restaurant.address}</strong>
+          </div>
+        ) : null}
       </div>
-      {b.restaurant.address ? <p class="sub">{b.restaurant.address}</p> : null}
       {b.payment && b.payment.status !== "pending" ? (
-        <p class="sub">
+        <p class="note">
           {t(`payment.status.${b.payment.status}`, {
             amount: formatMoney(b.payment.amountCents, b.payment.currency, locale.value),
           })}
         </p>
       ) : null}
       <PaymentNotice booking={b} />
-      {error.value ? <div class="error">{error.value}</div> : null}
+      {error.value ? <ErrorBox>{error.value}</ErrorBox> : null}
       {b.status === "cancelled" ? (
-        <p>{t("cancelled")}</p>
+        <p class="note">{t("cancelled")}</p>
       ) : b.canCancel ? (
         <div class="actions">
           <button
@@ -97,7 +92,7 @@ export function Manage({ token }: { token: string }) {
           </button>
         </div>
       ) : (
-        <p class="sub">{t("cannotCancel")}</p>
+        <p class="note">{t("cannotCancel")}</p>
       )}
     </div>
   );

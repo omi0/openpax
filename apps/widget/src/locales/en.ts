@@ -2,6 +2,14 @@ import type { Dictionary } from "./it.js";
 
 export const en: Dictionary = {
   title: "Book a table",
+  steps: { label: "Steps", when: "Guests & date", time: "Time", details: "Your details" },
+  pickTime: "Pick a time to continue",
+  yourTable: "Your table",
+  change: "Change",
+  service: "Service",
+  restaurant: "Restaurant",
+  address: "Address",
+  optional: "optional",
   guests: "Guests",
   guestsOne: "1 guest",
   guestsMany: "{n} guests",
@@ -36,6 +44,7 @@ export const en: Dictionary = {
   cancelled: "Booking cancelled",
   cannotCancel: "This booking can no longer be cancelled online. Please contact the restaurant.",
   status: {
+    label: "Status",
     pending: "Awaiting confirmation",
     confirmed: "Confirmed",
     seated: "Seated",

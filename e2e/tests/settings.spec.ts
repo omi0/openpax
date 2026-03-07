@@ -7,7 +7,7 @@ test("closures, capacity rules, areas and the restaurant profile", async ({ page
 
   await page.goto(`/r/${owner.restaurantId}/settings/closures`);
   await page.getByRole("button", { name: "Add date" }).click();
-  await page.getByLabel("Date").fill(date);
+  await page.getByRole("dialog").getByLabel("Date").fill(date);
   await page.getByLabel("Reason (optional)").fill("Ferragosto");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Ferragosto")).toBeVisible();
@@ -38,7 +38,7 @@ test("closures, capacity rules, areas and the restaurant profile", async ({ page
   await page.getByLabel("Phone").fill("+39 051 555 0000");
   await page.getByLabel("Address").fill("Via Roma 1, Bologna");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Saved")).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   const restaurant = await (
     await page.request.get(`/api/v1/restaurants/${owner.restaurantId}`)
   ).json();

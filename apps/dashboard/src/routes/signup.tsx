@@ -48,16 +48,20 @@ function SignupPage() {
       footer={
         <>
           {t("auth.haveAccount")}{" "}
-          <Link to="/login" search={{ redirect, email }} className="font-medium text-brand">
+          <Link
+            to="/login"
+            search={{ redirect, email }}
+            className="font-semibold text-brand-700 hover:underline"
+          >
             {t("auth.login")}
           </Link>
         </>
       }
     >
       {closed ? (
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-[15px]">
           <p className="font-medium">{t("auth.closed")}</p>
-          <p className="text-zinc-500">{t("auth.closedHint")}</p>
+          <p className="text-stone-500">{t("auth.closedHint")}</p>
         </div>
       ) : (
         <form onSubmit={(e) => void submit(e)} className="space-y-4">
@@ -77,7 +81,7 @@ function SignupPage() {
             />
           </Field>
           {error ? <Alert>{error}</Alert> : null}
-          <Button type="submit" className="w-full" loading={busy}>
+          <Button type="submit" size="lg" className="w-full" loading={busy}>
             {t("auth.signup")}
           </Button>
         </form>

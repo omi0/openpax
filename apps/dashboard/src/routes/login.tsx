@@ -45,7 +45,11 @@ function LoginPage() {
         authConfig.data?.signupOpen || email ? (
           <>
             {t("auth.noAccount")}{" "}
-            <Link to="/signup" search={{ redirect, email }} className="font-medium text-brand">
+            <Link
+              to="/signup"
+              search={{ redirect, email }}
+              className="font-semibold text-brand-700 hover:underline"
+            >
               {t("auth.signup")}
             </Link>
           </>
@@ -60,11 +64,15 @@ function LoginPage() {
           <Input name="password" type="password" required autoComplete="current-password" />
         </Field>
         {error ? <Alert>{error}</Alert> : null}
-        <Button type="submit" className="w-full" loading={busy}>
+        <Button type="submit" size="lg" className="w-full" loading={busy}>
           {t("auth.login")}
         </Button>
-        <p className="text-center text-sm">
-          <Link to="/forgot-password" search={{ email }} className="text-zinc-500 hover:text-brand">
+        <p className="text-center text-[15px]">
+          <Link
+            to="/forgot-password"
+            search={{ email }}
+            className="text-stone-500 hover:text-brand-700 hover:underline"
+          >
             {t("auth.forgot")}
           </Link>
         </p>

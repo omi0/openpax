@@ -39,7 +39,12 @@ function InvitationPage() {
   const inv = invitation.data;
   const here = `/invitations/${invitationId}`;
   let body: React.ReactNode;
-  if (invitation.isLoading) body = <Spinner />;
+  if (invitation.isLoading)
+    body = (
+      <div className="flex justify-center py-4">
+        <Spinner />
+      </div>
+    );
   else if (!inv)
     body = (
       <Alert>
@@ -58,7 +63,7 @@ function InvitationPage() {
     const sameAccount = sessionEmail?.toLowerCase() === inv.email.toLowerCase();
     body = (
       <div className="space-y-4">
-        <p className="text-sm">{intro}</p>
+        <p className="text-[15px] leading-relaxed">{intro}</p>
         {sessionEmail && sameAccount ? (
           <>
             {accept.error ? (
@@ -66,7 +71,12 @@ function InvitationPage() {
                 {accept.error instanceof ApiClientError ? accept.error.message : t("app.error")}
               </Alert>
             ) : null}
-            <Button className="w-full" loading={accept.isPending} onClick={() => accept.mutate()}>
+            <Button
+              size="lg"
+              className="w-full"
+              loading={accept.isPending}
+              onClick={() => accept.mutate()}
+            >
               {accept.isPending ? t("invite.accepting") : t("invite.accept")}
             </Button>
           </>
@@ -75,24 +85,26 @@ function InvitationPage() {
             <Alert tone="info">
               {t("invite.wrongAccount", { current: sessionEmail, email: inv.email })}
             </Alert>
-            <Button variant="secondary" className="w-full" onClick={() => void logout()}>
+            <Button variant="secondary" size="lg" className="w-full" onClick={() => void logout()}>
               {t("invite.logout")}
             </Button>
           </>
         ) : (
           <>
-            <p className="text-sm text-zinc-500">{t("invite.signupFirst", { email: inv.email })}</p>
+            <p className="text-[15px] text-stone-500">
+              {t("invite.signupFirst", { email: inv.email })}
+            </p>
             <Link
               to="/signup"
               search={{ redirect: here, email: inv.email }}
-              className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand px-4 text-sm font-medium text-white hover:bg-brand-600"
+              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-600 px-4 text-base font-semibold text-white shadow-sm hover:bg-brand-700"
             >
               {t("invite.signup")}
             </Link>
             <Link
               to="/login"
               search={{ redirect: here, email: inv.email }}
-              className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium hover:bg-zinc-50"
+              className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-stone-300 bg-white px-4 text-base font-semibold text-stone-800 hover:bg-stone-50"
             >
               {t("invite.login")}
             </Link>

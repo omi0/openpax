@@ -13,6 +13,7 @@ import {
   submitError,
   submitting,
 } from "../state.js";
+import { ErrorBox } from "./chrome.js";
 
 function idempotencyKey() {
   return `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -55,10 +56,19 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
 
   const terms = cfg.widget.termsUrl;
   const privacy = cfg.widget.privacyUrl;
+  const back = () => {
+    step.value = "when";
+  };
 
   return (
     <form onSubmit={(e) => void submit(e)}>
       <div class="summary">
+        <div class="summary-head">
+          <strong>{t("yourTable")}</strong>
+          <button type="button" class="change" onClick={back}>
+            {t("change")}
+          </button>
+        </div>
         <div>
           <span>{t("date")}</span>
           <strong>{formatInstant(slot.startsAt, cfg.restaurant.timezone, locale.value)}</strong>
@@ -71,7 +81,7 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         </div>
         {selectedServiceName.value ? (
           <div>
-            <span />
+            <span>{t("service")}</span>
             <strong>{selectedServiceName.value}</strong>
           </div>
         ) : null}
@@ -96,17 +106,22 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
           type="email"
           required
           autocomplete="email"
+          inputMode="email"
           value={g.email}
           onInput={(e) => update({ email: (e.target as HTMLInputElement).value })}
         />
       </div>
       <div class="field">
-        <label for="sitli-phone">{t("phone")}</label>
+        <label for="sitli-phone">
+          {t("phone")}
+          {!cfg.widget.requirePhone ? ` (${t("optional")})` : ""}
+        </label>
         <input
           id="sitli-phone"
           type="tel"
           required={cfg.widget.requirePhone}
           autocomplete="tel"
+          inputMode="tel"
           value={g.phone}
           onInput={(e) => update({ phone: (e.target as HTMLInputElement).value })}
         />
@@ -129,7 +144,7 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         <span>{t("marketing")}</span>
       </label>
       {terms || privacy ? (
-        <p class="sub" style={{ fontSize: 13, marginTop: 10 }}>
+        <p class="fine">
           {t("terms").split(/\{terms\}|\{privacy\}/)[0]}
           {terms ? (
             <a href={terms} target="_blank" rel="noreferrer">
@@ -150,15 +165,9 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         </p>
       ) : null}
 
-      {submitError.value ? <div class="error">{submitError.value}</div> : null}
+      {submitError.value ? <ErrorBox>{submitError.value}</ErrorBox> : null}
       <div class="actions">
-        <button
-          type="button"
-          class="btn secondary"
-          onClick={() => {
-            step.value = "when";
-          }}
-        >
+        <button type="button" class="btn secondary" onClick={back}>
           {t("back")}
         </button>
         <button type="submit" class="btn" disabled={submitting.value}>

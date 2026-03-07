@@ -26,7 +26,12 @@
     "calendar": "Calendar",
     "bookings": "Bookings",
     "analytics": "Analytics",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "more": "More",
+    "menu": "Menu",
+    "switchRestaurant": "Switch restaurant",
+    "confirm": "Confirm",
+    "actions": "Actions"
   },
   "auth": {
     "login": "Log in",
@@ -52,7 +57,9 @@
     "setPassword": "Set password",
     "resetDone": "Your password has been updated. You can log in now.",
     "resetInvalid": "This reset link is invalid or has expired. Request a new one.",
-    "backToLogin": "Back to log in"
+    "backToLogin": "Back to log in",
+    "tagline": "Bookings for your restaurant, without the fuss.",
+    "taglineHint": "Guests book from your website, your team sees every table at a glance, and reminders go out on their own."
   },
   "onboarding": {
     "title": "Set up your restaurant",
@@ -67,10 +74,11 @@
     "address": "Address",
     "serviceIntro": "A service is a bookable period, like Lunch or Dinner. You can add more later.",
     "continue": "Continue",
-    "finish": "Finish"
+    "finish": "Finish",
+    "welcome": "Welcome to Sitli"
   },
   "today": {
-    "title": "Bookings",
+    "title": "Today",
     "newBooking": "New booking",
     "noBookings": "No bookings on this day.",
     "covers": "{{count}} covers",
@@ -136,7 +144,9 @@
         "no_table": "no free table"
       },
       "slotUnavailable": "That time is not available: {{reason}}.",
-      "noChanges": "Nothing changed."
+      "noChanges": "Nothing changed.",
+      "notesPlaceholder": "Allergies, high chair, birthday…",
+      "ignoreCapacityHint": "Book even if the time shows as full."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -157,7 +167,33 @@
     "takenBy": "taken by {{name}}",
     "seatAnyway": "Seat here anyway (the table is taken at that time)",
     "seatsChosen": "{{count}} seats",
-    "unassigned": "Bookings without a table"
+    "unassigned": "Bookings without a table",
+    "pickDate": "Pick a date",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "viewLabel": "View",
+    "seatedNow": "{{count}} seated now",
+    "toConfirm": "{{count}} to confirm",
+    "guests_one": "{{count}} guest",
+    "guests_other": "{{count}} guests",
+    "details": "Details",
+    "moreActions": "More actions",
+    "call": "Call",
+    "emailGuest": "Email",
+    "table": "Table",
+    "changeTable": "Change",
+    "noBookingsHint": "Online bookings and the ones you add by hand show up here.",
+    "noShows_one": "{{count}} no-show",
+    "noShows_other": "{{count}} no-shows",
+    "created": "Booking for {{name}} created",
+    "done": {
+      "confirm": "Booking confirmed",
+      "seat": "Guest seated",
+      "complete": "Booking completed",
+      "cancel": "Booking cancelled",
+      "no_show": "Marked as no-show",
+      "reopen": "Booking reopened"
+    }
   },
   "services": {
     "title": "Services",
@@ -178,7 +214,19 @@
     "unlimited": "unlimited",
     "empty": "No services yet. Add one so guests can book.",
     "coversHint": "Guests that may arrive within one slot interval. Leave empty for no limit.",
-    "lastSeating": "Times are first and last bookable arrival."
+    "lastSeating": "Times are first and last bookable arrival.",
+    "list": "Your services",
+    "every": "Arrivals every {{count}} min",
+    "turn": "{{count}} min per table",
+    "maxCoversShort": "max {{count}} covers per slot",
+    "timing": "Timing",
+    "capacity": "Capacity",
+    "slotIntervalHint": "How often guests can arrive: every 15, 30 or 60 minutes.",
+    "durationHint": "How long a table stays taken.",
+    "partyHint": "Leave empty to use the general booking rules.",
+    "addHours": "Add hours",
+    "activeHint": "Inactive services are hidden from guests.",
+    "confirmDelete": "Guests will no longer be able to book it."
   },
   "notifications": {
     "title": "Notifications",
@@ -221,7 +269,20 @@
     "hoursBefore": "hours before",
     "rulesHint": "Choose which messages go out on each channel. SMS only works once an SMS provider is configured.",
     "templates": "Templates",
-    "hoursAfter": "h after"
+    "hoursAfter": "h after",
+    "channelHint": {
+      "email": "Confirmations, reminders and updates by email.",
+      "sms": "Short text messages to your guests' phones."
+    },
+    "status": "Status",
+    "providerFields": "Settings for {{provider}}",
+    "rulesTitle": "What gets sent",
+    "templatesTitle": "Message texts",
+    "eventColumn": "Message",
+    "smsNeedsProvider": "Set up an SMS provider first to switch on text messages.",
+    "testHint": "Send yourself a message to check that everything works.",
+    "unsaved": "Unsaved changes",
+    "confirmRemove": "Remove this provider? Messages on this channel will stop until you set up another one."
   },
   "widget": {
     "title": "Widget & booking rules",
@@ -249,7 +310,10 @@
     "waitlistHint": "When a date is full, guests can leave their details from the widget. Freed tables can be offered to them automatically, first come first served; an offer that is not accepted in time moves on to the next guest.",
     "waitlistEnabled": "Let guests join a waitlist",
     "waitlistAutoOffer": "Offer freed tables automatically",
-    "waitlistOfferMinutes": "Offer validity (minutes)"
+    "waitlistOfferMinutes": "Offer validity (minutes)",
+    "copyCode": "Copy code",
+    "appearanceHint": "How the booking form looks on your website.",
+    "rulesHint": "What guests can and cannot do when they book online."
   },
   "weekday": {
     "mon": "Mon",
@@ -310,7 +374,11 @@
     "deleteHint": "Removes contact details, notes and tags. Bookings are kept under an anonymous guest.",
     "confirmDelete": "Delete this guest and their personal data?",
     "duplicate": "Another guest already uses this {{field}}.",
-    "invalidPhone": "The phone number is not valid."
+    "invalidPhone": "The phone number is not valid.",
+    "hint": "Everyone who has booked with you, with notes and history.",
+    "sortLabel": "Sort by",
+    "visitsShort_one": "{{count}} visit",
+    "visitsShort_other": "{{count}} visits"
   },
   "calendar": {
     "title": "Week",
@@ -367,7 +435,16 @@
     "areasHint": "Optional zones guests can ask for (terrace, garden, private room). Capacity rules can target them.",
     "addArea": "Add area",
     "areaName": "Area name",
-    "emptyAreas": "No areas defined."
+    "emptyAreas": "No areas defined.",
+    "closedAllDay": "Closed all day",
+    "namePlaceholder": "Quiet Mondays",
+    "timeHint": "Leave empty for the whole day.",
+    "limits": "Limits",
+    "limitsHint": "Leave a field empty to keep the service limit.",
+    "activeHint": "Switch off to keep the rule without applying it.",
+    "confirmDelete": "Remove this date?",
+    "confirmDeleteRule": "Delete this rule?",
+    "confirmDeleteArea": "Delete this area?"
   },
   "role": {
     "owner": "Owner",
@@ -394,7 +471,13 @@
     "remove": "Remove",
     "confirmRemove": "Remove {{name}} from the team?",
     "alreadyMember": "This person is already on the team.",
-    "noProviderHint": "If no email provider is configured the invitation is still created: share the link from the pending list."
+    "noProviderHint": "If no email provider is configured the invitation is still created: share the link from the pending list.",
+    "roles": {
+      "owner": "full access, including the team",
+      "manager": "runs the restaurant and its settings",
+      "staff": "handles bookings and guests"
+    },
+    "copyLink": "Copy invitation link"
   },
   "apiKeys": {
     "title": "API keys",
@@ -415,7 +498,10 @@
     "expiresOn": "expires {{date}}",
     "requests": "{{count}} requests",
     "revoke": "Revoke",
-    "confirmRevoke": "Revoke this key? Integrations using it stop working immediately."
+    "confirmRevoke": "Revoke this key? Integrations using it stop working immediately.",
+    "keysTitle": "Your keys",
+    "newKey": "New key",
+    "usageHint": "An example request from a terminal."
   },
   "invite": {
     "title": "You have been invited",
@@ -467,7 +553,11 @@
     },
     "empty": "No bookings match.",
     "count": "{{count}} bookings",
-    "openDay": "Open day"
+    "openDay": "Open day",
+    "all": "All",
+    "period": "Period",
+    "hint": "Search and browse every booking, past and future.",
+    "emptyFiltered": "Try another search or clear the filters."
   },
   "templates": {
     "hint": "Rewrite any message in your own words. Placeholders in double braces are replaced when the message goes out; the booking details table and the manage button stay.",
@@ -499,7 +589,10 @@
       "notes": "Guest notes",
       "address": "Restaurant address",
       "cancellationReason": "Cancellation reason"
-    }
+    },
+    "editChannel": "Edit {{channel}} text",
+    "forAudience": "Messages to the {{audience}}",
+    "noPreview": "Type something to see the preview."
   },
   "analytics": {
     "title": "Analytics",
@@ -575,7 +668,8 @@
     },
     "feedback": "Guest feedback",
     "feedbackHint": "Ratings left after visits in this period.",
-    "feedbackResponses": "{{count}} responses"
+    "feedbackResponses": "{{count}} responses",
+    "hideTable": "Hide table"
   },
   "waitlist": {
     "title": "Waitlist",
@@ -649,7 +743,13 @@
     "floorPlanHint": "Drag tables to arrange the room, then save the layout. Click a table to edit it.",
     "saveLayout": "Save layout",
     "seats": "{{min}}–{{max}} guests",
-    "allAreas": "All areas"
+    "allAreas": "All areas",
+    "list": "Table list",
+    "emptyPlan": "The plan appears once you add a table.",
+    "layoutSaved": "Layout saved",
+    "confirmDelete": "Delete this table?",
+    "size": "Size on the plan",
+    "activeHint": "Inactive tables are never assigned."
   },
   "payments": {
     "title": "Payments",
@@ -713,8 +813,9 @@
     "anyRating": "Any rating",
     "stars": "{{count}} stars",
     "stars_one": "{{count}} star",
-    "empty": "No feedback yet. Requests go out automatically after each visit (Settings → Notifications).",
-    "answered": "answered {{when}}"
+    "empty": "Requests go out automatically after each visit (Settings → Notifications).",
+    "answered": "answered {{when}}",
+    "emptyTitle": "No feedback yet"
   },
   "csv": {
     "export": "Export CSV",
@@ -735,6 +836,22 @@
     "errors": "Rows with problems",
     "line": "Line {{line}}",
     "done": "Import complete",
-    "template": "Download a template"
+    "template": "Download a template",
+    "drop": "Choose a CSV file from your computer"
+  },
+  "settings": {
+    "intro": "Everything about how your restaurant takes bookings, in one place.",
+    "back": "All settings",
+    "desc": {
+      "restaurant": "Name, address, contact details and language.",
+      "services": "When you take bookings: lunch, dinner, and how many guests per time slot.",
+      "closures": "Holidays, private events and limits on busy days.",
+      "tables": "Your room: tables, seats and the floor plan.",
+      "notifications": "Emails and text messages sent to guests and to you.",
+      "payments": "Deposits and card holds to protect against no-shows.",
+      "widget": "The booking page for your website and the rules guests must follow.",
+      "team": "Who can log in and what they can do.",
+      "apiKeys": "For developers: connect other software."
+    }
   }
 }

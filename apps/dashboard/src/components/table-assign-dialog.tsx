@@ -1,9 +1,11 @@
 import type { BookingDto, TableDto } from "@sitli/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Button, Dialog } from "@/components/ui";
+import { Alert, Button, Checkbox, Dialog } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const ACTIVE = new Set(["pending", "confirmed", "seated"]);
 const at = (iso: string) => new Date(iso).getTime();
@@ -56,44 +58,79 @@ export function TableAssignDialog({
   const active = tables.filter((x) => x.active);
   const seats = active.filter((x) => chosen.has(x.id)).reduce((n, x) => n + x.maxCovers, 0);
   const conflict = active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
+  const toggle = (id: string) => {
+    const next = new Set(chosen);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setChosen(next);
+  };
 
   return (
-    <Dialog open onClose={onClose} title={t("today.assignTables")}>
+    <Dialog
+      open
+      onClose={onClose}
+      title={t("today.assignTables")}
+      description={`${booking.customer.name} · ${t("today.guests", { count: booking.partySize })}${
+        chosen.size > 0 ? ` · ${t("today.seatsChosen", { count: seats })}` : ""
+      }`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button loading={save.isPending} onClick={() => save.mutate()}>
+            {t("app.save")}
+          </Button>
+        </>
+      }
+    >
       <div className="space-y-3">
-        <p className="text-sm text-zinc-600">
-          {booking.customer.name} · {booking.partySize}
-          {chosen.size > 0 ? ` · ${t("today.seatsChosen", { count: seats })}` : ""}
-        </p>
         {active.length === 0 ? (
-          <p className="text-sm text-zinc-500">{t("tables.empty")}</p>
+          <p className="text-sm text-stone-500">{t("tables.empty")}</p>
         ) : (
-          <ul className="max-h-80 divide-y divide-zinc-100 overflow-auto rounded-lg border border-zinc-200">
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {active.map((x) => {
               const by = occupantOf(x, booking, dayBookings);
+              const on = chosen.has(x.id);
               return (
                 <li key={x.id}>
-                  <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={chosen.has(x.id)}
-                      onChange={(e) => {
-                        const next = new Set(chosen);
-                        if (e.target.checked) next.add(x.id);
-                        else next.delete(x.id);
-                        setChosen(next);
-                      }}
-                    />
-                    <span className="w-14 font-medium">{x.name}</span>
-                    <span className="text-zinc-500">
+                  <label
+                    className={cn(
+                      "flex h-full cursor-pointer flex-col gap-1 rounded-xl border p-3 transition-colors",
+                      on
+                        ? "border-brand-600 bg-brand-50 ring-2 ring-brand-600/20"
+                        : by
+                          ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50"
+                          : "border-stone-200 bg-white hover:border-stone-300",
+                    )}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-base font-semibold">{x.name}</span>
+                      <span className="relative inline-flex size-5 shrink-0 items-center justify-center">
+                        <input
+                          type="checkbox"
+                          className="peer size-5 appearance-none rounded-md border border-stone-300 bg-white transition checked:border-brand-600 checked:bg-brand-600"
+                          checked={on}
+                          onChange={() => toggle(x.id)}
+                          aria-label={x.name}
+                        />
+                        <Check
+                          className="pointer-events-none absolute size-3.5 text-white opacity-0 peer-checked:opacity-100"
+                          strokeWidth={3}
+                        />
+                      </span>
+                    </span>
+                    <span className="text-[13px] text-stone-500">
                       {t("tables.seats", { min: x.minCovers, max: x.maxCovers })}
                     </span>
-                    {by ? (
-                      <span className="ml-auto text-xs text-amber-700">
-                        {t("today.takenBy", { name: by.customer.name })}
-                      </span>
-                    ) : (
-                      <span className="ml-auto text-xs text-emerald-700">{t("today.free")}</span>
-                    )}
+                    <span
+                      className={cn(
+                        "text-[13px] font-medium",
+                        by ? "text-amber-700" : "text-emerald-700 capitalize",
+                      )}
+                    >
+                      {by ? t("today.takenBy", { name: by.customer.name }) : t("today.free")}
+                    </span>
                   </label>
                 </li>
               );
@@ -101,20 +138,13 @@ export function TableAssignDialog({
           </ul>
         )}
         {conflict ? (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
-            {t("today.seatAnyway")}
-          </label>
+          <Checkbox
+            checked={force}
+            onChange={(e) => setForce(e.target.checked)}
+            label={t("today.seatAnyway")}
+          />
         ) : null}
         {error ? <Alert>{error}</Alert> : null}
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button loading={save.isPending} onClick={() => save.mutate()}>
-            {t("app.save")}
-          </Button>
-        </div>
       </div>
     </Dialog>
   );

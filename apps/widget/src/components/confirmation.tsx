@@ -2,6 +2,7 @@ import type { PublicBookingDto } from "@sitli/shared";
 import { formatInstant, formatMoney } from "../dates.js";
 import { locale, t } from "../i18n.js";
 import { reset } from "../state.js";
+import { CodeBox, DoneIcon } from "./chrome.js";
 
 export function PaymentNotice({ booking }: { booking: PublicBookingDto }) {
   const p = booking.payment;
@@ -21,7 +22,7 @@ export function PaymentNotice({ booking }: { booking: PublicBookingDto }) {
           })}
         </p>
       ) : null}
-      <a class="btn" href={p.checkoutUrl} target="_top" style={{ textDecoration: "none" }}>
+      <a class="btn" href={p.checkoutUrl} target="_top">
         {p.kind === "deposit" ? t("payment.payDeposit") : t("payment.saveCard")}
       </a>
     </div>
@@ -33,13 +34,18 @@ export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; h
   const pending = booking.status === "pending" && !paying;
   return (
     <div class="done">
-      <div class="icon">{paying ? "💳" : pending ? "⏳" : "✓"}</div>
+      <DoneIcon kind={paying ? "card" : pending ? "wait" : "check"} />
       <h1>{paying ? t("payment.title") : pending ? t("pendingTitle") : t("confirmedTitle")}</h1>
       <p class="sub">
         {paying ? t("payment.intro") : pending ? t("pendingText") : t("confirmedText")}
       </p>
       <PaymentNotice booking={booking} />
-      <div class="summary" style={{ textAlign: "left" }}>
+      <CodeBox code={booking.confirmationCode} />
+      <div class="summary">
+        <div>
+          <span>{t("restaurant")}</span>
+          <strong>{booking.restaurant.name}</strong>
+        </div>
         <div>
           <span>{t("date")}</span>
           <strong>
@@ -48,12 +54,16 @@ export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; h
         </div>
         <div>
           <span>{t("guests")}</span>
-          <strong>{booking.partySize}</strong>
+          <strong>
+            {booking.partySize === 1 ? t("guestsOne") : t("guestsMany", { n: booking.partySize })}
+          </strong>
         </div>
-        <div>
-          <span>{t("code")}</span>
-          <strong class="code">{booking.confirmationCode}</strong>
-        </div>
+        {booking.restaurant.address ? (
+          <div>
+            <span>{t("address")}</span>
+            <strong>{booking.restaurant.address}</strong>
+          </div>
+        ) : null}
       </div>
       <div class="actions">
         <button type="button" class="btn secondary" onClick={reset}>
@@ -64,7 +74,6 @@ export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; h
           href={booking.manageUrl}
           target={hosted ? "_self" : "_blank"}
           rel="noreferrer"
-          style={{ textDecoration: "none", textAlign: "center" }}
         >
           {t("manage")}
         </a>

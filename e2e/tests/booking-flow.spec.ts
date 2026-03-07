@@ -83,11 +83,12 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   await expect(page.getByText("Mario Guest")).toBeVisible();
   await expect(page.getByText(slotTime, { exact: true })).toBeVisible();
 
-  // --- notification log shows the confirmation email as sent (may take a relay tick)
+  // --- the booking sheet shows the confirmation email as sent (may take a relay tick)
   await page.getByText("Mario Guest").click();
   await expect(page.getByText("sent").first()).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
 
-  // --- staff seats the guest
+  // --- staff seats the guest from the row
   await page.getByRole("button", { name: "Seat" }).first().click();
-  await expect(page.getByText("Seated")).toBeVisible();
+  await expect(page.getByText("Seated", { exact: true })).toBeVisible();
 });

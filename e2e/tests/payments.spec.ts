@@ -12,11 +12,11 @@ test("owner configures Stripe keys and a deposit policy", async ({ page }) => {
   );
 
   await page.getByLabel("Secret key").fill("sk_test_e2e_1234");
-  await page.getByLabel("What to ask guests").selectOption("deposit");
+  await page.getByRole("radio", { name: "A deposit, paid up front" }).check();
   await page.getByLabel(/Amount per guest/).fill("15");
   await page.getByLabel("Only from party size").fill("6");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Saved")).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await expect(page.getByText("Connected", { exact: true })).toBeVisible();
   await expect(page.getByText("Set (ends in 1234)")).toBeVisible();
 

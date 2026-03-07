@@ -1,6 +1,7 @@
 import type { AvailabilitySlotDto } from "@sitli/shared";
 import { t } from "../i18n.js";
 import { availability, canJoinWaitlist, loadingSlots, selectedSlot, step } from "../state.js";
+import { Loading } from "./chrome.js";
 
 function WaitlistCta() {
   if (!canJoinWaitlist.value) return null;
@@ -22,11 +23,24 @@ function WaitlistCta() {
 
 export function SlotGrid() {
   const data = availability.value;
-  if (loadingSlots.value) return <p class="empty">…</p>;
-  if (!data || data.closed) return <p class="empty">{t("closed")}</p>;
+  if (loadingSlots.value)
+    return (
+      <div>
+        <span class="label">{t("time")}</span>
+        <Loading />
+      </div>
+    );
+  if (!data || data.closed)
+    return (
+      <div>
+        <span class="label">{t("time")}</span>
+        <p class="empty">{t("closed")}</p>
+      </div>
+    );
   if (data.slots.length === 0)
     return (
       <div>
+        <span class="label">{t("time")}</span>
         <p class="empty">{t("noSlots")}</p>
         <WaitlistCta />
       </div>
@@ -42,7 +56,9 @@ export function SlotGrid() {
       <span class="label">{t("time")}</span>
       {[...byService.entries()].map(([serviceId, slots]) => (
         <div key={serviceId}>
-          {showServiceNames ? <h2>{data.services.find((s) => s.id === serviceId)?.name}</h2> : null}
+          {showServiceNames ? (
+            <h3 class="group-label">{data.services.find((s) => s.id === serviceId)?.name}</h3>
+          ) : null}
           <div class="slots">
             {slots.map((slot) => {
               const selected =
@@ -53,6 +69,7 @@ export function SlotGrid() {
                   key={`${slot.serviceId}-${slot.startsAt}`}
                   type="button"
                   class={`slot ${selected ? "selected" : ""}`}
+                  aria-pressed={selected}
                   disabled={!slot.available}
                   onClick={() => {
                     selectedSlot.value = slot;

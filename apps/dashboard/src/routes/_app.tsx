@@ -9,12 +9,14 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import {
-  BarChart3,
   CalendarDays,
   CalendarRange,
+  ChartColumn,
+  Check,
+  ChevronsUpDown,
   ClipboardList,
   LogOut,
-  Menu,
+  Menu as MenuIcon,
   MessageSquareHeart,
   Plus,
   Settings,
@@ -23,6 +25,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BrandLockup, BrandMark } from "@/components/brand";
+import { Avatar, Menu } from "@/components/ui";
 import { setLanguage } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { type Me, meQuery } from "@/lib/queries";
@@ -38,16 +42,17 @@ export const Route = createFileRoute("/_app")({
 });
 
 const sections = [
-  { to: "/r/$restaurantId/today", key: "app.today", Icon: CalendarDays },
-  { to: "/r/$restaurantId/calendar", key: "app.calendar", Icon: CalendarRange },
-  { to: "/r/$restaurantId/bookings", key: "app.bookings", Icon: ClipboardList },
-  { to: "/r/$restaurantId/customers", key: "app.customers", Icon: Users },
-  { to: "/r/$restaurantId/analytics", key: "app.analytics", Icon: BarChart3 },
-  { to: "/r/$restaurantId/feedback", key: "app.feedback", Icon: MessageSquareHeart },
-  { to: "/r/$restaurantId/settings", key: "app.settings", Icon: Settings },
+  { to: "/r/$restaurantId/today", key: "app.today", Icon: CalendarDays, mobile: true },
+  { to: "/r/$restaurantId/calendar", key: "app.calendar", Icon: CalendarRange, mobile: true },
+  { to: "/r/$restaurantId/bookings", key: "app.bookings", Icon: ClipboardList, mobile: true },
+  { to: "/r/$restaurantId/customers", key: "app.customers", Icon: Users, mobile: true },
+  { to: "/r/$restaurantId/analytics", key: "app.analytics", Icon: ChartColumn, mobile: false },
+  { to: "/r/$restaurantId/feedback", key: "app.feedback", Icon: MessageSquareHeart, mobile: false },
+  { to: "/r/$restaurantId/settings", key: "app.settings", Icon: Settings, mobile: false },
 ] as const;
 
 function AppLayout() {
+  const { t } = useTranslation();
   const { data: me } = useSuspenseQuery(meQuery());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -55,6 +60,7 @@ function AppLayout() {
   const current = me.restaurants.find((r) => r.id === params.restaurantId) ?? null;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
+  const onboarding = pathname.startsWith("/onboarding");
 
   // close the drawer after any navigation
   useEffect(() => {
@@ -67,40 +73,42 @@ function AppLayout() {
     await navigate({ to: "/login" });
   };
 
+  if (onboarding) return <MinimalLayout me={me} onLogout={logout} />;
+
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      <header className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-2 md:hidden">
+      {/* phone: top bar */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-stone-200 bg-white/95 px-3 backdrop-blur md:hidden">
         <button
           type="button"
-          aria-label="Menu"
+          aria-label={t("app.menu")}
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="rounded-lg p-1.5 hover:bg-zinc-100"
+          className="inline-flex size-10 items-center justify-center rounded-xl hover:bg-stone-100"
         >
-          <Menu className="size-5" />
+          <MenuIcon className="size-5" />
         </button>
-        <span className="grid size-7 place-items-center rounded-lg bg-brand text-sm font-bold text-white">
-          S
-        </span>
-        <span className="truncate font-semibold">{current?.name ?? "Sitli"}</span>
+        <BrandMark size={30} />
+        <span className="min-w-0 truncate text-base font-semibold">{current?.name ?? "Sitli"}</span>
       </header>
 
+      {/* phone: drawer with everything */}
       {open ? (
         <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
             aria-label="Close"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 animate-fade-in bg-stone-900/40"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-white p-4 shadow-xl">
+          <aside className="absolute inset-y-0 left-0 flex w-80 max-w-[88vw] animate-slide-in-left flex-col overflow-y-auto bg-white px-4 pt-3 pb-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-semibold">Sitli</span>
+              <BrandLockup />
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-1.5 hover:bg-zinc-100"
+                className="inline-flex size-10 items-center justify-center rounded-xl hover:bg-stone-100"
               >
                 <X className="size-5" />
               </button>
@@ -110,20 +118,94 @@ function AppLayout() {
         </div>
       ) : null}
 
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-zinc-200 bg-white p-4 md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-brand font-bold text-white">
-            S
-          </span>
-          <span className="font-semibold">Sitli</span>
-        </div>
+      {/* desktop: sidebar */}
+      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-stone-200 bg-white px-4 pt-5 pb-4 md:sticky md:top-0 md:flex md:h-dvh">
+        <BrandLockup className="mb-5 px-2" />
         <NavContent me={me} current={current} onLogout={logout} />
       </aside>
 
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-5xl p-4 md:p-8">
+      <main className="min-w-0 flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="mx-auto max-w-6xl px-4 py-5 md:px-8 md:py-8">
           <Outlet />
         </div>
+      </main>
+
+      {/* phone: bottom tabs for the daily screens */}
+      {current ? (
+        <nav
+          aria-label="Primary"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        >
+          {sections
+            .filter((s) => s.mobile)
+            .map(({ to, key, Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                params={{ restaurantId: current.id }}
+                className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-stone-500"
+                activeProps={{ className: "text-brand-700" }}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={cn(
+                        "inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                        isActive && "bg-brand-50",
+                      )}
+                    >
+                      <Icon className="size-5" />
+                    </span>
+                    {t(key)}
+                  </>
+                )}
+              </Link>
+            ))}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-stone-500"
+          >
+            <span className="inline-flex h-7 w-12 items-center justify-center rounded-full">
+              <MenuIcon className="size-5" />
+            </span>
+            {t("app.more")}
+          </button>
+        </nav>
+      ) : null}
+    </div>
+  );
+}
+
+/** Header-only frame used during onboarding, so the empty sidebar does not distract. */
+function MinimalLayout({ me, onLogout }: { me: Me; onLogout: () => Promise<void> }) {
+  const { t } = useTranslation();
+  const first = me.restaurants[0];
+  return (
+    <div className="flex min-h-full flex-col">
+      <header className="flex h-16 items-center justify-between border-b border-stone-200 bg-white px-4 md:px-8">
+        <BrandLockup />
+        <div className="flex items-center gap-2">
+          {first ? (
+            <Link
+              to="/r/$restaurantId/today"
+              params={{ restaurantId: first.id }}
+              className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100"
+            >
+              {t("app.back")}
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void onLogout()}
+            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100"
+          >
+            <LogOut className="size-4" /> {t("app.logout")}
+          </button>
+        </div>
+      </header>
+      <main className="flex-1 px-4 py-8 md:px-8">
+        <Outlet />
       </main>
     </div>
   );
@@ -139,79 +221,149 @@ function NavContent({
   onLogout: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {t("app.restaurants")}
-      </p>
-      <nav className="space-y-0.5">
-        {me.restaurants.map((r) => (
-          <Link
-            key={r.id}
-            to="/r/$restaurantId/today"
-            params={{ restaurantId: r.id }}
-            className={cn(
-              "block truncate rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100",
-              r.id === current?.id && "bg-brand-50 font-medium text-brand",
-            )}
-          >
-            {r.name}
-          </Link>
-        ))}
-        <Link
-          to="/onboarding"
-          className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100"
-        >
-          <Plus className="size-4" /> {t("app.newRestaurant")}
-        </Link>
-      </nav>
+      <RestaurantSwitcher
+        me={me}
+        current={current}
+        onPick={(id) =>
+          void navigate({ to: "/r/$restaurantId/today", params: { restaurantId: id } })
+        }
+      />
       {current ? (
-        <>
-          <p className="mt-6 mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            {current.name}
-          </p>
-          <nav className="space-y-0.5">
-            {sections.map(({ to, key, Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                params={{ restaurantId: current.id }}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
-                activeProps={{ className: "bg-zinc-100 font-medium" }}
-              >
-                <Icon className="size-4" /> {t(key)}
-              </Link>
-            ))}
-          </nav>
-        </>
-      ) : null}
-      <div className="mt-auto space-y-2 px-2 pt-6 text-sm">
-        <div className="flex gap-1">
-          {(["it", "en"] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLanguage(l)}
-              className={cn(
-                "rounded px-2 py-0.5 text-xs uppercase",
-                i18n.language.startsWith(l)
-                  ? "bg-zinc-200 font-semibold"
-                  : "text-zinc-500 hover:bg-zinc-100",
-              )}
+        <nav className="mt-4 space-y-1">
+          {sections.map(({ to, key, Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              params={{ restaurantId: current.id }}
+              className="group flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-stone-700 transition-colors hover:bg-stone-100"
+              activeProps={{ className: "bg-brand-50 text-brand-800 hover:bg-brand-50" }}
             >
-              {l}
-            </button>
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    className={cn(
+                      "size-5 text-stone-400 group-hover:text-stone-600",
+                      isActive && "text-brand-700 group-hover:text-brand-700",
+                    )}
+                  />
+                  {t(key)}
+                </>
+              )}
+            </Link>
           ))}
+        </nav>
+      ) : null}
+      <div className="mt-auto space-y-3 pt-6">
+        <LanguageToggle value={i18n.language} onChange={setLanguage} />
+        <div className="flex items-center gap-3 rounded-xl border border-stone-200 p-2.5">
+          <Avatar name={me.user.name || me.user.email} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{me.user.name || me.user.email}</p>
+            {me.user.name ? (
+              <p className="truncate text-xs text-stone-500">{me.user.email}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => void onLogout()}
+            title={t("app.logout")}
+            aria-label={t("app.logout")}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-900"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
-        <p className="truncate text-zinc-500">{me.user.email}</p>
-        <button
-          type="button"
-          onClick={() => void onLogout()}
-          className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
-        >
-          <LogOut className="size-4" /> {t("app.logout")}
-        </button>
       </div>
     </div>
+  );
+}
+
+function RestaurantSwitcher({
+  me,
+  current,
+  onPick,
+}: {
+  me: Me;
+  current: Me["restaurants"][number] | null;
+  onPick: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const items = [
+    ...me.restaurants.map((r) => ({
+      label: (
+        <span className="flex flex-1 items-center justify-between gap-2">
+          <span className="truncate">{r.name}</span>
+          {r.id === current?.id ? <Check className="size-4 text-brand-700" /> : null}
+        </span>
+      ),
+      onSelect: () => onPick(r.id),
+    })),
+    "separator" as const,
+    {
+      label: t("app.newRestaurant"),
+      icon: <Plus />,
+      onSelect: () => void navigate({ to: "/onboarding" }),
+    },
+  ];
+  return (
+    <Menu
+      align="start"
+      className="w-full"
+      items={items}
+      trigger={({ open, toggle }) => (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          aria-label={t("app.switchRestaurant")}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-left transition-colors hover:bg-stone-100",
+            open && "bg-stone-100",
+          )}
+        >
+          <Avatar name={current?.name ?? "?"} size="sm" className="rounded-lg" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold">
+              {current?.name ?? t("app.restaurants")}
+            </span>
+            <span className="block truncate text-xs text-stone-500">
+              {current ? t(`role.${current.role}`) : t("app.newRestaurant")}
+            </span>
+          </span>
+          <ChevronsUpDown className="size-4 shrink-0 text-stone-400" />
+        </button>
+      )}
+    />
+  );
+}
+
+function LanguageToggle({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (l: "it" | "en") => void;
+}) {
+  return (
+    <fieldset className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1" aria-label="Language">
+      {(["it", "en"] as const).map((l) => (
+        <button
+          key={l}
+          type="button"
+          aria-pressed={value.startsWith(l)}
+          onClick={() => onChange(l)}
+          className={cn(
+            "h-8 rounded-lg text-sm font-medium transition-colors",
+            value.startsWith(l) ? "bg-white text-stone-900 shadow-sm" : "text-stone-500",
+          )}
+        >
+          {l === "it" ? "Italiano" : "English"}
+        </button>
+      ))}
+    </fieldset>
   );
 }

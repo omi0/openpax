@@ -1,7 +1,8 @@
 import type { TableDto, UpsertTableInput } from "@sitli/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { LayoutGrid, Pencil, Plus, Save, Trash } from "lucide-react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FloorPlan, PLAN_H, PLAN_W, type Position } from "@/components/floor-plan";
 import {
@@ -15,9 +16,12 @@ import {
   Input,
   Select,
   Switch,
+  useConfirm,
+  useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { areasQuery, tablesQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/tables")({
   loader: async ({ context, params }) => {
@@ -63,17 +67,19 @@ function TablesPage() {
   const { t } = useTranslation();
   const { restaurantId } = Route.useParams();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
   const { data: tables } = useSuspenseQuery(tablesQuery(restaurantId));
   const { data: areas } = useSuspenseQuery(areasQuery(restaurantId));
   const [editing, setEditing] = useState<TableDto | "new" | null>(null);
   const [pending, setPending] = useState<Map<string, Position>>(new Map());
-  const [layoutSaved, setLayoutSaved] = useState(false);
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "tables"] });
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/api/v1/restaurants/${restaurantId}/tables/${id}`),
     onSuccess: invalidate,
+    onError: () => toast.error(t("app.error")),
   });
   const saveLayout = useMutation({
     mutationFn: () =>
@@ -82,9 +88,10 @@ function TablesPage() {
       }),
     onSuccess: async () => {
       setPending(new Map());
-      setLayoutSaved(true);
+      toast.success(t("tables.layoutSaved"));
       await invalidate();
     },
+    onError: () => toast.error(t("app.error")),
   });
 
   // show dragged-but-unsaved positions
@@ -96,28 +103,24 @@ function TablesPage() {
     areas.find((a) => a.id === id)?.name ?? t("tables.noArea");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Card
         title={t("tables.floorPlan")}
         description={t("tables.floorPlanHint")}
         actions={
-          <div className="flex items-center gap-2">
-            {layoutSaved && pending.size === 0 ? (
-              <span className="text-sm text-emerald-700">{t("app.saved")}</span>
-            ) : null}
-            <Button
-              size="sm"
-              disabled={pending.size === 0}
-              loading={saveLayout.isPending}
-              onClick={() => saveLayout.mutate()}
-            >
-              {t("tables.saveLayout")}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            icon={<Save />}
+            disabled={pending.size === 0}
+            loading={saveLayout.isPending}
+            onClick={() => saveLayout.mutate()}
+          >
+            {t("tables.saveLayout")}
+          </Button>
         }
       >
         {tables.length === 0 ? (
-          <EmptyState>{t("tables.empty")}</EmptyState>
+          <EmptyState icon={<LayoutGrid />} title={t("tables.emptyPlan")} />
         ) : (
           <FloorPlan
             tables={shown}
@@ -126,7 +129,6 @@ function TablesPage() {
               const next = new Map(pending);
               for (const p of positions) next.set(p.id, p);
               setPending(next);
-              setLayoutSaved(false);
             }}
             onSelect={(table) => setEditing(table)}
           />
@@ -134,37 +136,80 @@ function TablesPage() {
       </Card>
 
       <Card
-        title={t("tables.title")}
+        title={t("tables.list")}
         description={t("tables.hint")}
         actions={
-          <Button size="sm" onClick={() => setEditing("new")}>
+          <Button size="sm" icon={<Plus />} onClick={() => setEditing("new")}>
             {t("tables.add")}
           </Button>
         }
+        flush={tables.length > 0}
       >
         {tables.length === 0 ? (
-          <EmptyState>{t("tables.empty")}</EmptyState>
+          <EmptyState icon={<LayoutGrid />} title={t("tables.empty")} />
         ) : (
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y divide-stone-100">
             {tables.map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
-                <span className="w-16 font-medium">{x.name}</span>
-                <span className="text-zinc-500">{areaName(x.areaId)}</span>
-                <span className="text-zinc-500">
-                  {t("tables.seats", { min: x.minCovers, max: x.maxCovers })}
+              <li
+                key={x.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-3",
+                  !x.active && "bg-stone-50/60 opacity-60",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-flex h-11 min-w-11 shrink-0 items-center justify-center border-2 px-2 text-base font-bold",
+                    x.shape === "round" ? "rounded-full" : "rounded-xl",
+                    x.active
+                      ? "border-stone-300 bg-white text-stone-800"
+                      : "border-stone-200 bg-stone-100 text-stone-400",
+                  )}
+                >
+                  {x.name}
                 </span>
-                <span className="text-zinc-400">{t(`tables.shapes.${x.shape}`)}</span>
-                {x.joinable ? <Badge tone="neutral">{t("tables.joinable")}</Badge> : null}
-                {!x.active ? <Badge tone="cancelled">{t("tables.inactive")}</Badge> : null}
-                <div className="ml-auto flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(x)}>
+                <div className="min-w-0 flex-1 basis-40">
+                  <p className="text-[15px] font-semibold">
+                    {t("tables.seats", { min: x.minCovers, max: x.maxCovers })}
+                  </p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-stone-500">
+                    <span>{areaName(x.areaId)}</span>
+                    <Badge size="sm">{t(`tables.shapes.${x.shape}`)}</Badge>
+                    {x.joinable ? (
+                      <Badge size="sm" tone="brand">
+                        {t("tables.joinable")}
+                      </Badge>
+                    ) : null}
+                    {!x.active ? (
+                      <Badge size="sm" tone="danger">
+                        {t("tables.inactive")}
+                      </Badge>
+                    ) : null}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Pencil />}
+                    onClick={() => setEditing(x)}
+                  >
                     {t("app.edit")}
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      if (window.confirm(t("app.confirmDelete"))) remove.mutate(x.id);
+                    variant="ghost"
+                    icon={<Trash />}
+                    className="text-stone-500 hover:text-red-700"
+                    disabled={remove.isPending}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: t("tables.confirmDelete"),
+                          confirmLabel: t("app.delete"),
+                        })
+                      )
+                        remove.mutate(x.id);
                     }}
                   >
                     {t("app.delete")}
@@ -210,6 +255,7 @@ function TableDialog({
   onSaved: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const formId = useId();
   const [v, setV] = useState<UpsertTableInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
@@ -231,9 +277,23 @@ function TableDialog({
       setV({ ...v, [key]: Number(e.target.value) });
 
   return (
-    <Dialog open onClose={onClose} title={table ? t("tables.edit") : t("tables.add")}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field label={t("tables.name")}>
+    <Dialog
+      open
+      onClose={onClose}
+      title={table ? t("tables.edit") : t("tables.add")}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={save.isPending}>
+            {t("app.save")}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field label={t("tables.name")} required>
           <Input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} required />
         </Field>
         <Field label={t("tables.area")}>
@@ -250,10 +310,24 @@ function TableDialog({
           </Select>
         </Field>
         <Field label={t("tables.minCovers")}>
-          <Input type="number" min={1} max={100} value={v.minCovers} onChange={num("minCovers")} />
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={100}
+            value={v.minCovers}
+            onChange={num("minCovers")}
+          />
         </Field>
         <Field label={t("tables.maxCovers")}>
-          <Input type="number" min={1} max={100} value={v.maxCovers} onChange={num("maxCovers")} />
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={100}
+            value={v.maxCovers}
+            onChange={num("maxCovers")}
+          />
         </Field>
         <Field label={t("tables.shape")}>
           <Select
@@ -265,44 +339,57 @@ function TableDialog({
           </Select>
         </Field>
         <Field label={t("tables.sortOrder")} hint={t("tables.sortOrderHint")}>
-          <Input type="number" value={v.sortOrder} onChange={num("sortOrder")} />
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={v.sortOrder}
+            onChange={num("sortOrder")}
+          />
         </Field>
-        <Field label={t("tables.width")}>
-          <Input type="number" min={2} max={100} value={v.width} onChange={num("width")} />
-        </Field>
-        <Field label={t("tables.height")}>
-          <Input type="number" min={2} max={70} value={v.height} onChange={num("height")} />
-        </Field>
-        <div className="flex items-center gap-3">
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("tables.size")}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t("tables.width")}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={2}
+                max={100}
+                value={v.width}
+                onChange={num("width")}
+              />
+            </Field>
+            <Field label={t("tables.height")}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={2}
+                max={70}
+                value={v.height}
+                onChange={num("height")}
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="space-y-3 sm:col-span-2">
           <Switch
             checked={v.joinable}
             onChange={(joinable) => setV({ ...v, joinable })}
             label={t("tables.joinable")}
+            description={t("tables.joinableHint")}
           />
-          <span className="text-sm">{t("tables.joinable")}</span>
-        </div>
-        <div className="flex items-center gap-3">
           <Switch
             checked={v.active}
             onChange={(active) => setV({ ...v, active })}
             label={t("tables.active")}
+            description={t("tables.activeHint")}
           />
-          <span className="text-sm">{t("tables.active")}</span>
         </div>
-        <p className="text-xs text-zinc-500 sm:col-span-2">{t("tables.joinableHint")}</p>
         {error ? (
           <div className="sm:col-span-2">
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 sm:col-span-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {t("app.save")}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );

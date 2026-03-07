@@ -20,7 +20,7 @@ test("guest book lists guests, searches them and edits a profile", async ({ page
   await page.getByPlaceholder("Add a tag").press("Enter");
   await page.getByLabel("Internal notes").fill("Allergic to nuts");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Saved")).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   // history shows the booking made through the widget API
   await expect(page.getByText("Confirmed")).toBeVisible();
 

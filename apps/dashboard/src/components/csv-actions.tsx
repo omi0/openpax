@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Download, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Button, Dialog } from "@/components/ui";
@@ -39,16 +39,16 @@ export function CsvActions({
   for (const [k, v] of Object.entries(exportQuery)) if (v) params.set(k, v);
   const query = params.toString();
   return (
-    <div className="ml-auto flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <a
         href={`/api/v1/restaurants/${restaurantId}/${kind}/export${query ? `?${query}` : ""}`}
         download
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium hover:bg-zinc-50"
+        className="inline-flex h-11 items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 text-[15px] font-semibold text-stone-800 shadow-xs hover:bg-stone-50"
       >
-        <Download className="size-4" /> {t("csv.export")}
+        <Download className="size-[18px]" /> {t("csv.export")}
       </a>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        <Upload className="size-4" /> {t("csv.import")}
+      <Button variant="outline" icon={<Upload />} onClick={() => setOpen(true)}>
+        {t("csv.import")}
       </Button>
       {open ? (
         <ImportDialog
@@ -108,52 +108,13 @@ function ImportDialog({
   };
 
   return (
-    <Dialog open onClose={onClose} title={t(`csv.importTitle.${kind}`)} size="lg">
-      <div className="space-y-3 text-sm">
-        <p className="text-zinc-600">{t(`csv.hint.${kind}`)}</p>
-        <a
-          href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATES[kind])}`}
-          download={`sitli-${kind}-template.csv`}
-          className="text-brand hover:underline"
-        >
-          {t("csv.template")}
-        </a>
-        <label className="block">
-          <span className="mb-1 block font-medium">{t("csv.file")}</span>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => pick(e.target.files?.[0])}
-            className="block w-full text-sm"
-          />
-          {fileName ? <span className="text-xs text-zinc-500">{fileName}</span> : null}
-        </label>
-        {error ? <Alert>{error}</Alert> : null}
-        {result ? (
-          <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
-            <p className="font-medium">
-              {result.dryRun ? t("csv.preview") : t("csv.done")} ·{" "}
-              {t("csv.result", {
-                created: result.created,
-                updated: result.updated,
-                skipped: result.skipped,
-              })}
-            </p>
-            {result.errors.length > 0 ? (
-              <div>
-                <p className="text-xs uppercase tracking-wide text-zinc-500">{t("csv.errors")}</p>
-                <ul className="mt-1 max-h-48 overflow-auto text-xs text-red-700">
-                  {result.errors.map((e) => (
-                    <li key={`${e.line}-${e.message}`}>
-                      {t("csv.line", { line: e.line })}: {e.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="flex justify-end gap-2">
+    <Dialog
+      open
+      onClose={onClose}
+      title={t(`csv.importTitle.${kind}`)}
+      size="lg"
+      footer={
+        <>
           <Button variant="secondary" onClick={onClose}>
             {t("app.close")}
           </Button>
@@ -172,7 +133,56 @@ function ImportDialog({
           >
             {t("csv.run")}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm leading-relaxed text-stone-600">{t(`csv.hint.${kind}`)}</p>
+        <a
+          href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATES[kind])}`}
+          download={`sitli-${kind}-template.csv`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
+        >
+          <Download className="size-4" /> {t("csv.template")}
+        </a>
+        <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/60 px-4 py-8 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40 focus-within:border-brand-500">
+          <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-white text-stone-400 shadow-card">
+            <FileSpreadsheet className="size-6" />
+          </span>
+          <span className="text-[15px] font-semibold text-stone-800">{t("csv.file")}</span>
+          <span className="text-sm text-stone-500">{fileName ? fileName : t("csv.drop")}</span>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => pick(e.target.files?.[0])}
+            className="sr-only"
+          />
+        </label>
+        {error ? <Alert>{error}</Alert> : null}
+        {result ? (
+          <Alert tone={result.errors.length > 0 ? "warning" : "success"}>
+            <p className="font-semibold">{result.dryRun ? t("csv.preview") : t("csv.done")}</p>
+            <p>
+              {t("csv.result", {
+                created: result.created,
+                updated: result.updated,
+                skipped: result.skipped,
+              })}
+            </p>
+            {result.errors.length > 0 ? (
+              <div className="mt-2">
+                <p className="text-xs font-semibold uppercase tracking-wide">{t("csv.errors")}</p>
+                <ul className="mt-1 max-h-48 list-disc overflow-auto pl-4 text-[13px]">
+                  {result.errors.map((e) => (
+                    <li key={`${e.line}-${e.message}`}>
+                      {t("csv.line", { line: e.line })}: {e.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </Alert>
+        ) : null}
       </div>
     </Dialog>
   );

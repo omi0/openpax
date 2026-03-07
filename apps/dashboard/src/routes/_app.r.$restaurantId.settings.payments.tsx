@@ -1,11 +1,23 @@
 import type { PaymentConfigDto, UpdatePaymentConfigInput } from "@sitli/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { BadgeCheck, CircleAlert, Copy, CreditCard, Landmark, ShieldCheck } from "lucide-react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Badge, Button, Card, Field, Input, Select, Switch } from "@/components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Field,
+  IconButton,
+  Input,
+  Switch,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { paymentConfigQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/payments")({
   loader: ({ context, params }) =>
@@ -13,10 +25,19 @@ export const Route = createFileRoute("/_app/r/$restaurantId/settings/payments")(
   component: PaymentsPage,
 });
 
+type Mode = UpdatePaymentConfigInput["mode"];
+
+const modeIcons: Record<Mode, ReactNode> = {
+  off: <CircleAlert />,
+  deposit: <Landmark />,
+  card_hold: <ShieldCheck />,
+};
+
 function PaymentsPage() {
   const { t, i18n } = useTranslation();
   const { restaurantId } = Route.useParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { data: cfg } = useSuspenseQuery(paymentConfigQuery(restaurantId));
   const [form, setForm] = useState<UpdatePaymentConfigInput>({
     mode: cfg.mode,
@@ -28,7 +49,7 @@ function PaymentsPage() {
   });
   const [secretKey, setSecretKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
-  const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const base = `/api/v1/restaurants/${restaurantId}/payments`;
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "payments"] });
@@ -43,39 +64,61 @@ function PaymentsPage() {
     onSuccess: async () => {
       setSecretKey("");
       setWebhookSecret("");
-      setMessage({ tone: "success", text: t("app.saved") });
+      setError(null);
+      toast.success(t("app.saved"));
       await invalidate();
     },
-    onError: (e) =>
-      setMessage({ tone: "error", text: e instanceof ApiClientError ? e.message : t("app.error") }),
+    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const test = useMutation({
     mutationFn: () => api.post(`${base}/test`),
-    onSuccess: () => setMessage({ tone: "success", text: t("payments.testOk") }),
-    onError: (e) =>
-      setMessage({ tone: "error", text: e instanceof ApiClientError ? e.message : t("app.error") }),
+    onSuccess: () => {
+      setError(null);
+      toast.success(t("payments.testOk"));
+    },
+    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setError(null);
     save.mutate();
   };
   const money = (cents: number) =>
     new Intl.NumberFormat(i18n.language, { style: "currency", currency: cfg.currency }).format(
       cents / 100,
     );
+  const modes: Mode[] = ["off", "deposit", "card_hold"];
 
   return (
     <form onSubmit={submit} className="space-y-4">
       <Card
-        title={t("payments.stripe")}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <CreditCard className="size-5 text-brand-700" /> {t("payments.stripe")}
+          </span>
+        }
         description={t("payments.stripeHint")}
         actions={
           cfg.connected ? (
-            <Badge tone="confirmed">{t("payments.connected")}</Badge>
+            <Badge tone="success" icon={<BadgeCheck />}>
+              {t("payments.connected")}
+            </Badge>
           ) : (
-            <Badge tone="neutral">{t("payments.notConnected")}</Badge>
+            <Badge tone="neutral" icon={<CircleAlert />}>
+              {t("payments.notConnected")}
+            </Badge>
           )
+        }
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            loading={test.isPending}
+            disabled={!cfg.secretKey.set}
+            onClick={() => test.mutate()}
+          >
+            {t("payments.testConnection")}
+          </Button>
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
@@ -111,49 +154,86 @@ function PaymentsPage() {
               onChange={(e) => setWebhookSecret(e.target.value)}
             />
           </Field>
-          <Field label={t("payments.webhookUrl")} className="sm:col-span-2">
-            <div className="flex gap-2">
-              <Input value={cfg.webhookUrl} readOnly className="font-mono text-xs" />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void navigator.clipboard?.writeText(cfg.webhookUrl)}
-              >
-                {t("app.copy")}
-              </Button>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">{t("payments.webhookEvents")}</p>
-          </Field>
-        </div>
-        <div className="mt-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            loading={test.isPending}
-            disabled={!cfg.secretKey.set}
-            onClick={() => test.mutate()}
+          <Field
+            label={t("payments.webhookUrl")}
+            hint={t("payments.webhookEvents")}
+            className="sm:col-span-2"
           >
-            {t("payments.testConnection")}
-          </Button>
+            <div className="flex gap-2">
+              <Input
+                value={cfg.webhookUrl}
+                readOnly
+                className="bg-stone-50 font-mono text-[13px] text-stone-600"
+              />
+              <IconButton
+                label={t("app.copy")}
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(cfg.webhookUrl);
+                  toast.success(t("app.copied"));
+                }}
+              >
+                <Copy />
+              </IconButton>
+            </div>
+          </Field>
         </div>
       </Card>
 
-      <Card title={t("payments.policy")} description={t("payments.policyHint")}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("payments.mode")} className="sm:col-span-2">
-            <Select
-              value={form.mode}
-              onChange={(e) =>
-                setForm({ ...form, mode: e.target.value as UpdatePaymentConfigInput["mode"] })
-              }
-            >
-              <option value="off">{t("payments.modes.off")}</option>
-              <option value="deposit">{t("payments.modes.deposit")}</option>
-              <option value="card_hold">{t("payments.modes.card_hold")}</option>
-            </Select>
-            <p className="mt-1 text-xs text-zinc-500">{t(`payments.modeHint.${form.mode}`)}</p>
-          </Field>
+      <Card
+        title={t("payments.policy")}
+        description={t("payments.policyHint")}
+        footer={
+          <Button type="submit" loading={save.isPending}>
+            {t("app.save")}
+          </Button>
+        }
+      >
+        <fieldset className="mb-5">
+          <legend className="mb-2 text-sm font-medium text-stone-700">{t("payments.mode")}</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {modes.map((m) => {
+              const on = form.mode === m;
+              return (
+                <label
+                  key={m}
+                  className={cn(
+                    "flex cursor-pointer gap-3 rounded-xl border p-3.5 transition-colors",
+                    on
+                      ? "border-brand-600 bg-brand-50 ring-2 ring-brand-600/20"
+                      : "border-stone-200 bg-white hover:border-stone-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-[18px]",
+                      on ? "bg-brand-600 text-white" : "bg-stone-100 text-stone-500",
+                    )}
+                  >
+                    {modeIcons[m]}
+                  </span>
+                  <input
+                    type="radio"
+                    name="mode"
+                    value={m}
+                    checked={on}
+                    onChange={() => setForm({ ...form, mode: m })}
+                    className="order-last mt-1 size-5 shrink-0 appearance-none rounded-full border border-stone-300 bg-white transition checked:border-[6px] checked:border-brand-600"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold leading-snug text-stone-900">
+                      {t(`payments.modes.${m}`)}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] leading-snug text-stone-500">
+                      {t(`payments.modeHint.${m}`)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+        <div className={cn("grid gap-4 sm:grid-cols-2", form.mode === "off" && "opacity-60")}>
           <Field
             label={t("payments.amount", { currency: cfg.currency })}
             hint={
@@ -166,6 +246,7 @@ function PaymentsPage() {
               type="number"
               min={0}
               step="0.01"
+              inputMode="decimal"
               value={(form.amountCents / 100).toFixed(2)}
               onChange={(e) =>
                 setForm({ ...form, amountCents: Math.round(Number(e.target.value) * 100) })
@@ -177,6 +258,7 @@ function PaymentsPage() {
             <Input
               type="number"
               min={1}
+              inputMode="numeric"
               value={form.minPartySize ?? ""}
               onChange={(e) =>
                 setForm({ ...form, minPartySize: e.target.value ? Number(e.target.value) : null })
@@ -189,6 +271,7 @@ function PaymentsPage() {
               type="number"
               min={10}
               max={1440}
+              inputMode="numeric"
               value={form.paymentWindowMinutes}
               onChange={(e) =>
                 setForm({ ...form, paymentWindowMinutes: Number(e.target.value) || 30 })
@@ -196,37 +279,26 @@ function PaymentsPage() {
               disabled={form.mode !== "deposit"}
             />
           </Field>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.refundOnCancel}
-                onChange={(refundOnCancel) => setForm({ ...form, refundOnCancel })}
-                label={t("payments.refundOnCancel")}
-                disabled={form.mode !== "deposit"}
-              />
-              <span className="text-sm">{t("payments.refundOnCancel")}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={form.chargeNoShow}
-                onChange={(chargeNoShow) => setForm({ ...form, chargeNoShow })}
-                label={t("payments.chargeNoShow")}
-                disabled={form.mode !== "card_hold"}
-              />
-              <span className="text-sm">{t("payments.chargeNoShow")}</span>
-            </div>
+          <div className="space-y-4 sm:pt-7">
+            <Switch
+              checked={form.refundOnCancel}
+              onChange={(refundOnCancel) => setForm({ ...form, refundOnCancel })}
+              label={t("payments.refundOnCancel")}
+              disabled={form.mode !== "deposit"}
+            />
+            <Switch
+              checked={form.chargeNoShow}
+              onChange={(chargeNoShow) => setForm({ ...form, chargeNoShow })}
+              label={t("payments.chargeNoShow")}
+              disabled={form.mode !== "card_hold"}
+            />
           </div>
         </div>
-        {message ? (
+        {error ? (
           <div className="mt-4">
-            <Alert tone={message.tone}>{message.text}</Alert>
+            <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="mt-4 flex justify-end">
-          <Button type="submit" loading={save.isPending}>
-            {t("app.save")}
-          </Button>
-        </div>
       </Card>
     </form>
   );

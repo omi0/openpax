@@ -26,7 +26,12 @@
     "calendar": "Calendario",
     "bookings": "Prenotazioni",
     "analytics": "Statistiche",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "more": "Altro",
+    "menu": "Menu",
+    "switchRestaurant": "Cambia ristorante",
+    "confirm": "Conferma",
+    "actions": "Azioni"
   },
   "auth": {
     "login": "Accedi",
@@ -52,7 +57,9 @@
     "setPassword": "Imposta password",
     "resetDone": "La password è stata aggiornata. Ora puoi accedere.",
     "resetInvalid": "Questo link non è valido o è scaduto. Richiedine uno nuovo.",
-    "backToLogin": "Torna all'accesso"
+    "backToLogin": "Torna all'accesso",
+    "tagline": "Le prenotazioni del tuo ristorante, senza complicazioni.",
+    "taglineHint": "Gli ospiti prenotano dal tuo sito, il tuo team vede tutti i tavoli a colpo d'occhio e i promemoria partono da soli."
   },
   "onboarding": {
     "title": "Configura il tuo ristorante",
@@ -67,10 +74,11 @@
     "address": "Indirizzo",
     "serviceIntro": "Un servizio è una fascia prenotabile, come Pranzo o Cena. Potrai aggiungerne altri dopo.",
     "continue": "Continua",
-    "finish": "Fine"
+    "finish": "Fine",
+    "welcome": "Benvenuto in Sitli"
   },
   "today": {
-    "title": "Prenotazioni",
+    "title": "Oggi",
     "newBooking": "Nuova prenotazione",
     "noBookings": "Nessuna prenotazione in questo giorno.",
     "covers": "{{count}} coperti",
@@ -136,7 +144,9 @@
         "no_table": "nessun tavolo libero"
       },
       "slotUnavailable": "Quell'orario non è disponibile: {{reason}}.",
-      "noChanges": "Nessuna modifica."
+      "noChanges": "Nessuna modifica.",
+      "notesPlaceholder": "Allergie, seggiolone, compleanno…",
+      "ignoreCapacityHint": "Prenota anche se l'orario risulta pieno."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -157,7 +167,33 @@
     "takenBy": "occupato da {{name}}",
     "seatAnyway": "Assegna comunque (il tavolo è occupato a quell'ora)",
     "seatsChosen": "{{count}} posti",
-    "unassigned": "Prenotazioni senza tavolo"
+    "unassigned": "Prenotazioni senza tavolo",
+    "pickDate": "Scegli una data",
+    "prevWeek": "Settimana precedente",
+    "nextWeek": "Settimana successiva",
+    "viewLabel": "Vista",
+    "seatedNow": "{{count}} al tavolo ora",
+    "toConfirm": "{{count}} da confermare",
+    "guests_one": "{{count}} persona",
+    "guests_other": "{{count}} persone",
+    "details": "Dettagli",
+    "moreActions": "Altre azioni",
+    "call": "Chiama",
+    "emailGuest": "Email",
+    "table": "Tavolo",
+    "changeTable": "Cambia",
+    "noBookingsHint": "Le prenotazioni online e quelle inserite a mano compaiono qui.",
+    "noShows_one": "{{count}} no-show",
+    "noShows_other": "{{count}} no-show",
+    "created": "Prenotazione per {{name}} creata",
+    "done": {
+      "confirm": "Prenotazione confermata",
+      "seat": "Ospite al tavolo",
+      "complete": "Prenotazione conclusa",
+      "cancel": "Prenotazione annullata",
+      "no_show": "Segnata come no-show",
+      "reopen": "Prenotazione riaperta"
+    }
   },
   "services": {
     "title": "Servizi",
@@ -178,7 +214,19 @@
     "unlimited": "illimitato",
     "empty": "Nessun servizio. Aggiungine uno perché gli ospiti possano prenotare.",
     "coversHint": "Ospiti che possono arrivare in un intervallo. Vuoto = nessun limite.",
-    "lastSeating": "Gli orari sono il primo e l'ultimo arrivo prenotabile."
+    "lastSeating": "Gli orari sono il primo e l'ultimo arrivo prenotabile.",
+    "list": "I tuoi servizi",
+    "every": "Arrivi ogni {{count}} min",
+    "turn": "{{count}} min per tavolo",
+    "maxCoversShort": "max {{count}} coperti per orario",
+    "timing": "Orari e ritmo",
+    "capacity": "Capienza",
+    "slotIntervalHint": "Ogni quanto possono arrivare gli ospiti: ogni 15, 30 o 60 minuti.",
+    "durationHint": "Per quanto tempo il tavolo resta occupato.",
+    "partyHint": "Lascia vuoto per usare le regole generali di prenotazione.",
+    "addHours": "Aggiungi orario",
+    "activeHint": "I servizi non attivi non sono visibili agli ospiti.",
+    "confirmDelete": "Gli ospiti non potranno più prenotarlo."
   },
   "notifications": {
     "title": "Notifiche",
@@ -221,7 +269,20 @@
     "hoursBefore": "ore prima",
     "rulesHint": "Scegli quali messaggi partono su ogni canale. Gli SMS funzionano solo con un provider SMS configurato.",
     "templates": "Testi",
-    "hoursAfter": "h dopo"
+    "hoursAfter": "h dopo",
+    "channelHint": {
+      "email": "Conferme, promemoria e aggiornamenti via email.",
+      "sms": "Brevi messaggi sul telefono degli ospiti."
+    },
+    "status": "Stato",
+    "providerFields": "Impostazioni di {{provider}}",
+    "rulesTitle": "Cosa viene inviato",
+    "templatesTitle": "Testi dei messaggi",
+    "eventColumn": "Messaggio",
+    "smsNeedsProvider": "Configura prima un provider SMS per attivare i messaggi di testo.",
+    "testHint": "Inviati un messaggio per verificare che tutto funzioni.",
+    "unsaved": "Modifiche non salvate",
+    "confirmRemove": "Rimuovere questo provider? I messaggi su questo canale si fermano finché non ne configuri un altro."
   },
   "widget": {
     "title": "Widget e regole",
@@ -249,7 +310,10 @@
     "waitlistHint": "Quando una data è piena gli ospiti possono lasciare i loro dati dal widget. I tavoli che si liberano possono essere offerti automaticamente in ordine di arrivo; un'offerta non accettata in tempo passa all'ospite successivo.",
     "waitlistEnabled": "Consenti la lista d'attesa",
     "waitlistAutoOffer": "Offri automaticamente i tavoli liberati",
-    "waitlistOfferMinutes": "Validità dell'offerta (minuti)"
+    "waitlistOfferMinutes": "Validità dell'offerta (minuti)",
+    "copyCode": "Copia codice",
+    "appearanceHint": "Come appare il modulo di prenotazione sul tuo sito.",
+    "rulesHint": "Cosa possono e non possono fare gli ospiti quando prenotano online."
   },
   "weekday": {
     "mon": "Lun",
@@ -310,7 +374,11 @@
     "deleteHint": "Rimuove contatti, note e tag. Le prenotazioni restano intestate a un ospite anonimo.",
     "confirmDelete": "Eliminare questo ospite e i suoi dati personali?",
     "duplicate": "Un altro ospite usa già questo {{field}}.",
-    "invalidPhone": "Il numero di telefono non è valido."
+    "invalidPhone": "Il numero di telefono non è valido.",
+    "hint": "Tutti gli ospiti che hanno prenotato da te, con note e storico.",
+    "sortLabel": "Ordina per",
+    "visitsShort_one": "{{count}} visita",
+    "visitsShort_other": "{{count}} visite"
   },
   "calendar": {
     "title": "Settimana",
@@ -367,7 +435,16 @@
     "areasHint": "Zone facoltative che gli ospiti possono richiedere (dehors, giardino, saletta). Le regole di capienza possono riguardarle.",
     "addArea": "Aggiungi zona",
     "areaName": "Nome zona",
-    "emptyAreas": "Nessuna zona definita."
+    "emptyAreas": "Nessuna zona definita.",
+    "closedAllDay": "Chiuso tutto il giorno",
+    "namePlaceholder": "Lunedì tranquillo",
+    "timeHint": "Lascia vuoto per tutto il giorno.",
+    "limits": "Limiti",
+    "limitsHint": "Lascia vuoto un campo per mantenere il limite del servizio.",
+    "activeHint": "Disattiva per conservare la regola senza applicarla.",
+    "confirmDelete": "Rimuovere questa data?",
+    "confirmDeleteRule": "Eliminare questa regola?",
+    "confirmDeleteArea": "Eliminare questa zona?"
   },
   "role": {
     "owner": "Titolare",
@@ -394,7 +471,13 @@
     "remove": "Rimuovi",
     "confirmRemove": "Rimuovere {{name}} dal team?",
     "alreadyMember": "Questa persona fa già parte del team.",
-    "noProviderHint": "Se non è configurato un provider email l'invito viene comunque creato: condividi il link dalla lista degli inviti."
+    "noProviderHint": "Se non è configurato un provider email l'invito viene comunque creato: condividi il link dalla lista degli inviti.",
+    "roles": {
+      "owner": "accesso completo, incluso il team",
+      "manager": "gestisce il ristorante e le impostazioni",
+      "staff": "gestisce prenotazioni e ospiti"
+    },
+    "copyLink": "Copia link di invito"
   },
   "apiKeys": {
     "title": "Chiavi API",
@@ -415,7 +498,10 @@
     "expiresOn": "scade {{date}}",
     "requests": "{{count}} richieste",
     "revoke": "Revoca",
-    "confirmRevoke": "Revocare questa chiave? Le integrazioni che la usano smettono subito di funzionare."
+    "confirmRevoke": "Revocare questa chiave? Le integrazioni che la usano smettono subito di funzionare.",
+    "keysTitle": "Le tue chiavi",
+    "newKey": "Nuova chiave",
+    "usageHint": "Un esempio di richiesta da terminale."
   },
   "invite": {
     "title": "Sei stato invitato",
@@ -467,7 +553,11 @@
     },
     "empty": "Nessuna prenotazione corrisponde.",
     "count": "{{count}} prenotazioni",
-    "openDay": "Apri il giorno"
+    "openDay": "Apri il giorno",
+    "all": "Tutte",
+    "period": "Periodo",
+    "hint": "Cerca e sfoglia tutte le prenotazioni, passate e future.",
+    "emptyFiltered": "Prova un'altra ricerca o azzera i filtri."
   },
   "templates": {
     "hint": "Riscrivi ogni messaggio con parole tue. I segnaposto tra doppie graffe vengono sostituiti all'invio; la tabella con i dettagli e il pulsante di gestione restano.",
@@ -499,7 +589,10 @@
       "notes": "Note dell'ospite",
       "address": "Indirizzo ristorante",
       "cancellationReason": "Motivo annullamento"
-    }
+    },
+    "editChannel": "Modifica testo {{channel}}",
+    "forAudience": "Messaggi per: {{audience}}",
+    "noPreview": "Scrivi qualcosa per vedere l'anteprima."
   },
   "analytics": {
     "title": "Statistiche",
@@ -575,7 +668,8 @@
     },
     "feedback": "Feedback degli ospiti",
     "feedbackHint": "Valutazioni lasciate dopo le visite in questo periodo.",
-    "feedbackResponses": "{{count}} risposte"
+    "feedbackResponses": "{{count}} risposte",
+    "hideTable": "Nascondi tabella"
   },
   "waitlist": {
     "title": "Lista d'attesa",
@@ -649,7 +743,13 @@
     "floorPlanHint": "Trascina i tavoli per disporre la sala, poi salva la disposizione. Clicca un tavolo per modificarlo.",
     "saveLayout": "Salva disposizione",
     "seats": "{{min}}–{{max}} persone",
-    "allAreas": "Tutte le sale"
+    "allAreas": "Tutte le sale",
+    "list": "Elenco tavoli",
+    "emptyPlan": "La piantina compare dopo aver aggiunto un tavolo.",
+    "layoutSaved": "Disposizione salvata",
+    "confirmDelete": "Eliminare questo tavolo?",
+    "size": "Dimensioni sulla piantina",
+    "activeHint": "I tavoli non attivi non vengono mai assegnati."
   },
   "payments": {
     "title": "Pagamenti",
@@ -713,8 +813,9 @@
     "anyRating": "Tutte le valutazioni",
     "stars": "{{count}} stelle",
     "stars_one": "{{count}} stella",
-    "empty": "Nessun feedback ancora. Le richieste partono automaticamente dopo ogni visita (Impostazioni → Notifiche).",
-    "answered": "risposto {{when}}"
+    "empty": "Le richieste partono da sole dopo ogni visita (Impostazioni → Notifiche).",
+    "answered": "risposto {{when}}",
+    "emptyTitle": "Ancora nessun feedback"
   },
   "csv": {
     "export": "Esporta CSV",
@@ -735,6 +836,22 @@
     "errors": "Righe con problemi",
     "line": "Riga {{line}}",
     "done": "Importazione completata",
-    "template": "Scarica un modello"
+    "template": "Scarica un modello",
+    "drop": "Scegli un file CSV dal tuo computer"
+  },
+  "settings": {
+    "intro": "Tutto ciò che riguarda come il tuo ristorante accetta prenotazioni, in un unico posto.",
+    "back": "Tutte le impostazioni",
+    "desc": {
+      "restaurant": "Nome, indirizzo, contatti e lingua.",
+      "services": "Quando accetti prenotazioni: pranzo, cena e quanti ospiti per fascia oraria.",
+      "closures": "Festività, eventi privati e limiti nei giorni più pieni.",
+      "tables": "La tua sala: tavoli, posti e piantina.",
+      "notifications": "Email e SMS inviati agli ospiti e a te.",
+      "payments": "Caparre e carte a garanzia contro i no-show.",
+      "widget": "La pagina di prenotazione per il tuo sito e le regole per gli ospiti.",
+      "team": "Chi può accedere e cosa può fare.",
+      "apiKeys": "Per sviluppatori: collega altri programmi."
+    }
   }
 }

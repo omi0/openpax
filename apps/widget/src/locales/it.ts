@@ -1,5 +1,13 @@
 export const it = {
   title: "Prenota un tavolo",
+  steps: { label: "Passaggi", when: "Persone e data", time: "Orario", details: "I tuoi dati" },
+  pickTime: "Scegli un orario per continuare",
+  yourTable: "Il tuo tavolo",
+  change: "Modifica",
+  service: "Servizio",
+  restaurant: "Ristorante",
+  address: "Indirizzo",
+  optional: "facoltativo",
   guests: "Persone",
   guestsOne: "1 persona",
   guestsMany: "{n} persone",
@@ -34,6 +42,7 @@ export const it = {
   cancelled: "Prenotazione annullata",
   cannotCancel: "Questa prenotazione non può più essere annullata online. Contatta il ristorante.",
   status: {
+    label: "Stato",
     pending: "In attesa di conferma",
     confirmed: "Confermata",
     seated: "Al tavolo",

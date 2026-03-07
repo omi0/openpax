@@ -1,9 +1,9 @@
 import type { RestaurantDto, UpdateRestaurantInput } from "@sitli/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Button, Card, Field, Input, Select } from "@/components/ui";
+import { Alert, Button, Card, Field, Input, Select, useToast } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { restaurantQuery } from "@/lib/queries";
 import { TIMEZONES } from "@/lib/timezones";
@@ -26,10 +26,11 @@ function RestaurantSettingsPage() {
   const { t } = useTranslation();
   const { restaurantId } = Route.useParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const formId = useId();
   const { data: restaurant } = useSuspenseQuery(restaurantQuery(restaurantId));
   const [form, setForm] = useState<UpdateRestaurantInput>(() => toInput(restaurant));
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const timezones = TIMEZONES.includes(restaurant.timezone)
     ? TIMEZONES
     : [restaurant.timezone, ...TIMEZONES];
@@ -39,8 +40,7 @@ function RestaurantSettingsPage() {
       api.patch<RestaurantDto>(`/api/v1/restaurants/${restaurantId}`, body),
     onSuccess: async (r) => {
       setForm(toInput(r));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      toast.success(t("app.saved"));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId] }),
         queryClient.invalidateQueries({ queryKey: ["me"] }),
@@ -61,9 +61,17 @@ function RestaurantSettingsPage() {
   };
 
   return (
-    <Card title={t("restaurant.profile")} description={t("restaurant.profileHint")}>
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("restaurant.name")} className="sm:col-span-2">
+    <Card
+      title={t("restaurant.profile")}
+      description={t("restaurant.profileHint")}
+      footer={
+        <Button type="submit" form={formId} loading={save.isPending}>
+          {t("app.save")}
+        </Button>
+      }
+    >
+      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field label={t("restaurant.name")} className="sm:col-span-2" required>
           <Input
             value={form.name ?? ""}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -76,7 +84,11 @@ function RestaurantSettingsPage() {
           hint={t("restaurant.slugHint")}
           className="sm:col-span-2"
         >
-          <Input value={`/book/${restaurant.slug}`} readOnly className="bg-zinc-50 text-zinc-500" />
+          <Input
+            value={`/book/${restaurant.slug}`}
+            readOnly
+            className="bg-stone-50 font-mono text-stone-600"
+          />
         </Field>
         <Field label={t("restaurant.timezone")}>
           <Select
@@ -106,11 +118,13 @@ function RestaurantSettingsPage() {
             maxLength={3}
             minLength={3}
             pattern="[A-Za-z]{3}"
+            className="uppercase"
           />
         </Field>
         <Field label={t("restaurant.phone")}>
           <Input
             type="tel"
+            inputMode="tel"
             value={form.phone ?? ""}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             maxLength={30}
@@ -119,6 +133,7 @@ function RestaurantSettingsPage() {
         <Field label={t("restaurant.email")} hint={t("restaurant.emailHint")}>
           <Input
             type="email"
+            inputMode="email"
             value={form.email ?? ""}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
@@ -135,12 +150,6 @@ function RestaurantSettingsPage() {
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <div className="flex items-center justify-end gap-3 sm:col-span-2">
-          {saved ? <span className="text-sm text-emerald-700">{t("app.saved")}</span> : null}
-          <Button type="submit" loading={save.isPending}>
-            {t("app.save")}
-          </Button>
-        </div>
       </form>
     </Card>
   );

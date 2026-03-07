@@ -7,14 +7,24 @@ import type {
   UpsertCapacityRuleInput,
   UpsertScheduleExceptionInput,
 } from "@sitli/shared";
-import { Plus, Trash2 } from "lucide-react";
+import { CalendarOff, Clock, Plus, Trash } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Field, Input, Select, Switch, Textarea } from "@/components/ui";
+import {
+  Button,
+  Field,
+  IconButton,
+  Input,
+  Segmented,
+  Select,
+  Switch,
+  Textarea,
+} from "@/components/ui";
 
 type Window = { start: string; end: string };
 const numOrNull = (v: string) => (v === "" ? null : Number(v));
 
+/** Opening windows of one day, as start–end pairs. */
 export function WindowsEditor({
   value,
   onChange,
@@ -26,43 +36,44 @@ export function WindowsEditor({
   return (
     <div className="space-y-2">
       {value.map((w, i) => (
-        <div key={`${i}-${w.start}`} className="flex items-center gap-1">
+        <div key={i} className="flex flex-wrap items-center gap-1.5">
           <Input
             type="time"
             value={w.start}
-            className="h-8 w-28"
+            className="h-10 w-[8.5rem] min-h-0 px-2.5 font-medium tabular-nums"
             onChange={(e) =>
               onChange(value.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))
             }
             required
           />
-          <span className="text-zinc-400">–</span>
+          <span className="text-stone-400">–</span>
           <Input
             type="time"
             value={w.end}
-            className="h-8 w-28"
+            className="h-10 w-[8.5rem] min-h-0 px-2.5 font-medium tabular-nums"
             onChange={(e) =>
               onChange(value.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))
             }
             required
           />
-          <button
-            type="button"
-            aria-label={t("app.delete")}
-            className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-red-600"
+          <IconButton
+            size="sm"
+            label={t("app.delete")}
+            className="text-stone-400 hover:text-red-600"
             onClick={() => onChange(value.filter((_, j) => j !== i))}
           >
-            <Trash2 className="size-4" />
-          </button>
+            <Trash />
+          </IconButton>
         </div>
       ))}
       {value.length < 6 ? (
         <Button
           size="sm"
           variant="outline"
+          icon={<Plus />}
           onClick={() => onChange([...value, { start: "12:00", end: "15:00" }])}
         >
-          <Plus className="size-4" /> {t("closures.addWindow")}
+          {t("closures.addWindow")}
         </Button>
       ) : null}
     </div>
@@ -92,11 +103,14 @@ export function ExceptionForm({
   services,
   onSubmit,
   busy,
+  id,
 }: {
   initial: UpsertScheduleExceptionInput;
   services: ServiceDto[];
   onSubmit: (v: UpsertScheduleExceptionInput) => void;
   busy: boolean;
+  /** When set, the host renders the submit button (dialog footer) via `form={id}`. */
+  id?: string;
 }) {
   const { t } = useTranslation();
   const [v, setV] = useState(initial);
@@ -109,8 +123,8 @@ export function ExceptionForm({
     });
   };
   return (
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-      <Field label={t("closures.date")}>
+    <form id={id} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+      <Field label={t("closures.date")} required>
         <Input
           type="date"
           value={v.date}
@@ -131,40 +145,43 @@ export function ExceptionForm({
           ))}
         </Select>
       </Field>
-      <div className="flex items-center gap-3 sm:col-span-2">
-        <Switch
-          checked={v.closed}
-          onChange={(closed) =>
+      <div className="sm:col-span-2">
+        <Segmented
+          value={v.closed ? "closed" : "special"}
+          onChange={(mode) =>
             setV({
               ...v,
-              closed,
-              windows: closed ? null : (v.windows ?? [{ start: "19:00", end: "22:00" }]),
+              closed: mode === "closed",
+              windows: mode === "closed" ? null : (v.windows ?? [{ start: "19:00", end: "22:00" }]),
             })
           }
-          label={t("closures.closed")}
+          options={[
+            { value: "closed", label: t("closures.closedAllDay"), icon: <CalendarOff /> },
+            { value: "special", label: t("closures.specialHours"), icon: <Clock /> },
+          ]}
         />
-        <span className="text-sm">
-          {v.closed ? t("closures.closed") : t("closures.specialHours")}
-        </span>
       </div>
       {!v.closed ? (
-        <Field label={t("closures.windows")} className="sm:col-span-2">
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("closures.windows")}</p>
           <WindowsEditor value={v.windows ?? []} onChange={(windows) => setV({ ...v, windows })} />
-        </Field>
+        </div>
       ) : null}
       <Field label={t("closures.reason")} hint={t("closures.reasonHint")} className="sm:col-span-2">
         <Textarea
           value={v.reason ?? ""}
           maxLength={200}
-          className="min-h-12"
+          className="min-h-14"
           onChange={(e) => setV({ ...v, reason: e.target.value })}
         />
       </Field>
-      <div className="flex justify-end sm:col-span-2">
-        <Button type="submit" loading={busy}>
-          {t("app.save")}
-        </Button>
-      </div>
+      {id ? null : (
+        <div className="flex justify-end sm:col-span-2">
+          <Button type="submit" loading={busy}>
+            {t("app.save")}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }
@@ -207,12 +224,15 @@ export function CapacityRuleForm({
   areas,
   onSubmit,
   busy,
+  id,
 }: {
   initial: UpsertCapacityRuleInput;
   services: ServiceDto[];
   areas: AreaDto[];
   onSubmit: (v: UpsertCapacityRuleInput) => void;
   busy: boolean;
+  /** When set, the host renders the submit button (dialog footer) via `form={id}`. */
+  id?: string;
 }) {
   const { t } = useTranslation();
   const [v, setV] = useState(initial);
@@ -230,12 +250,14 @@ export function CapacityRuleForm({
       endTime: v.endTime || null,
     });
   };
+  // keep the select order stable: service, area, when, weekday (the e2e spec relies on it)
   return (
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <form id={id} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
       <Field label={t("closures.name")} className="sm:col-span-2">
         <Input
           value={v.name ?? ""}
           maxLength={80}
+          placeholder={t("closures.namePlaceholder")}
           onChange={(e) => setV({ ...v, name: e.target.value })}
         />
       </Field>
@@ -303,9 +325,9 @@ export function CapacityRuleForm({
           />
         </Field>
       ) : (
-        <div />
+        <div className="hidden sm:block" />
       )}
-      <Field label={t("closures.from")}>
+      <Field label={t("closures.from")} hint={t("closures.timeHint")}>
         <Input
           type="time"
           value={v.startTime ?? ""}
@@ -319,43 +341,59 @@ export function CapacityRuleForm({
           onChange={(e) => setV({ ...v, endTime: e.target.value || null })}
         />
       </Field>
-      <Field label={t("closures.maxCovers")}>
-        <Input
-          type="number"
-          min={0}
-          value={v.maxCovers ?? ""}
-          onChange={(e) => setV({ ...v, maxCovers: numOrNull(e.target.value) })}
-        />
-      </Field>
-      <Field label={t("closures.maxBookings")}>
-        <Input
-          type="number"
-          min={0}
-          value={v.maxBookings ?? ""}
-          onChange={(e) => setV({ ...v, maxBookings: numOrNull(e.target.value) })}
-        />
-      </Field>
-      <Field label={t("closures.maxParty")}>
-        <Input
-          type="number"
-          min={1}
-          value={v.maxPartySize ?? ""}
-          onChange={(e) => setV({ ...v, maxPartySize: numOrNull(e.target.value) })}
-        />
-      </Field>
-      <div className="flex items-center gap-3 self-end pb-2">
+      <div className="sm:col-span-2">
+        <p className="mb-1 text-sm font-semibold text-stone-900 uppercase tracking-wide">
+          {t("closures.limits")}
+        </p>
+        <p className="mb-3 text-[13px] text-stone-500">{t("closures.limitsHint")}</p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label={t("closures.maxCovers")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder={t("closures.noLimit")}
+              value={v.maxCovers ?? ""}
+              onChange={(e) => setV({ ...v, maxCovers: numOrNull(e.target.value) })}
+            />
+          </Field>
+          <Field label={t("closures.maxBookings")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder={t("closures.noLimit")}
+              value={v.maxBookings ?? ""}
+              onChange={(e) => setV({ ...v, maxBookings: numOrNull(e.target.value) })}
+            />
+          </Field>
+          <Field label={t("closures.maxParty")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              placeholder={t("closures.noLimit")}
+              value={v.maxPartySize ?? ""}
+              onChange={(e) => setV({ ...v, maxPartySize: numOrNull(e.target.value) })}
+            />
+          </Field>
+        </div>
+      </div>
+      <div className="sm:col-span-2">
         <Switch
           checked={v.active}
           onChange={(active) => setV({ ...v, active })}
           label={t("closures.active")}
+          description={t("closures.activeHint")}
         />
-        <span className="text-sm">{t("closures.active")}</span>
       </div>
-      <div className="flex justify-end sm:col-span-2">
-        <Button type="submit" loading={busy}>
-          {t("app.save")}
-        </Button>
-      </div>
+      {id ? null : (
+        <div className="flex justify-end sm:col-span-2">
+          <Button type="submit" loading={busy}>
+            {t("app.save")}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

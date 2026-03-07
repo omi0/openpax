@@ -10,16 +10,19 @@ test("staff edit a booking, cancel with a reason, and find bookings by search", 
 
   await page.goto(`/r/${owner.restaurantId}/today?date=${date}`);
   const marioRow = page.locator("li", { hasText: "Mario Rossi" }).first();
-  await marioRow.getByRole("button", { name: "Edit" }).click();
+  await marioRow.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Edit" }).click();
   await expect(page.getByRole("heading", { name: "Edit booking" })).toBeVisible();
   await page.getByLabel("Party size").fill("4");
   await page.getByLabel("Notes").fill("window table please");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(marioRow.getByText("window table please")).toBeVisible();
-  await expect(marioRow.getByText("4", { exact: true })).toBeVisible();
+  await expect(marioRow.getByText("4 guests")).toBeVisible();
 
   const luciaRow = page.locator("li", { hasText: "Lucia Bianchi" }).first();
-  await luciaRow.getByRole("button", { name: "Cancel" }).click();
+  // secondary actions live behind the row's "More actions" menu
+  await luciaRow.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Cancel booking" }).click();
   await expect(page.getByRole("heading", { name: "Cancel booking" })).toBeVisible();
   await page.getByLabel("Reason (optional)").fill("Guest called");
   await page.getByRole("button", { name: "Cancel booking" }).click();

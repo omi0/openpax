@@ -11,6 +11,7 @@ import {
   setMonth,
   today,
 } from "../state.js";
+import { ChevronIcon, formatDateShort } from "./chrome.js";
 
 export function PartyDatePicker() {
   const cfg = config.value;
@@ -29,7 +30,12 @@ export function PartyDatePicker() {
 
   return (
     <div>
-      <span class="label">{t("guests")}</span>
+      <span class="label">
+        {t("guests")}
+        <span class="value">
+          {partySize.value === 1 ? t("guestsOne") : t("guestsMany", { n: partySize.value })}
+        </span>
+      </span>
       <div class="row">
         {sizes.map((n) => (
           <button
@@ -44,7 +50,10 @@ export function PartyDatePicker() {
         ))}
       </div>
 
-      <span class="label">{t("date")}</span>
+      <span class="label">
+        {t("date")}
+        {date.value ? <span class="value">{formatDateShort(date.value, locale.value)}</span> : null}
+      </span>
       <div class="cal-head">
         <button
           type="button"
@@ -53,7 +62,7 @@ export function PartyDatePicker() {
           disabled={!canGoPrev}
           onClick={() => void setMonth(addMonths(month.value, -1))}
         >
-          ‹
+          <ChevronIcon dir="left" />
         </button>
         <strong>{formatMonth(month.value, locale.value)}</strong>
         <button
@@ -63,7 +72,7 @@ export function PartyDatePicker() {
           disabled={!canGoNext}
           onClick={() => void setMonth(addMonths(month.value, 1))}
         >
-          ›
+          <ChevronIcon dir="right" />
         </button>
       </div>
       <div class="cal">
@@ -78,6 +87,8 @@ export function PartyDatePicker() {
               key={d}
               type="button"
               class={`${openDates.value.has(d) ? "open" : ""} ${date.value === d ? "selected" : ""} ${today.value === d ? "today" : ""}`}
+              aria-pressed={date.value === d}
+              aria-current={today.value === d ? "date" : undefined}
               disabled={d < today.value || d > maxDate || !openDates.value.has(d)}
               onClick={() => void selectDate(d)}
             >

@@ -1,4 +1,5 @@
 import { useEffect } from "preact/hooks";
+import { formatDateShort, Header, Loading, Steps } from "./components/chrome.js";
 import { Confirmation } from "./components/confirmation.js";
 import { FeedbackPage } from "./components/feedback-page.js";
 import { GuestForm } from "./components/guest-form.js";
@@ -11,9 +12,12 @@ import { locale, setLocale, t } from "./i18n.js";
 import { scrollParentToTop } from "./resize.js";
 import {
   config,
+  date,
   loadConfig,
   loadError,
+  partySize,
   result,
+  selectedServiceName,
   selectedSlot,
   step,
   waitlistResult,
@@ -58,48 +62,72 @@ export function App({ route }: { route: Route }) {
     );
   }
   if (loadError.value) return <div class={cls}>{t(loadError.value)}</div>;
-  if (!cfg) return <div class={cls}>…</div>;
+  if (!cfg)
+    return (
+      <div class={cls}>
+        <Loading />
+      </div>
+    );
+
+  const current =
+    step.value === "done" || step.value === "waitlist_done"
+      ? 4
+      : step.value === "details" || step.value === "waitlist"
+        ? 3
+        : selectedSlot.value
+          ? 2
+          : 1;
+  const slot = selectedSlot.value;
+  const guestsLabel =
+    partySize.value === 1 ? t("guestsOne") : t("guestsMany", { n: partySize.value });
 
   return (
     <div class={cls}>
-      <div class="lang">
-        {cfg.widget.locales.map((l) => (
-          <button
-            key={l}
-            type="button"
-            aria-pressed={locale.value === l}
-            onClick={() => setLocale(l)}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
       {step.value === "done" && result.value ? (
         <Confirmation booking={result.value} hosted={!route.embedded} />
       ) : step.value === "waitlist_done" && waitlistResult.value ? (
         <WaitlistDone entry={waitlistResult.value} />
       ) : step.value === "waitlist" ? (
         <>
-          <h1>{cfg.restaurant.name}</h1>
+          <Header title={cfg.restaurant.name} locales={cfg.widget.locales} />
+          <Steps current={current} />
           <WaitlistForm onDone={() => scrollParentToTop(route.instanceId)} />
         </>
       ) : step.value === "details" ? (
         <>
-          <h1>{cfg.restaurant.name}</h1>
+          <Header title={cfg.restaurant.name} locales={cfg.widget.locales} />
+          <Steps current={current} />
           <GuestForm onDone={() => scrollParentToTop(route.instanceId)} />
         </>
       ) : (
         <>
-          <h1>{cfg.restaurant.name}</h1>
-          <p class="sub">{t("title")}</p>
+          <Header title={cfg.restaurant.name} subtitle={t("title")} locales={cfg.widget.locales} />
+          <Steps current={current} />
           {cfg.widget.welcomeMessage ? <p class="welcome">{cfg.widget.welcomeMessage}</p> : null}
           <PartyDatePicker />
           <SlotGrid />
-          <div class="actions">
+          <div class="summary-bar">
+            <div class="summary-text">
+              {slot ? (
+                <>
+                  <strong>
+                    {guestsLabel} · {formatDateShort(date.value, locale.value)} · {slot.startLocal}
+                  </strong>
+                  {selectedServiceName.value ? <span>{selectedServiceName.value}</span> : null}
+                </>
+              ) : (
+                <>
+                  <strong>
+                    {guestsLabel} · {formatDateShort(date.value, locale.value)}
+                  </strong>
+                  <span>{t("pickTime")}</span>
+                </>
+              )}
+            </div>
             <button
               type="button"
               class="btn"
-              disabled={!selectedSlot.value}
+              disabled={!slot}
               onClick={() => {
                 step.value = "details";
                 scrollParentToTop(route.instanceId);
