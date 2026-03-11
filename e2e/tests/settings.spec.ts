@@ -20,9 +20,15 @@ test("closures, capacity rules, areas and the restaurant profile", async ({ page
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Quiet Mondays")).toBeVisible();
 
-  await page.getByLabel("Area name").fill("Terrace");
-  await page.getByRole("button", { name: "Add area" }).click();
+  // rooms live with the tables: a second room with its own seats
+  await page.goto(`/r/${owner.restaurantId}/settings/tables`);
+  await page.getByRole("button", { name: "Add room" }).click();
+  const roomDialog = page.getByRole("dialog");
+  await roomDialog.getByLabel("Name").fill("Terrace");
+  await roomDialog.getByLabel("Seats").fill("20");
+  await roomDialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Terrace", { exact: true })).toBeVisible();
+  await expect(page.getByText("20 seats")).toBeVisible();
 
   // the closure is visible on the calendar and removes the day's slots
   await page.goto(`/r/${owner.restaurantId}/calendar?week=${date}`);

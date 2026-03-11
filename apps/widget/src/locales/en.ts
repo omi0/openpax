@@ -65,6 +65,7 @@ export const en: Dictionary = {
     outside_lead_time: "Too soon",
     full: "Full",
     no_table: "No table free",
+    room_closed: "Room closed",
     party_too_large: "Party too large",
     party_too_small: "Party too small",
   },

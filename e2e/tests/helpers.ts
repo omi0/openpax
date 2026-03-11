@@ -16,6 +16,7 @@ export async function onboardOwner(page: Page, name: string): Promise<Owner> {
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Set up your restaurant" })).toBeVisible();
   await page.getByLabel("Restaurant name").fill(name);
+  await page.getByLabel("How many guests can you seat at once?").fill("40");
   await page.getByLabel("Email for notifications").fill("staff@example.com");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Finish" }).click();

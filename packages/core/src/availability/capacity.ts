@@ -1,6 +1,12 @@
 import { type LocalDate, MINUTES_PER_DAY, parseLocalTime, type Weekday } from "../time/local.js";
 import type { CandidateSlot } from "./slots.js";
-import type { BookingLoad, CapacityRuleDef, ServiceDef, UnavailableReason } from "./types.js";
+import type {
+  BookingLoad,
+  CapacityRuleDef,
+  RoomDef,
+  ServiceDef,
+  UnavailableReason,
+} from "./types.js";
 
 export interface SlotContext {
   serviceId: string;
@@ -167,4 +173,69 @@ export function evaluateCapacity(
   return full
     ? { ok: false, reason: "full", remainingCovers: remaining }
     : { ok: true, remainingCovers: remaining };
+}
+
+/* ------------------------------------------------------------------- rooms */
+
+/** Open rooms only. */
+export function openRooms(rooms: readonly RoomDef[]): RoomDef[] {
+  return rooms.filter((r) => r.active);
+}
+
+/**
+ * Total seats of the open rooms, or null when at least one open room has no
+ * seat count (the total is then unknown and must not be enforced).
+ */
+export function totalSeats(rooms: readonly RoomDef[]): number | null {
+  const open = openRooms(rooms);
+  if (open.length === 0) return rooms.length === 0 ? null : 0;
+  let total = 0;
+  for (const r of open) {
+    if (r.seats === null) return null;
+    total += r.seats;
+  }
+  return total;
+}
+
+export interface RoomVerdict {
+  ok: boolean;
+  reason?: Extract<UnavailableReason, "full" | "room_closed">;
+  /** Seats still free under the tightest room limit; null = unlimited. */
+  remainingCovers: number | null;
+}
+
+/**
+ * Room capacity for a candidate visit: the requested room (if any) must be
+ * open and have space for the party, and the party must fit in the seats of
+ * all open rooms together. Bookings count for the whole time they overlap.
+ */
+export function evaluateRooms(
+  rooms: readonly RoomDef[],
+  bookings: BookingLoad[],
+  visit: { startsAt: Date; endsAt: Date },
+  partySize: number,
+  areaId: string | null,
+): RoomVerdict {
+  let remaining: number | null = null;
+  if (rooms.length === 0) return { ok: true, remainingCovers: null };
+
+  if (areaId !== null) {
+    const room = rooms.find((r) => r.id === areaId);
+    if (!room?.active) return { ok: false, reason: "room_closed", remainingCovers: 0 };
+    if (room.seats !== null) {
+      const peak = peakLoad(bookings, visit.startsAt, visit.endsAt, (b) => b.areaId === room.id);
+      const left = Math.max(0, room.seats - peak.covers);
+      remaining = tighten(remaining, left);
+      if (partySize > left) return { ok: false, reason: "full", remainingCovers: remaining };
+    }
+  }
+
+  const total = totalSeats(rooms);
+  if (total !== null) {
+    const peak = peakLoad(bookings, visit.startsAt, visit.endsAt);
+    const left = Math.max(0, total - peak.covers);
+    remaining = tighten(remaining, left);
+    if (partySize > left) return { ok: false, reason: "full", remainingCovers: remaining };
+  }
+  return { ok: true, remainingCovers: remaining };
 }

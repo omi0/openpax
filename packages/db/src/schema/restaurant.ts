@@ -32,7 +32,10 @@ export const area = pgTable(
       .references(() => restaurant.id, { onDelete: "cascade" }),
     name: text().notNull(),
     sortOrder: integer().notNull().default(0),
+    /** false = the room is closed for now (rain on the terrace); its seats and tables stop counting. */
     active: boolean().notNull().default(true),
+    /** Guests the room holds at once; null = not set (no total cap from this room). */
+    seats: integer(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

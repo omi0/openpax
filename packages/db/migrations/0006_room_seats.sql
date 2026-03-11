@@ -1,0 +1,1 @@
+ALTER TABLE "area" ADD COLUMN "seats" integer;

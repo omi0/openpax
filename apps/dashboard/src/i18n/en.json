@@ -75,7 +75,9 @@
     "serviceIntro": "A service is a bookable period, like Lunch or Dinner. You can add more later.",
     "continue": "Continue",
     "finish": "Finish",
-    "welcome": "Welcome to Sitli"
+    "welcome": "Welcome to Sitli",
+    "seats": "How many guests can you seat at once?",
+    "seatsHint": "Count every room. You can split it into rooms later."
   },
   "today": {
     "title": "Today",
@@ -141,7 +143,8 @@
         "party_too_large": "party too large",
         "full": "full",
         "not_a_slot": "not a bookable time",
-        "no_table": "no free table"
+        "no_table": "no free table",
+        "room_closed": "room closed"
       },
       "slotUnavailable": "That time is not available: {{reason}}.",
       "noChanges": "Nothing changed.",
@@ -193,7 +196,10 @@
       "cancel": "Booking cancelled",
       "no_show": "Marked as no-show",
       "reopen": "Booking reopened"
-    }
+    },
+    "rooms": "Rooms",
+    "roomsHint": "Close a room to take its seats and tables out of today's bookings.",
+    "roomClosed": "{{name}} closed"
   },
   "services": {
     "title": "Services",
@@ -416,8 +422,8 @@
     "name": "Name (optional)",
     "service": "Service",
     "anyService": "Any service",
-    "area": "Area",
-    "anyArea": "Any area",
+    "area": "Room",
+    "anyArea": "Any room",
     "when": "When",
     "everyDay": "Every day",
     "weekday": "Weekday",
@@ -716,13 +722,13 @@
     "showClosed": "Show settled entries"
   },
   "tables": {
-    "title": "Tables",
-    "hint": "Tables are matched to bookings automatically: the smallest free table that fits, or two joinable tables of the same area pushed together. Once you add tables, a time is only bookable if a table is free for the whole visit.",
+    "title": "Rooms & tables",
+    "hint": "Tables are matched to bookings automatically: the smallest free table that fits, or two joinable tables of the same room pushed together. Once you add tables, a time is only bookable if a table is free for the whole visit.",
     "add": "Add table",
     "edit": "Edit table",
     "name": "Name",
-    "area": "Area",
-    "noArea": "No area",
+    "area": "Room",
+    "noArea": "No room",
     "minCovers": "Min guests",
     "maxCovers": "Max guests",
     "shape": "Shape",
@@ -743,7 +749,7 @@
     "floorPlanHint": "Drag tables to arrange the room, then save the layout. Click a table to edit it.",
     "saveLayout": "Save layout",
     "seats": "{{min}}–{{max}} guests",
-    "allAreas": "All areas",
+    "allAreas": "All rooms",
     "list": "Table list",
     "emptyPlan": "The plan appears once you add a table.",
     "layoutSaved": "Layout saved",
@@ -846,12 +852,31 @@
       "restaurant": "Name, address, contact details and language.",
       "services": "When you take bookings: lunch, dinner, and how many guests per time slot.",
       "closures": "Holidays, private events and limits on busy days.",
-      "tables": "Your room: tables, seats and the floor plan.",
+      "tables": "Your rooms with their seats, and the floor plan.",
       "notifications": "Emails and text messages sent to guests and to you.",
       "payments": "Deposits and card holds to protect against no-shows.",
       "widget": "The booking page for your website and the rules guests must follow.",
       "team": "Who can log in and what they can do.",
       "apiKeys": "For developers: connect other software."
     }
+  },
+  "rooms": {
+    "title": "Rooms",
+    "hint": "Each room has the seats it can hold. Closing a room (rain on the terrace) takes its seats and tables out of the bookings until you reopen it.",
+    "add": "Add room",
+    "edit": "Edit room",
+    "name": "Name",
+    "seats": "Seats",
+    "seatsHint": "How many guests can sit here at once.",
+    "open": "Open",
+    "closed": "Closed",
+    "seatsCount": "{{count}} seats",
+    "seatsUnset": "Seats not set",
+    "tablesCount_one": "{{count}} table",
+    "tablesCount_other": "{{count}} tables",
+    "empty": "No rooms yet",
+    "emptyHint": "Add a room with its seats so bookings stop when the house is full.",
+    "noSeatsWarning": "Set the seats of every open room, otherwise the total is not enforced.",
+    "confirmDelete": "Delete this room? Its tables stay, without a room."
   }
 }

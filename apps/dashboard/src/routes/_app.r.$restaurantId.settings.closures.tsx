@@ -1,14 +1,13 @@
 import type {
-  AreaDto,
   CapacityRuleDto,
   ScheduleExceptionDto,
   UpsertCapacityRuleInput,
   UpsertScheduleExceptionInput,
 } from "@sitli/shared";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarOff, LayoutGrid, Pencil, Plus, SlidersHorizontal, Trash } from "lucide-react";
-import { type FormEvent, useId, useState } from "react";
+import { CalendarOff, Pencil, Plus, SlidersHorizontal, Trash } from "lucide-react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CapacityRuleForm,
@@ -18,17 +17,7 @@ import {
   exceptionToInput,
   ruleToInput,
 } from "@/components/schedule-forms";
-import {
-  Badge,
-  Button,
-  Card,
-  Dialog,
-  EmptyState,
-  Input,
-  useConfirm,
-  useToast,
-} from "@/components/ui";
-import { api } from "@/lib/api";
+import { Badge, Button, Card, Dialog, EmptyState, useConfirm } from "@/components/ui";
 import {
   areasQuery,
   capacityRulesQuery,
@@ -36,6 +25,7 @@ import {
   restaurantQuery,
   servicesQuery,
 } from "@/lib/queries";
+import { useCrud } from "@/lib/use-crud";
 import { cn, formatDate, todayLocal } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/closures")({
@@ -56,44 +46,8 @@ function ClosuresPage() {
     <div className="space-y-5">
       <ExceptionsCard restaurantId={restaurantId} />
       <RulesCard restaurantId={restaurantId} />
-      <AreasCard restaurantId={restaurantId} />
     </div>
   );
-}
-
-/** Generic list + dialog CRUD wiring shared by the three cards. */
-function useCrud<TDto extends { id: string }, TInput>(
-  restaurantId: string,
-  segment: string,
-  key: string,
-) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [editing, setEditing] = useState<TDto | "new" | null>(null);
-  const invalidate = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, key] }),
-      queryClient.invalidateQueries({ queryKey: ["availability"] }),
-    ]);
-  const save = useMutation({
-    mutationFn: (v: TInput) =>
-      editing === "new" || !editing
-        ? api.post(`/api/v1/restaurants/${restaurantId}/${segment}`, v)
-        : api.put(`/api/v1/restaurants/${restaurantId}/${segment}/${editing.id}`, v),
-    onSuccess: async () => {
-      await invalidate();
-      setEditing(null);
-      toast.success(t("app.saved"));
-    },
-    onError: () => toast.error(t("app.error")),
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/v1/restaurants/${restaurantId}/${segment}/${id}`),
-    onSuccess: invalidate,
-    onError: () => toast.error(t("app.error")),
-  });
-  return { editing, setEditing, save, remove };
 }
 
 function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete: () => void }) {
@@ -368,75 +322,6 @@ function RulesCard({ restaurantId }: { restaurantId: string }) {
           />
         ) : null}
       </Dialog>
-    </Card>
-  );
-}
-
-function AreasCard({ restaurantId }: { restaurantId: string }) {
-  const { t } = useTranslation();
-  const confirm = useConfirm();
-  const { data: areas } = useSuspenseQuery(areasQuery(restaurantId));
-  const crud = useCrud<AreaDto, { name: string; sortOrder: number; active: boolean }>(
-    restaurantId,
-    "areas",
-    "areas",
-  );
-  const [name, setName] = useState("");
-  const add = (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    crud.setEditing("new");
-    crud.save.mutate(
-      { name: name.trim(), sortOrder: areas.length, active: true },
-      { onSuccess: () => setName("") },
-    );
-  };
-  return (
-    <Card
-      title={t("closures.areas")}
-      description={t("closures.areasHint")}
-      footer={
-        <form onSubmit={add} className="flex w-full flex-wrap gap-2 sm:flex-nowrap">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("closures.areaName")}
-            maxLength={80}
-            aria-label={t("closures.areaName")}
-            className="min-w-0 flex-1"
-          />
-          <Button type="submit" variant="secondary" icon={<Plus />} loading={crud.save.isPending}>
-            {t("closures.addArea")}
-          </Button>
-        </form>
-      }
-      flush={areas.length > 0}
-    >
-      {areas.length === 0 ? (
-        <EmptyState icon={<LayoutGrid />} title={t("closures.emptyAreas")} />
-      ) : (
-        <ul className="divide-y divide-stone-100">
-          {areas.map((a) => (
-            <li key={a.id} className="flex items-center gap-4 px-5 py-2.5">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
-                <LayoutGrid className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{a.name}</span>
-              <RowActions
-                onDelete={async () => {
-                  if (
-                    await confirm({
-                      title: t("closures.confirmDeleteArea"),
-                      confirmLabel: t("app.delete"),
-                    })
-                  )
-                    crud.remove.mutate(a.id);
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
     </Card>
   );
 }

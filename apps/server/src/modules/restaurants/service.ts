@@ -119,6 +119,7 @@ const toAreaDto = (row: typeof area.$inferSelect): AreaDto => ({
   name: row.name,
   sortOrder: row.sortOrder,
   active: row.active,
+  seats: row.seats,
 });
 
 const toExceptionDto = (row: typeof scheduleException.$inferSelect): ScheduleExceptionDto => ({
@@ -278,6 +279,15 @@ export async function createRestaurant(
     if (!created) throw new Error("insert failed");
     await tx.insert(bookingPolicy).values({ restaurantId: created.id });
     await tx.insert(widgetConfig).values({ restaurantId: created.id, defaultLocale: input.locale });
+    // the first room carries the seat count, so the house is capped from day one
+    if (input.seats !== undefined)
+      await tx.insert(area).values({
+        restaurantId: created.id,
+        name: input.locale === "it" ? "Sala" : "Dining room",
+        seats: input.seats,
+        sortOrder: 0,
+        active: true,
+      });
     await emitEvent(tx, {
       type: "restaurant.created",
       restaurantId: created.id,

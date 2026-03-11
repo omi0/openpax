@@ -11,7 +11,7 @@ test("bookings are seated on tables and staff can reassign from Today", async ({
 
   // --- add tables from the settings page
   await page.goto(`/r/${owner.restaurantId}/settings/tables`);
-  await expect(page.getByRole("heading", { name: "Tables" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rooms & tables" })).toBeVisible();
   for (const [name, max] of [
     ["T1", "2"],
     ["T2", "4"],

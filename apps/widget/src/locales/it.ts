@@ -63,6 +63,7 @@ export const it = {
     outside_lead_time: "Troppo a ridosso",
     full: "Completo",
     no_table: "Nessun tavolo",
+    room_closed: "Sala chiusa",
     party_too_large: "Gruppo troppo numeroso",
     party_too_small: "Gruppo troppo piccolo",
   },

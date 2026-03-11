@@ -11,6 +11,7 @@ import {
   localDateParts,
   SlotUnavailableError,
   transition,
+  usableTables,
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
 import { booking, bookingPayment, bookingPolicy, bookingTable, customer, service } from "@sitli/db";
@@ -231,7 +232,8 @@ async function assignTables(
 ): Promise<void> {
   await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
   if (!input?.tables || input.tables.length === 0) return;
-  const chosen = findTableAssignment(input.tables, input.tableLoads ?? [], req);
+  const usable = usableTables(input.tables, input.rooms);
+  const chosen = findTableAssignment(usable, input.tableLoads ?? [], req);
   if (!chosen) return; // staff override: stays unassigned, visible on the floor plan
   await tx.insert(bookingTable).values(chosen.map((t) => ({ bookingId, tableId: t.id })));
 }

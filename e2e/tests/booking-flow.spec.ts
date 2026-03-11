@@ -21,6 +21,7 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   // --- onboarding step 1
   await expect(page.getByRole("heading", { name: "Set up your restaurant" })).toBeVisible();
   await page.getByLabel("Restaurant name").fill("Osteria E2E");
+  await page.getByLabel("How many guests can you seat at once?").fill("40");
   await page.getByLabel("Email for notifications").fill("staff@example.com");
   await page.getByRole("button", { name: "Continue" }).click();
 

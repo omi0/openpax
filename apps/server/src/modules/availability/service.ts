@@ -7,6 +7,7 @@ import {
   type CapacityRuleDef,
   computeAvailability,
   type LocalDate,
+  type RoomDef,
   resolveServiceWindows,
   type ScheduleExceptionDef,
   type ServiceDef,
@@ -15,6 +16,7 @@ import {
 } from "@sitli/core";
 import type { DbOrTx } from "@sitli/db";
 import {
+  area,
   booking,
   bookingPolicy,
   bookingTable,
@@ -119,6 +121,10 @@ export async function loadAvailabilityInput(
       ),
     );
   if (!policy) throw ApiError.notFound("Booking policy");
+  const rooms = await db
+    .select({ id: area.id, name: area.name, seats: area.seats, active: area.active })
+    .from(area)
+    .where(eq(area.restaurantId, r.id));
   const tables = await db
     .select()
     .from(diningTable)
@@ -191,6 +197,9 @@ export async function loadAvailabilityInput(
       maxPartySize: policy.maxPartySize,
     },
     existingBookings: existing,
+    rooms: rooms.map(
+      (x): RoomDef => ({ id: x.id, name: x.name, seats: x.seats, active: x.active }),
+    ),
     ...(tables.length > 0
       ? {
           tables: tables.map(tableToDef),

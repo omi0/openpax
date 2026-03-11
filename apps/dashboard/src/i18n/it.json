@@ -75,7 +75,9 @@
     "serviceIntro": "Un servizio è una fascia prenotabile, come Pranzo o Cena. Potrai aggiungerne altri dopo.",
     "continue": "Continua",
     "finish": "Fine",
-    "welcome": "Benvenuto in Sitli"
+    "welcome": "Benvenuto in Sitli",
+    "seats": "Quanti ospiti puoi far sedere contemporaneamente?",
+    "seatsHint": "Conta tutte le sale. Potrai dividerle in sale più tardi."
   },
   "today": {
     "title": "Oggi",
@@ -141,7 +143,8 @@
         "party_too_large": "gruppo troppo grande",
         "full": "completo",
         "not_a_slot": "orario non prenotabile",
-        "no_table": "nessun tavolo libero"
+        "no_table": "nessun tavolo libero",
+        "room_closed": "sala chiusa"
       },
       "slotUnavailable": "Quell'orario non è disponibile: {{reason}}.",
       "noChanges": "Nessuna modifica.",
@@ -193,7 +196,10 @@
       "cancel": "Prenotazione annullata",
       "no_show": "Segnata come no-show",
       "reopen": "Prenotazione riaperta"
-    }
+    },
+    "rooms": "Sale",
+    "roomsHint": "Chiudi una sala per togliere i suoi posti e tavoli dalle prenotazioni.",
+    "roomClosed": "{{name}} chiusa"
   },
   "services": {
     "title": "Servizi",
@@ -416,8 +422,8 @@
     "name": "Nome (facoltativo)",
     "service": "Servizio",
     "anyService": "Qualsiasi servizio",
-    "area": "Zona",
-    "anyArea": "Qualsiasi zona",
+    "area": "Sala",
+    "anyArea": "Qualsiasi sala",
     "when": "Quando",
     "everyDay": "Ogni giorno",
     "weekday": "Giorno della settimana",
@@ -716,7 +722,7 @@
     "showClosed": "Mostra le voci chiuse"
   },
   "tables": {
-    "title": "Tavoli",
+    "title": "Sale e tavoli",
     "hint": "I tavoli vengono abbinati alle prenotazioni automaticamente: il tavolo libero più piccolo che basta, oppure due tavoli unibili della stessa sala. Una volta aggiunti i tavoli, un orario è prenotabile solo se c'è un tavolo libero per tutta la visita.",
     "add": "Aggiungi tavolo",
     "edit": "Modifica tavolo",
@@ -846,12 +852,31 @@
       "restaurant": "Nome, indirizzo, contatti e lingua.",
       "services": "Quando accetti prenotazioni: pranzo, cena e quanti ospiti per fascia oraria.",
       "closures": "Festività, eventi privati e limiti nei giorni più pieni.",
-      "tables": "La tua sala: tavoli, posti e piantina.",
+      "tables": "Le tue sale con i posti, e la piantina.",
       "notifications": "Email e SMS inviati agli ospiti e a te.",
       "payments": "Caparre e carte a garanzia contro i no-show.",
       "widget": "La pagina di prenotazione per il tuo sito e le regole per gli ospiti.",
       "team": "Chi può accedere e cosa può fare.",
       "apiKeys": "Per sviluppatori: collega altri programmi."
     }
+  },
+  "rooms": {
+    "title": "Sale",
+    "hint": "Ogni sala ha i posti che può ospitare. Chiudere una sala (pioggia in terrazza) toglie i suoi posti e tavoli dalle prenotazioni finché non la riapri.",
+    "add": "Aggiungi sala",
+    "edit": "Modifica sala",
+    "name": "Nome",
+    "seats": "Posti",
+    "seatsHint": "Quanti ospiti possono sedere qui contemporaneamente.",
+    "open": "Aperta",
+    "closed": "Chiusa",
+    "seatsCount": "{{count}} posti",
+    "seatsUnset": "Posti non impostati",
+    "tablesCount_one": "{{count}} tavolo",
+    "tablesCount_other": "{{count}} tavoli",
+    "empty": "Nessuna sala",
+    "emptyHint": "Aggiungi una sala con i suoi posti: le prenotazioni si fermano quando il locale è pieno.",
+    "noSeatsWarning": "Imposta i posti di ogni sala aperta, altrimenti il totale non viene applicato.",
+    "confirmDelete": "Eliminare questa sala? I tavoli restano, senza sala."
   }
 }

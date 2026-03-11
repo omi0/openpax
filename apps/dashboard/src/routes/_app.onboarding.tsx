@@ -62,6 +62,7 @@ function OnboardingPage() {
     const f = new FormData(e.currentTarget);
     const body: Record<string, unknown> = {
       name: f.get("name"),
+      seats: Number(f.get("seats")),
       timezone: f.get("timezone"),
       locale: f.get("locale"),
     };
@@ -120,6 +121,14 @@ function OnboardingPage() {
           <form onSubmit={submitRestaurant} className="grid gap-4 sm:grid-cols-2">
             <Field label={t("onboarding.name")} className="sm:col-span-2" required>
               <Input name="name" required maxLength={120} autoFocus />
+            </Field>
+            <Field
+              label={t("onboarding.seats")}
+              hint={t("onboarding.seatsHint")}
+              className="sm:col-span-2"
+              required
+            >
+              <Input name="seats" type="number" inputMode="numeric" min={1} max={5000} required />
             </Field>
             <Field label={t("onboarding.timezone")}>
               <Select name="timezone" defaultValue="Europe/Rome">

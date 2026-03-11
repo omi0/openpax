@@ -30,6 +30,15 @@ export interface TableRequest {
   areaId?: string | null;
 }
 
+/** Tables that can be used now: active, and not in a closed room. */
+export function usableTables(
+  tables: readonly TableDef[],
+  rooms: readonly { id: string; active: boolean }[] | undefined,
+): TableDef[] {
+  const closed = new Set((rooms ?? []).filter((r) => !r.active).map((r) => r.id));
+  return tables.filter((t) => t.active !== false && (t.areaId === null || !closed.has(t.areaId)));
+}
+
 /** Staff order the list; ties keep the given order (stable sort). */
 const byPreference = (a: TableDef, b: TableDef) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
 
@@ -92,12 +101,17 @@ export function findTableAssignment(
   return pair;
 }
 
-/** True when the restaurant has tables and none can host the party at that time. */
+/**
+ * True when the restaurant has a floor plan (at least one active table) and
+ * no usable table can host the party at that time. Tables in closed rooms
+ * count as part of the plan but cannot be used.
+ */
 export function tablesExhausted(
   tables: readonly TableDef[],
   loads: readonly TableLoad[],
   req: TableRequest,
+  rooms?: readonly { id: string; active: boolean }[],
 ): boolean {
   if (tables.filter((t) => t.active !== false).length === 0) return false;
-  return findTableAssignment(tables, loads, req) === null;
+  return findTableAssignment(usableTables(tables, rooms), loads, req) === null;
 }

@@ -2,7 +2,7 @@ import { DomainError } from "../errors.js";
 import { tablesExhausted } from "../tables/tables.js";
 import { isLocalDate, weekdayOf } from "../time/local.js";
 import { isValidTimeZone } from "../time/zoned.js";
-import { evaluateCapacity } from "./capacity.js";
+import { evaluateCapacity, evaluateRooms } from "./capacity.js";
 import { checkDatePolicy, checkPartyPolicy, checkServiceParty, checkSlotTiming } from "./policy.js";
 import { enumerateSlots } from "./slots.js";
 import type {
@@ -41,6 +41,7 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
   const activeServices = input.services.filter((s) => s.active !== false);
   const weekday = weekdayOf(input.date);
   const areaId = input.areaId ?? null;
+  const rooms = input.rooms ?? [];
   const slots: Slot[] = [];
   let anyOpen = false;
 
@@ -68,16 +69,35 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
       );
       remainingCovers = capacity.remainingCovers;
       if (reason === null && !capacity.ok) reason = capacity.reason ?? "full";
+      // rooms: the requested room must be open, and the open rooms' seats cap everyone
+      const room = evaluateRooms(
+        rooms,
+        input.existingBookings,
+        { startsAt: candidate.startsAt, endsAt: candidate.endsAt },
+        input.partySize,
+        areaId,
+      );
+      if (room.remainingCovers !== null)
+        remainingCovers =
+          remainingCovers === null
+            ? room.remainingCovers
+            : Math.min(remainingCovers, room.remainingCovers);
+      if (reason === null && !room.ok) reason = room.reason ?? "full";
       // with a floor plan, a party also needs a table that is free for the whole visit
       if (
         reason === null &&
         input.tables &&
-        tablesExhausted(input.tables, input.tableLoads ?? [], {
-          startsAt: candidate.startsAt,
-          endsAt: candidate.endsAt,
-          partySize: input.partySize,
-          areaId,
-        })
+        tablesExhausted(
+          input.tables,
+          input.tableLoads ?? [],
+          {
+            startsAt: candidate.startsAt,
+            endsAt: candidate.endsAt,
+            partySize: input.partySize,
+            areaId,
+          },
+          rooms,
+        )
       )
         reason = "no_table";
 

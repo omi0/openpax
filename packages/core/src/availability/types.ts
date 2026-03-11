@@ -77,7 +77,23 @@ export interface BookingLoad {
   partySize: number;
 }
 
+/** A room of the restaurant. Rooms cap how many guests sit at once. */
+export interface RoomDef {
+  id: string;
+  name?: string;
+  /** Guests the room holds at the same time; null = unknown (no cap from this room). */
+  seats: number | null;
+  /** A closed room contributes no seats and its tables cannot be used. */
+  active: boolean;
+}
+
 export interface AvailabilityInput {
+  /**
+   * Rooms of the restaurant. When every open room has a seat count, their sum
+   * caps the guests seated at once; a requested room must be open and have
+   * space for the party.
+   */
+  rooms?: RoomDef[];
   /** Tables of the restaurant; when non-empty a slot also needs a free table (or pair) for the party. */
   tables?: TableDef[];
   /** Tables taken by active bookings. */
@@ -108,6 +124,7 @@ export type UnavailableReason =
   | "party_too_large"
   | "full"
   | "no_table"
+  | "room_closed"
   | "not_a_slot";
 
 export interface Slot {

@@ -1,5 +1,5 @@
 import type { BookingAction } from "@sitli/core";
-import type { BookingDto } from "@sitli/shared";
+import type { AreaDto, BookingDto, UpsertAreaInput } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  DoorOpen,
   EllipsisVertical,
   LayoutGrid,
   List,
@@ -44,6 +45,7 @@ import {
   PageLoader,
   Segmented,
   StatusBadge,
+  Switch,
   Textarea,
   useToast,
 } from "@/components/ui";
@@ -86,9 +88,12 @@ function TodayPage() {
   const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
   const [view, setView] = useState<"list" | "floor">("list");
+  const [roomsOpen, setRoomsOpen] = useState(false);
   const tables = useQuery(tablesQuery(restaurantId));
   const areas = useQuery(areasQuery(restaurantId));
   const hasFloor = (tables.data?.length ?? 0) > 0;
+  const rooms = areas.data ?? [];
+  const closedRooms = rooms.filter((r) => !r.active);
 
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
@@ -157,9 +162,22 @@ function TodayPage() {
                 <Clock className="size-3.5" /> {t("today.toConfirm", { count: pending })}
               </span>
             ) : null}
+            {closedRooms.map((r) => (
+              <span
+                key={r.id}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[13px] font-medium text-amber-900"
+              >
+                <DoorOpen className="size-3.5" /> {t("today.roomClosed", { name: r.name })}
+              </span>
+            ))}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {rooms.length > 0 ? (
+            <Button variant="outline" icon={<DoorOpen />} onClick={() => setRoomsOpen(true)}>
+              {t("today.rooms")}
+            </Button>
+          ) : null}
           {hasFloor ? (
             <Segmented
               ariaLabel={t("today.viewLabel")}
@@ -252,6 +270,12 @@ function TodayPage() {
         onAssign={(b) => setAssigning(b)}
       />
 
+      <RoomsDialog
+        restaurantId={restaurantId}
+        rooms={rooms}
+        open={roomsOpen}
+        onClose={() => setRoomsOpen(false)}
+      />
       <BookingFormDialog
         restaurant={restaurant}
         date={date}
@@ -622,8 +646,10 @@ function FloorView({
         new Date(b.endsAt).getTime() > probe,
     ) ?? null;
   const unassigned = bookings.filter((b) => ACTIVE_STATUSES.has(b.status) && b.tables.length === 0);
+  const closedRooms = new Set(areas.filter((a) => !a.active).map((a) => a.id));
   const statusOf = (table: (typeof tables)[number]): TableStatus => {
-    if (!table.active) return { tone: "inactive" };
+    if (!table.active || (table.areaId !== null && closedRooms.has(table.areaId)))
+      return { tone: "inactive" };
     const b = seatedAt(table.id);
     if (!b) return { tone: "free", title: `${table.name} · ${t("today.free")}` };
     return {
@@ -691,5 +717,81 @@ function FloorView({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Open or close rooms for the day: a closed room's seats and tables leave the bookings. */
+function RoomsDialog({
+  restaurantId,
+  rooms,
+  open,
+  onClose,
+}: {
+  restaurantId: string;
+  rooms: AreaDto[];
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const toggle = useMutation({
+    mutationFn: ({ room, active }: { room: AreaDto; active: boolean }) => {
+      const body: UpsertAreaInput = {
+        name: room.name,
+        sortOrder: room.sortOrder,
+        active,
+        seats: room.seats,
+      };
+      return api.put(`/api/v1/restaurants/${restaurantId}/areas/${room.id}`, body);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "areas"] }),
+        queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] }),
+        queryClient.invalidateQueries({ queryKey: ["availability"] }),
+      ]);
+      toast.success(t("app.saved"));
+    },
+    onError: () => toast.error(t("app.error")),
+  });
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("today.rooms")}
+      description={t("today.roomsHint")}
+    >
+      <ul className="divide-y divide-stone-100">
+        {rooms.map((r) => (
+          <li key={r.id} className="flex items-center gap-4 py-3">
+            <span
+              className={cn(
+                "inline-flex size-10 shrink-0 items-center justify-center rounded-xl",
+                r.active ? "bg-brand-50 text-brand-700" : "bg-stone-100 text-stone-400",
+              )}
+            >
+              <DoorOpen className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={cn("text-[15px] font-semibold", !r.active && "text-stone-500")}>
+                {r.name}
+              </p>
+              <p className="text-sm text-stone-500">
+                {r.seats === null
+                  ? t("rooms.seatsUnset")
+                  : t("rooms.seatsCount", { count: r.seats })}
+              </p>
+            </div>
+            <Switch
+              checked={r.active}
+              label={r.active ? t("rooms.open") : t("rooms.closed")}
+              disabled={toggle.isPending}
+              onChange={(active) => toggle.mutate({ room: r, active })}
+            />
+          </li>
+        ))}
+      </ul>
+    </Dialog>
   );
 }

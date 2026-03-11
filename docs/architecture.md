@@ -24,9 +24,21 @@ packages/
 ## Availability
 
 `packages/core` computes availability from plain data: services (weekly hours,
-slot interval, turn time, pacing limits), exceptions, capacity rules, the
-booking policy and the existing bookings. It has no I/O and is covered by unit
-tests, including DST transitions and services that cross midnight.
+slot interval, turn time, pacing limits), rooms, exceptions, capacity rules,
+the booking policy and the existing bookings. It has no I/O and is covered by
+unit tests, including DST transitions and services that cross midnight.
+
+Capacity is layered. A service's *max covers per slot* is a pacing limit: it
+counts guests whose booking starts within one slot interval and ignores the
+turn time. *Rooms* (`area` rows with a seat count and an open/closed flag)
+cap how many guests are seated at the same moment: the sum of the seats of
+the open rooms is enforced against every booking that overlaps the visit, as
+long as every open room has a seat count. Closing a room (rain on the
+terrace) removes its seats and its tables until it is reopened, and a request
+for a closed room is refused with `room_closed`. *Capacity rules* add
+narrower concurrent limits (a service, a room, a weekday, a time window) and
+*tables* require a free table for the whole visit. Onboarding asks for the
+seats of the house and creates the first room from them.
 
 Booking creation re-runs the exact same check inside a transaction that holds
 a Postgres advisory lock on `(restaurant, service date)`, so concurrent
@@ -64,7 +76,7 @@ feature, add a module that subscribes to the events it needs and exposes its
 own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
-areas, closures, capacity rules), `availability`, `widget` (hosted page config),
+rooms, closures, capacity rules), `availability`, `widget` (hosted page config),
 `bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `csv`, `notifications`, `team`, `api-keys`, `analytics`
 (read-only aggregates over bookings; capacity offered = slots × max covers per
 slot from the service hours and closures; every report also carries the same
@@ -73,8 +85,9 @@ distributions, and can be downloaded as CSV).
 
 ### Tables and the floor plan
 
-`dining_table` rows (name, area, min/max guests, shape, position on a
-100 × 70 plan, joinable, priority) are optional. As soon as a restaurant has
+`dining_table` rows (name, room, min/max guests, shape, position on a
+100 × 70 plan, joinable, priority) are optional. Tables in a closed room are
+ignored until the room reopens. As soon as a restaurant has
 an active table, the availability engine also requires a free table for the
 whole visit: `packages/core/src/tables/tables.ts` picks the single free
 table that wastes the fewest seats, else the pair of joinable tables in the
@@ -85,8 +98,9 @@ time or party size reseats the booking, cancelling frees the tables (only
 active statuses count as load). Staff override (`ignoreCapacity`) creates
 the booking unassigned; the Today page flags it and offers manual
 assignment (`PUT /bookings/{id}/tables`, which refuses a taken table unless
-`force`). Settings → Tables holds the CRUD and a drag-and-drop plan; Today
-has a floor view for any time of the day.
+`force`). Settings → Rooms & tables holds the rooms, the table CRUD and a
+drag-and-drop plan; Today has a floor view for any time of the day and a
+quick switch to close or reopen a room.
 
 ### Deposits and no-show protection
 
