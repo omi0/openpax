@@ -78,10 +78,15 @@ own routes and jobs, then register it in `modules/index.ts`.
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 rooms, closures, capacity rules), `availability`, `widget` (hosted page config),
 `bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `csv`, `notifications`, `team`, `api-keys`, `analytics`
-(read-only aggregates over bookings; capacity offered = slots × max covers per
-slot from the service hours and closures; every report also carries the same
-totals for the previous period of equal length, party-size and lead-time
-distributions, and can be downloaded as CSV).
+(read-only aggregates over bookings; capacity offered is computed two ways from
+the service hours and closures: `capacity` = slots × max covers per slot, and
+`seatCapacity` = seats of the open rooms × turns of each service, a turn being
+the opening span plus the turn time over the turn time, so dinner 19:00–22:00
+with a 2 h turn offers 2.5 turns. The seat figure is null until every open
+room has a seat count and uses the rooms as they are today, since rooms have
+no history; the dashboard prefers it for occupancy. Every report also carries
+the same totals for the previous period of equal length, party-size and
+lead-time distributions, and can be downloaded as CSV).
 
 ### Tables and the floor plan
 

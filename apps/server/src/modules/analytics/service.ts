@@ -1,11 +1,13 @@
 import {
   addDaysToLocalDate,
   instantToLocal,
+  type RoomDef,
   resolveServiceWindows,
+  totalSeats,
   WEEKDAYS,
   weekdayOf,
 } from "@sitli/core";
-import { booking, scheduleException, service } from "@sitli/db";
+import { area, booking, scheduleException, service } from "@sitli/db";
 import {
   type AnalyticsDto,
   type AnalyticsQuery,
@@ -58,6 +60,26 @@ function serviceCapacity(
   return slots * svc.maxCoversPerSlot;
 }
 
+/**
+ * Times a seat can be used by a service on a date: every opening window is
+ * seated from its first arrival to its last arrival plus the turn time, and
+ * that span divided by the turn time is the number of turns. Dinner with
+ * arrivals 19:00–22:00 and a 2 h turn offers (180 + 120) / 120 = 2.5 turns.
+ */
+function serviceTurns(
+  svc: ReturnType<typeof serviceToDef>,
+  date: string,
+  exceptions: ExceptionRow[],
+): number {
+  if (svc.durationMinutes <= 0) return 0;
+  const { closed, windows } = resolveServiceWindows(svc, date, exceptions);
+  if (closed) return 0;
+  let turns = 0;
+  for (const w of windows)
+    turns += (w.endMin - w.startMin + svc.durationMinutes) / svc.durationMinutes;
+  return turns;
+}
+
 function datesBetween(from: string, to: string): string[] {
   if (to < from) throw ApiError.badRequest("invalid_range", "`to` must not be before `from`");
   const dates: string[] = [];
@@ -77,12 +99,16 @@ interface RangeAggregate {
   weekdays: AnalyticsDto["weekdays"];
 }
 
-/** Everything the report needs for one date range; services are shared between ranges. */
+/**
+ * Everything the report needs for one date range; services and the seats of
+ * the open rooms (as they are now) are shared between ranges.
+ */
 async function aggregateRange(
   ctx: AppContext,
   r: RestaurantRow,
   dates: string[],
   services: ServiceRow[],
+  seats: number | null,
   today: string,
 ): Promise<RangeAggregate> {
   const from = dates[0] ?? "";
@@ -117,12 +143,13 @@ async function aggregateRange(
       ),
   ]);
 
-  const days = new Map(dates.map((date) => [date, { ...zero(), capacity: null as number | null }]));
+  const noCapacity = () => ({
+    capacity: null as number | null,
+    seatCapacity: null as number | null,
+  });
+  const days = new Map(dates.map((date) => [date, { ...zero(), ...noCapacity() }]));
   const byService = new Map(
-    services.map((s) => [
-      s.id,
-      { serviceId: s.id, name: s.name, ...zero(), capacity: null as number | null },
-    ]),
+    services.map((s) => [s.id, { serviceId: s.id, name: s.name, ...zero(), ...noCapacity() }]),
   );
   const bySource = new Map<string, Counts>();
   const byWeekday = new Map(WEEKDAYS.map((w) => [w, { bookings: 0, covers: 0 }]));
@@ -153,25 +180,41 @@ async function aggregateRange(
     }
   }
 
-  // capacity offered per day and per service
+  // capacity offered per day and per service: arrivals (pacing limit × slots)
+  // and seats (open rooms' seats × turns); services that overlap in time share
+  // the seats, so the seat figure is an upper bound in that case
   const defs = services.filter((s) => s.active).map(serviceToDef);
   let capacityTotal: number | null = null;
   let coversWithCapacity = 0;
+  let seatCapacityTotal: number | null = null;
+  let coversWithSeatCapacity = 0;
   for (const date of dates) {
     const day = days.get(date);
     if (!day) continue;
     let dayCapacity: number | null = null;
+    let daySeatCapacity: number | null = seats === null ? null : 0;
     for (const def of defs) {
-      const cap = serviceCapacity(def, date, exceptions);
-      if (cap === null) continue;
-      dayCapacity = (dayCapacity ?? 0) + cap;
       const svc = byService.get(def.id);
-      if (svc) svc.capacity = (svc.capacity ?? 0) + cap;
+      const cap = serviceCapacity(def, date, exceptions);
+      if (cap !== null) {
+        dayCapacity = (dayCapacity ?? 0) + cap;
+        if (svc) svc.capacity = (svc.capacity ?? 0) + cap;
+      }
+      if (seats !== null) {
+        const seatCap = Math.round(seats * serviceTurns(def, date, exceptions));
+        daySeatCapacity = (daySeatCapacity ?? 0) + seatCap;
+        if (svc) svc.seatCapacity = (svc.seatCapacity ?? 0) + seatCap;
+      }
     }
     day.capacity = dayCapacity;
+    day.seatCapacity = daySeatCapacity;
     if (dayCapacity !== null) {
       capacityTotal = (capacityTotal ?? 0) + dayCapacity;
       coversWithCapacity += day.covers;
+    }
+    if (daySeatCapacity !== null) {
+      seatCapacityTotal = (seatCapacityTotal ?? 0) + daySeatCapacity;
+      coversWithSeatCapacity += day.covers;
     }
   }
 
@@ -183,8 +226,10 @@ async function aggregateRange(
       cancellationRate: totals.created > 0 ? totals.cancelled / totals.created : null,
       capacity: capacityTotal,
       occupancy: capacityTotal ? coversWithCapacity / capacityTotal : null,
+      seatCapacity: seatCapacityTotal,
+      seatOccupancy: seatCapacityTotal ? coversWithSeatCapacity / seatCapacityTotal : null,
     },
-    days: dates.map((date) => ({ date, ...(days.get(date) ?? { ...zero(), capacity: null }) })),
+    days: dates.map((date) => ({ date, ...(days.get(date) ?? { ...zero(), ...noCapacity() }) })),
     services: [...byService.values()],
     sources: [...bySource.entries()]
       .map(([source, c]) => ({ source: source as BookingSourceSchemaType, ...c }))
@@ -268,14 +313,22 @@ export async function getAnalytics(
   const previousDates = datesBetween(previousFrom, previousTo);
   const today = instantToLocal(ctx.now(), r.timezone).date;
 
-  const services = await ctx.db
-    .select()
-    .from(service)
-    .where(eq(service.restaurantId, r.id))
-    .orderBy(asc(service.sortOrder), asc(service.name));
+  const [services, rooms] = await Promise.all([
+    ctx.db
+      .select()
+      .from(service)
+      .where(eq(service.restaurantId, r.id))
+      .orderBy(asc(service.sortOrder), asc(service.name)),
+    ctx.db
+      .select({ id: area.id, seats: area.seats, active: area.active })
+      .from(area)
+      .where(eq(area.restaurantId, r.id)),
+  ]);
+  // rooms have no history: the seats open today stand for the whole range
+  const seats = totalSeats(rooms.map((x): RoomDef => ({ ...x })));
   const [current, previous, dist, feedback] = await Promise.all([
-    aggregateRange(ctx, r, dates, services, today),
-    aggregateRange(ctx, r, previousDates, services, today),
+    aggregateRange(ctx, r, dates, services, seats, today),
+    aggregateRange(ctx, r, previousDates, services, seats, today),
     distributions(ctx, r, q.from, q.to),
     feedbackSummary(ctx, r.id, { from: q.from, to: q.to }),
   ]);
@@ -283,6 +336,7 @@ export async function getAnalytics(
   return {
     from: q.from,
     to: q.to,
+    seats,
     ...current,
     previous: { from: previousFrom, to: previousTo, totals: previous.totals },
     ...dist,
@@ -301,7 +355,18 @@ const csvCell = (v: string | number | null): string => {
 /** One row per day of the range; the last line carries the totals. */
 export function analyticsToCsv(data: AnalyticsDto): string {
   const lines: string[][] = [
-    ["date", "weekday", "bookings", "covers", "cancelled", "no_shows", "capacity", "occupancy"],
+    [
+      "date",
+      "weekday",
+      "bookings",
+      "covers",
+      "cancelled",
+      "no_shows",
+      "capacity",
+      "occupancy",
+      "seat_capacity",
+      "seat_occupancy",
+    ],
   ];
   for (const d of data.days) {
     lines.push([
@@ -313,6 +378,8 @@ export function analyticsToCsv(data: AnalyticsDto): string {
       String(d.noShows),
       d.capacity === null ? "" : String(d.capacity),
       d.capacity ? (d.covers / d.capacity).toFixed(4) : "",
+      d.seatCapacity === null ? "" : String(d.seatCapacity),
+      d.seatCapacity ? (d.covers / d.seatCapacity).toFixed(4) : "",
     ]);
   }
   const t = data.totals;
@@ -325,6 +392,8 @@ export function analyticsToCsv(data: AnalyticsDto): string {
     String(t.noShows),
     t.capacity === null ? "" : String(t.capacity),
     t.occupancy === null ? "" : t.occupancy.toFixed(4),
+    t.seatCapacity === null ? "" : String(t.seatCapacity),
+    t.seatOccupancy === null ? "" : t.seatOccupancy.toFixed(4),
   ]);
   return `${lines.map((l) => l.map(csvCell).join(",")).join("\r\n")}\r\n`;
 }

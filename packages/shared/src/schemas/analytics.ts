@@ -23,6 +23,12 @@ export const analyticsDayDtoSchema = z.object({
   ...counts,
   /** Covers the restaurant could have seated that day; null when no service has a limit. */
   capacity: z.number().int().nullable(),
+  /**
+   * Covers the open rooms could have seated that day: their seats × the turns
+   * of each service (opening span plus turn time, over the turn time). Null
+   * when there are no rooms or an open room has no seat count.
+   */
+  seatCapacity: z.number().int().nullable(),
 });
 
 export const analyticsTotalsDtoSchema = z.object({
@@ -36,6 +42,9 @@ export const analyticsTotalsDtoSchema = z.object({
   capacity: z.number().int().nullable(),
   /** covers / capacity over days where capacity is known. */
   occupancy: z.number().nullable(),
+  seatCapacity: z.number().int().nullable(),
+  /** covers / seatCapacity; the dashboard prefers this over `occupancy` when known. */
+  seatOccupancy: z.number().nullable(),
 });
 export type AnalyticsTotalsDto = z.infer<typeof analyticsTotalsDtoSchema>;
 
@@ -47,6 +56,8 @@ export type LeadTimeBucket = (typeof LEAD_TIME_BUCKETS)[number];
 export const analyticsDtoSchema = z.object({
   from: localDateSchema,
   to: localDateSchema,
+  /** Seats of the open rooms as they are now; null when unknown (see `seatCapacity`). */
+  seats: z.number().int().nullable(),
   totals: analyticsTotalsDtoSchema,
   /** The same totals for the period of equal length that ends the day before `from`. */
   previous: z.object({
@@ -61,6 +72,7 @@ export const analyticsDtoSchema = z.object({
       name: z.string(),
       ...counts,
       capacity: z.number().int().nullable(),
+      seatCapacity: z.number().int().nullable(),
     }),
   ),
   sources: z.array(z.object({ source: z.enum(BOOKING_SOURCES), ...counts })),

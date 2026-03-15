@@ -625,10 +625,11 @@
       "noShowRate": "of past bookings",
       "cancellationRate": "of {{created}} created",
       "occupancy": "of {{capacity}} covers offered",
-      "occupancyUnknown": "set max covers per slot on your services"
+      "seatOccupancy": "of {{capacity}} covers ({{seats}} seats × turns)",
+      "occupancyUnknown": "set the seats of your rooms, or max covers per slot on your services"
     },
     "coversPerDay": "Covers per day",
-    "coversPerDayHint": "Bars show covers seated or expected; the grey track is the capacity offered that day.",
+    "coversPerDayHint": "Bars show covers seated or expected; the grey track is the capacity offered that day: seats of the open rooms × turns, or max covers per slot.",
     "byService": "By service",
     "bySource": "By source",
     "byWeekday": "By weekday",

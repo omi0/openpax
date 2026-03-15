@@ -31,9 +31,24 @@ interface Analytics {
     cancellationRate: number | null;
     capacity: number | null;
     occupancy: number | null;
+    seatCapacity: number | null;
+    seatOccupancy: number | null;
   };
-  days: Array<{ date: string; bookings: number; covers: number; capacity: number | null }>;
-  services: Array<{ name: string; bookings: number; covers: number; capacity: number | null }>;
+  seats: number | null;
+  days: Array<{
+    date: string;
+    bookings: number;
+    covers: number;
+    capacity: number | null;
+    seatCapacity: number | null;
+  }>;
+  services: Array<{
+    name: string;
+    bookings: number;
+    covers: number;
+    capacity: number | null;
+    seatCapacity: number | null;
+  }>;
   sources: Array<{ source: string; bookings: number }>;
   weekdays: Array<{ weekday: string; bookings: number }>;
   previous: { from: string; to: string; totals: Analytics["totals"] };
@@ -181,10 +196,17 @@ describe("analytics", () => {
     expect(csv.headers.get("content-type")).toContain("text/csv");
     expect(csv.headers.get("content-disposition")).toContain(".csv");
     const lines = (await csv.text()).trim().split("\r\n");
-    expect(lines[0]).toBe("date,weekday,bookings,covers,cancelled,no_shows,capacity,occupancy");
+    expect(lines[0]).toBe(
+      "date,weekday,bookings,covers,cancelled,no_shows,capacity,occupancy,seat_capacity,seat_occupancy",
+    );
     expect(lines).toHaveLength(16);
-    expect(lines.find((l) => l.startsWith("2026-06-12"))).toBe("2026-06-12,fri,1,2,1,0,140,0.0143");
-    expect(lines[15]).toBe("total,,3,8,1,1,1960,0.0041");
+    // no rooms yet: the seat columns stay empty
+    expect(lines.find((l) => l.startsWith("2026-06-12"))).toBe(
+      "2026-06-12,fri,1,2,1,0,140,0.0143,,",
+    );
+    expect(lines[15]).toBe("total,,3,8,1,1,1960,0.0041,,");
+    expect(res.body.seats).toBeNull();
+    expect(res.body.totals.seatCapacity).toBeNull();
 
     const closed = await api(
       t,
@@ -212,5 +234,75 @@ describe("analytics", () => {
       fx.session,
     );
     expect(tooLong.body.code).toBe("range_too_long");
+  });
+
+  it("measures occupancy against the seats of the open rooms when they are known", async () => {
+    const fx = await createFixture(t);
+    const areas = `/api/v1/restaurants/${fx.restaurantId}/areas`;
+    const report = `/api/v1/restaurants/${fx.restaurantId}/analytics?from=${FRIDAY}&to=2026-06-13`;
+    const room = async (name: string, seats: number | null) => {
+      const res = await api<{ id: string }>(
+        t,
+        "POST",
+        areas,
+        { name, seats, active: true, sortOrder: 0 },
+        fx.session,
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(201);
+      return res.body.id;
+    };
+    const setOpen = async (id: string, name: string, seats: number | null, active: boolean) => {
+      const res = await api(
+        t,
+        "PUT",
+        `${areas}/${id}`,
+        { name, seats, active, sortOrder: 0 },
+        fx.session,
+      );
+      expect(res.status).toBe(200);
+    };
+    const sala = await room("Sala", 40);
+    const booked = await api<{ id: string }>(
+      t,
+      "POST",
+      `/api/public/v1/restaurants/${fx.slug}/bookings`,
+      guestBooking(fx, { partySize: 4 }),
+    );
+    expect(booked.status).toBe(201);
+
+    // dinner arrivals 19:00–22:00 with a 2 h turn = 2.5 turns × 40 seats = 100 covers a day
+    const res = await api<Analytics>(t, "GET", report, undefined, fx.session);
+    expect(res.status).toBe(200);
+    expect(res.body.seats).toBe(40);
+    expect(res.body.days.map((d) => d.seatCapacity)).toEqual([100, 100]);
+    expect(res.body.days[0]).toMatchObject({ covers: 4, capacity: 140 });
+    expect(res.body.services[0]).toMatchObject({ seatCapacity: 200, capacity: 280 });
+    expect(res.body.totals).toMatchObject({ seatCapacity: 200, seatOccupancy: 0.02 });
+    expect(res.body.totals.occupancy).toBeCloseTo(4 / 280);
+    expect(res.body.previous.totals.seatCapacity).toBe(200);
+    const csv = await t.app.request(
+      `/api/v1/restaurants/${fx.restaurantId}/analytics/export?from=${FRIDAY}&to=2026-06-13`,
+      { headers: { cookie: fx.session.cookie, origin: "http://localhost:3000" } },
+    );
+    const lines = (await csv.text()).trim().split("\r\n");
+    expect(lines[1]).toBe(`${FRIDAY},fri,1,4,0,0,140,0.0286,100,0.0400`);
+    expect(lines[3]).toBe("total,,1,4,0,0,280,0.0143,200,0.0200");
+
+    // an open room without a seat count makes the total unknown
+    const terrace = await room("Dehors", null);
+    const unknown = await api<Analytics>(t, "GET", report, undefined, fx.session);
+    expect(unknown.body.seats).toBeNull();
+    expect(unknown.body.totals).toMatchObject({ seatCapacity: null, seatOccupancy: null });
+    expect(unknown.body.days[0]?.seatCapacity).toBeNull();
+
+    // closing it restores the house count; closing every room leaves no seats at all
+    await setOpen(terrace, "Dehors", null, false);
+    const again = await api<Analytics>(t, "GET", report, undefined, fx.session);
+    expect(again.body.seats).toBe(40);
+    expect(again.body.totals.seatCapacity).toBe(200);
+    await setOpen(sala, "Sala", 40, false);
+    const closed = await api<Analytics>(t, "GET", report, undefined, fx.session);
+    expect(closed.body.seats).toBe(0);
+    expect(closed.body.totals).toMatchObject({ seatCapacity: 0, seatOccupancy: null });
   });
 });

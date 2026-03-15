@@ -625,10 +625,11 @@
       "noShowRate": "delle prenotazioni passate",
       "cancellationRate": "su {{created}} create",
       "occupancy": "su {{capacity}} coperti offerti",
-      "occupancyUnknown": "imposta i coperti massimi per fascia nei servizi"
+      "seatOccupancy": "su {{capacity}} coperti ({{seats}} posti × turni)",
+      "occupancyUnknown": "imposta i posti delle sale, oppure i coperti massimi per fascia nei servizi"
     },
     "coversPerDay": "Coperti per giorno",
-    "coversPerDayHint": "Le barre mostrano i coperti seduti o attesi; la traccia grigia è la capienza offerta quel giorno.",
+    "coversPerDayHint": "Le barre mostrano i coperti seduti o attesi; la traccia grigia è la capienza offerta quel giorno: posti delle sale aperte × turni, oppure coperti massimi per fascia.",
     "byService": "Per servizio",
     "bySource": "Per origine",
     "byWeekday": "Per giorno della settimana",

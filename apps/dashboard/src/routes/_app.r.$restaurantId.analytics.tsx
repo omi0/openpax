@@ -77,6 +77,26 @@ const num = (v: number, locale: string, digits = 0) =>
 const signed = (v: number, locale: string, digits = 0) =>
   new Intl.NumberFormat(locale, { maximumFractionDigits: digits, signDisplay: "always" }).format(v);
 
+/** Capacity offered: the seats of the open rooms × turns when known, else the pacing limit. */
+const offered = (x: { capacity: number | null; seatCapacity: number | null }) =>
+  x.seatCapacity ?? x.capacity;
+
+/** What the occupancy is measured against, in plain words. */
+function capacityHint(
+  data: AnalyticsDto,
+  locale: string,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  if (data.totals.seatCapacity)
+    return t("analytics.kpiHint.seatOccupancy", {
+      capacity: num(data.totals.seatCapacity, locale),
+      seats: num(data.seats ?? 0, locale),
+    });
+  if (data.totals.capacity)
+    return t("analytics.kpiHint.occupancy", { capacity: num(data.totals.capacity, locale) });
+  return t("analytics.kpiHint.occupancyUnknown");
+}
+
 /* chart ink: one brand hue for the data, stone text tokens for everything else */
 const INK = {
   bar: "#1f6f5f",
@@ -295,20 +315,19 @@ function AnalyticsPage() {
             />
             <Stat
               label={t("analytics.kpi.occupancy")}
-              value={percent(data.totals.occupancy, locale) ?? t("analytics.na")}
+              value={
+                percent(data.totals.seatOccupancy ?? data.totals.occupancy, locale) ??
+                t("analytics.na")
+              }
               icon={<Percent />}
               tone="good"
               hint={
                 <>
-                  {data.totals.capacity
-                    ? t("analytics.kpiHint.occupancy", {
-                        capacity: num(data.totals.capacity, locale),
-                      })
-                    : t("analytics.kpiHint.occupancyUnknown")}
+                  {capacityHint(data, locale, t)}
                   <br />
                   <Delta
-                    current={data.totals.occupancy}
-                    previous={prev.occupancy}
+                    current={data.totals.seatOccupancy ?? data.totals.occupancy}
+                    previous={prev.seatOccupancy ?? prev.occupancy}
                     kind="rate"
                     locale={locale}
                   />
@@ -357,7 +376,8 @@ function AnalyticsPage() {
                   </thead>
                   <tbody className="divide-y divide-stone-100">
                     {data.services.map((s) => {
-                      const occ = s.capacity ? s.covers / s.capacity : null;
+                      const cap = offered(s);
+                      const occ = cap ? s.covers / cap : null;
                       return (
                         <tr key={s.serviceId}>
                           <td className="px-5 py-3 text-[15px] font-semibold">{s.name}</td>
@@ -553,7 +573,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
   const [hover, setHover] = useState<number | null>(null);
   const [table, setTable] = useState(false);
   const days = data.days;
-  const max = Math.max(1, ...days.map((d) => Math.max(d.covers, d.capacity ?? 0)));
+  const max = Math.max(1, ...days.map((d) => Math.max(d.covers, offered(d) ?? 0)));
   const W = 960;
   const H = 220;
   const padL = 36;
@@ -568,6 +588,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
   const labelEvery = Math.max(1, Math.ceil(days.length / 10));
   const peak = days.reduce((best, d, i) => (d.covers > (days[best]?.covers ?? -1) ? i : best), 0);
   const hovered = hover !== null ? days[hover] : null;
+  const hoveredCapacity = hovered ? offered(hovered) : null;
 
   return (
     <div>
@@ -589,7 +610,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
           ))}
           {days.map((d, i) => {
             const x = padL + i * band + (band - barW) / 2;
-            const cap = d.capacity ?? 0;
+            const cap = offered(d) ?? 0;
             const isPeak = i === peak && d.covers > 0;
             return (
               // biome-ignore lint/a11y/noStaticElementInteractions: hover only reveals the tooltip; the table view exposes the same data
@@ -644,9 +665,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
             <p className="tabular-nums">
               {hovered.covers} {t("analytics.columns.covers").toLowerCase()} · {hovered.bookings}{" "}
               {t("analytics.columns.bookings").toLowerCase()}
-              {hovered.capacity
-                ? ` · ${Math.round((hovered.covers / hovered.capacity) * 100)}%`
-                : ""}
+              {hoveredCapacity ? ` · ${Math.round((hovered.covers / hoveredCapacity) * 100)}%` : ""}
             </p>
             {hovered.cancelled || hovered.noShows ? (
               <p className="text-stone-500">
@@ -713,7 +732,7 @@ function DailyChart({ data, restaurantId }: { data: AnalyticsDto; restaurantId: 
                   <td className="px-3 py-1.5 text-right tabular-nums">{d.cancelled}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{d.noShows}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-stone-500">
-                    {d.capacity ?? "—"}
+                    {offered(d) ?? "—"}
                   </td>
                 </tr>
               ))}
