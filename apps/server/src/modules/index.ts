@@ -9,6 +9,7 @@ import type { SitliModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
 import { paymentsModule } from "./payments/index.js";
 import { restaurantsModule } from "./restaurants/index.js";
+import { setupModule } from "./setup/index.js";
 import { tablesModule } from "./tables/index.js";
 import { teamModule } from "./team/index.js";
 import { waitlistModule } from "./waitlist/index.js";
@@ -31,4 +32,5 @@ export const modules: SitliModule[] = [
   teamModule,
   apiKeysModule,
   analyticsModule,
+  setupModule,
 ];

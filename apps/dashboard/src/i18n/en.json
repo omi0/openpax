@@ -63,21 +63,18 @@
   },
   "onboarding": {
     "title": "Set up your restaurant",
-    "subtitle": "Two quick steps and your booking widget is live.",
-    "step1": "Restaurant",
-    "step2": "First service",
+    "subtitle": "Tell us about your restaurant. The guide then walks you through hours, rooms, rules, emails and your team.",
     "name": "Restaurant name",
     "timezone": "Timezone",
     "locale": "Language for guests",
     "email": "Email for notifications",
     "phone": "Phone",
     "address": "Address",
-    "serviceIntro": "A service is a bookable period, like Lunch or Dinner. You can add more later.",
     "continue": "Continue",
-    "finish": "Finish",
     "welcome": "Welcome to Sitli",
     "seats": "How many guests can you seat at once?",
-    "seatsHint": "Count every room. You can split it into rooms later."
+    "seatsHint": "Count every room. You can split it into rooms later.",
+    "emailHint": "Where new-booking alerts go. You can add it later."
   },
   "today": {
     "title": "Today",
@@ -879,5 +876,104 @@
     "emptyHint": "Add a room with its seats so bookings stop when the house is full.",
     "noSeatsWarning": "Set the seats of every open room, otherwise the total is not enforced.",
     "confirmDelete": "Delete this room? Its tables stay, without a room."
+  },
+  "setup": {
+    "title": "Setup guide",
+    "stepOf": "Step {{n}} of {{total}}",
+    "progress": "{{done}} of {{total}} done",
+    "back": "Back",
+    "skip": "Skip for now",
+    "continue": "Continue",
+    "saveContinue": "Save and continue",
+    "finish": "Finish setup",
+    "later": "Finish later",
+    "finished": "Setup finished. Your restaurant is ready to take bookings.",
+    "cardTitle": "Finish setting up",
+    "cardHint": "A few steps left before guests can book without surprises.",
+    "next": "Next: {{step}}",
+    "openGuide": "Continue setup",
+    "hide": "Hide",
+    "hubTitle": "Setup guide",
+    "hubHint": "Step by step through everything a restaurant needs before going live.",
+    "hubCompleted": "Finished on {{date}}. Open it again any time to review a step.",
+    "reopen": "Open the guide",
+    "steps": {
+      "restaurant": {
+        "label": "Restaurant",
+        "title": "Your restaurant",
+        "hint": "Name, contact details and language. Guests see these in emails and on the booking page; alerts for new bookings go to the email below."
+      },
+      "services": {
+        "label": "Hours",
+        "title": "When can guests book?",
+        "hint": "A service is a bookable period, like Lunch or Dinner: its days, the first and last arrival time, and how many guests may arrive within one time slot."
+      },
+      "rooms": {
+        "label": "Rooms & tables",
+        "title": "Rooms and seats",
+        "hint": "The seats of your open rooms cap how many guests can be seated at once. Split the house into rooms if you sometimes close one, like a terrace when it rains."
+      },
+      "policy": {
+        "label": "Booking rules",
+        "title": "Booking rules",
+        "hint": "What guests can do online: how much notice you need, how far ahead they can book, party sizes, and whether bookings are confirmed at once or wait for you."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "title": "Emails to guests and to you",
+        "hint": "Guests get a confirmation and a reminder; you get a message for every new booking. Choose how emails are sent, then send yourself a test."
+      },
+      "team": {
+        "label": "Team",
+        "title": "Invite your team",
+        "hint": "Colleagues get their own login. Staff handle bookings; managers also change settings. You can skip this and invite people later."
+      },
+      "widget": {
+        "label": "Go live",
+        "title": "Go live",
+        "hint": "Share your booking page, or paste the widget into your website. Make a test booking to see the whole flow, then finish."
+      }
+    },
+    "services": {
+      "first": "Your first service",
+      "firstHint": "Dinner is prefilled. Adjust the days and times, then save. You can add lunch and more services right after.",
+      "listHint": "These are the periods guests can book. Add another, or continue.",
+      "presets": "Quick add:",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "editLater": "Edit hours and capacity any time in Settings →"
+    },
+    "rooms": {
+      "tablesTitle": "Tables (optional)",
+      "tablesHint": "With tables, Sitli assigns each booking to a table, checks that one is free, and shows a floor plan on Today. Without tables, only the seats count.",
+      "tablesLink": "Manage tables",
+      "tablesCount_one": "You have {{count}} table.",
+      "tablesCount_other": "You have {{count}} tables.",
+      "noTables": "No tables yet. Skip this if you seat guests as they come."
+    },
+    "notifications": {
+      "none": "No way to send email yet. Without it, guests get no confirmation and you get no alerts.",
+      "instance": "This server already sends email through its own mail settings, so confirmations work out of the box. Set up your own provider below to send from your address.",
+      "ready": "Emails go out through {{provider}}.",
+      "noEmail": "Add an email for notifications to receive alerts for new bookings:",
+      "smsHint": "Text messages are optional. Set up an SMS provider in Settings →"
+    },
+    "team": {
+      "who": "Who has access",
+      "invited": "Invited",
+      "alone": "It is just you for now."
+    },
+    "widget": {
+      "checklist": "Before you go live",
+      "checklistHint": "These steps are still open. Bookings work without them, but check each one.",
+      "allDone": "Everything is set. Time to take bookings.",
+      "fix": "Open",
+      "hosted": "Your booking page",
+      "hostedHint": "Works on its own: share the link on Google, Instagram, WhatsApp or a QR code on the menu.",
+      "open": "Open booking page",
+      "embed": "Widget for your website",
+      "embedHint": "Paste this code where the booking form should appear.",
+      "test": "Try it: make a booking from the page, then find it on Today and cancel it."
+    }
   }
 }

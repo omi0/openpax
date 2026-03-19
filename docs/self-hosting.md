@@ -33,6 +33,31 @@ bookings.example.com {
 }
 ```
 
+## First run
+
+Open `PUBLIC_URL` and create the first account: it becomes the owner and,
+with the default `SIGNUP_MODE`, sign-up closes behind it. The **setup guide**
+then takes over and walks through seven steps, each one skippable and
+revisitable:
+
+1. **Restaurant**: name, seats of the house, timezone, language, contacts.
+2. **Hours**: the first service (dinner is prefilled), then lunch or more.
+3. **Rooms & tables**: the seats given in step 1 became the first room; split
+   them into rooms that can be closed, add tables if you want automatic table
+   assignment.
+4. **Booking rules**: notice, horizon, party sizes, automatic confirmation,
+   waitlist.
+5. **Notifications**: how emails are sent. With `SMTP_URL` set the step shows
+   "Server default" and works out of the box; otherwise configure a provider
+   (SMTP, Resend, SendGrid, Postmark, SES) and send yourself a test.
+6. **Team**: invite colleagues by email.
+7. **Go live**: the hosted booking page link and the widget embed code.
+
+Progress is judged from the actual configuration (a service with hours, rooms
+with seats, a working email channel, team members), so the reminder on
+**Today** goes away as things get done and the guide can be reopened from
+**Settings → Setup guide** at any time, also for a second restaurant.
+
 ## Backups
 
 Everything lives in Postgres. `pg_dump` the database on a schedule; also back

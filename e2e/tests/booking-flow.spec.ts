@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * The full vertical slice: owner signs up, creates a restaurant and a service,
- * configures an email provider, a guest books through the hosted widget page,
+ * The full vertical slice: owner signs up, walks through the setup guide
+ * (restaurant, hours, rooms, rules, email provider), a guest books through the hosted widget page,
  * the booking shows up in the Today view, and the confirmation email was logged.
  */
 test("owner onboards, guest books through the widget, booking appears on Today", async ({
@@ -25,17 +25,21 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   await page.getByLabel("Email for notifications").fill("staff@example.com");
   await page.getByRole("button", { name: "Continue" }).click();
 
-  // --- onboarding step 2: the starter service is prefilled (dinner, every day but Monday)
-  await expect(page.getByRole("heading", { name: "First service" })).toBeVisible();
-  await page.getByRole("button", { name: "Finish" }).click();
+  // --- the setup guide takes over: the starter dinner service is prefilled (every day but Monday)
+  await expect(page.getByRole("heading", { name: "When can guests book?" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and continue" }).click();
 
-  // --- lands on widget settings with the embed snippet
-  await expect(page.getByRole("heading", { name: "Embed code" })).toBeVisible();
-  const snippet = await page.locator("pre").first().textContent();
-  expect(snippet).toContain('data-restaurant="osteria-e2e"');
+  // --- rooms: the seats given in step 1 became the first room
+  await expect(page.getByRole("heading", { name: "Rooms and seats" })).toBeVisible();
+  await expect(page.getByText("40 seats")).toBeVisible();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-  // --- configure the console email provider so notifications are "sent"
-  await page.getByRole("link", { name: "Notifications" }).click();
+  // --- booking rules keep their defaults
+  await expect(page.getByRole("heading", { name: "Booking rules" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and continue" }).click();
+
+  // --- notifications: configure the console email provider so messages are "sent"
+  await expect(page.getByRole("heading", { name: "Emails to guests and to you" })).toBeVisible();
   const emailCard = page.locator("section", { hasText: "Email" }).first();
   await emailCard.getByLabel("Choose a provider").selectOption("console-email");
   await emailCard.getByRole("button", { name: "Save" }).click();
@@ -43,6 +47,18 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   await expect(
     emailCard.locator("span.rounded-full", { hasText: "This restaurant" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+
+  // --- the team can wait
+  await expect(page.getByRole("heading", { name: "Invite your team" })).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+
+  // --- go live: the embed snippet, then finish the guide and land on Today
+  await expect(page.getByRole("heading", { name: "Go live", exact: true })).toBeVisible();
+  const snippet = await page.locator("pre").first().textContent();
+  expect(snippet).toContain('data-restaurant="osteria-e2e"');
+  await page.getByRole("button", { name: "Finish setup" }).click();
+  await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
 
   // --- guest books through the hosted widget page
   const guest = await page.context().newPage();

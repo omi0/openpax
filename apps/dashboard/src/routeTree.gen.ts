@@ -24,6 +24,7 @@ import { Route as AppRRestaurantIdBookingsRouteImport } from "./routes/_app.r.$r
 import { Route as AppRRestaurantIdCalendarRouteImport } from "./routes/_app.r.$restaurantId.calendar";
 import { Route as AppRRestaurantIdFeedbackRouteImport } from "./routes/_app.r.$restaurantId.feedback";
 import { Route as AppRRestaurantIdSettingsRouteImport } from "./routes/_app.r.$restaurantId.settings";
+import { Route as AppRRestaurantIdSetupRouteImport } from "./routes/_app.r.$restaurantId.setup";
 import { Route as AppRRestaurantIdTodayRouteImport } from "./routes/_app.r.$restaurantId.today";
 import { Route as AppRRestaurantIdCustomersIndexRouteImport } from "./routes/_app.r.$restaurantId.customers.index";
 import { Route as AppRRestaurantIdCustomersCustomerIdRouteImport } from "./routes/_app.r.$restaurantId.customers.$customerId";
@@ -117,6 +118,11 @@ const AppRRestaurantIdSettingsRoute =
     path: "/settings",
     getParentRoute: () => AppRRestaurantIdRoute,
   } as any);
+const AppRRestaurantIdSetupRoute = AppRRestaurantIdSetupRouteImport.update({
+  id: "/setup",
+  path: "/setup",
+  getParentRoute: () => AppRRestaurantIdRoute,
+} as any);
 const AppRRestaurantIdTodayRoute = AppRRestaurantIdTodayRouteImport.update({
   id: "/today",
   path: "/today",
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/feedback": typeof AppRRestaurantIdFeedbackRoute;
   "/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
+  "/r/$restaurantId/setup": typeof AppRRestaurantIdSetupRoute;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   "/r/$restaurantId/bookings": typeof AppRRestaurantIdBookingsRoute;
   "/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/r/$restaurantId/feedback": typeof AppRRestaurantIdFeedbackRoute;
+  "/r/$restaurantId/setup": typeof AppRRestaurantIdSetupRoute;
   "/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/r/$restaurantId": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   "/_app/r/$restaurantId/calendar": typeof AppRRestaurantIdCalendarRoute;
   "/_app/r/$restaurantId/feedback": typeof AppRRestaurantIdFeedbackRoute;
   "/_app/r/$restaurantId/settings": typeof AppRRestaurantIdSettingsRouteWithChildren;
+  "/_app/r/$restaurantId/setup": typeof AppRRestaurantIdSetupRoute;
   "/_app/r/$restaurantId/today": typeof AppRRestaurantIdTodayRoute;
   "/_app/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/_app/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/feedback"
     | "/r/$restaurantId/settings"
+    | "/r/$restaurantId/setup"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId/"
     | "/r/$restaurantId/customers/$customerId"
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/bookings"
     | "/r/$restaurantId/calendar"
     | "/r/$restaurantId/feedback"
+    | "/r/$restaurantId/setup"
     | "/r/$restaurantId/today"
     | "/r/$restaurantId"
     | "/r/$restaurantId/customers/$customerId"
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | "/_app/r/$restaurantId/calendar"
     | "/_app/r/$restaurantId/feedback"
     | "/_app/r/$restaurantId/settings"
+    | "/_app/r/$restaurantId/setup"
     | "/_app/r/$restaurantId/today"
     | "/_app/r/$restaurantId/"
     | "/_app/r/$restaurantId/customers/$customerId"
@@ -486,6 +498,13 @@ declare module "@tanstack/react-router" {
       path: "/settings";
       fullPath: "/r/$restaurantId/settings";
       preLoaderRoute: typeof AppRRestaurantIdSettingsRouteImport;
+      parentRoute: typeof AppRRestaurantIdRoute;
+    };
+    "/_app/r/$restaurantId/setup": {
+      id: "/_app/r/$restaurantId/setup";
+      path: "/setup";
+      fullPath: "/r/$restaurantId/setup";
+      preLoaderRoute: typeof AppRRestaurantIdSetupRouteImport;
       parentRoute: typeof AppRRestaurantIdRoute;
     };
     "/_app/r/$restaurantId/today": {
@@ -625,6 +644,7 @@ interface AppRRestaurantIdRouteChildren {
   AppRRestaurantIdCalendarRoute: typeof AppRRestaurantIdCalendarRoute;
   AppRRestaurantIdFeedbackRoute: typeof AppRRestaurantIdFeedbackRoute;
   AppRRestaurantIdSettingsRoute: typeof AppRRestaurantIdSettingsRouteWithChildren;
+  AppRRestaurantIdSetupRoute: typeof AppRRestaurantIdSetupRoute;
   AppRRestaurantIdTodayRoute: typeof AppRRestaurantIdTodayRoute;
   AppRRestaurantIdIndexRoute: typeof AppRRestaurantIdIndexRoute;
   AppRRestaurantIdCustomersCustomerIdRoute: typeof AppRRestaurantIdCustomersCustomerIdRoute;
@@ -637,6 +657,7 @@ const AppRRestaurantIdRouteChildren: AppRRestaurantIdRouteChildren = {
   AppRRestaurantIdCalendarRoute: AppRRestaurantIdCalendarRoute,
   AppRRestaurantIdFeedbackRoute: AppRRestaurantIdFeedbackRoute,
   AppRRestaurantIdSettingsRoute: AppRRestaurantIdSettingsRouteWithChildren,
+  AppRRestaurantIdSetupRoute: AppRRestaurantIdSetupRoute,
   AppRRestaurantIdTodayRoute: AppRRestaurantIdTodayRoute,
   AppRRestaurantIdIndexRoute: AppRRestaurantIdIndexRoute,
   AppRRestaurantIdCustomersCustomerIdRoute:

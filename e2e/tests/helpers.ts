@@ -6,7 +6,7 @@ export interface Owner {
   slug: string;
 }
 
-/** Sign up a fresh owner and complete onboarding with the starter dinner service. */
+/** Sign up a fresh owner, create the restaurant with the starter dinner service and close the setup guide. */
 export async function onboardOwner(page: Page, name: string): Promise<Owner> {
   const email = `owner-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
   await page.goto("/signup");
@@ -19,10 +19,18 @@ export async function onboardOwner(page: Page, name: string): Promise<Owner> {
   await page.getByLabel("How many guests can you seat at once?").fill("40");
   await page.getByLabel("Email for notifications").fill("staff@example.com");
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-  await expect(page.getByRole("heading", { name: "Embed code" })).toBeVisible();
+  // the setup guide takes over with the hours step; the starter dinner service is prefilled
+  await expect(page.getByRole("heading", { name: "When can guests book?" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and continue" }).click();
+  await expect(page.getByRole("heading", { name: "Rooms and seats" })).toBeVisible();
   const me = await (await page.request.get("/api/v1/me")).json();
-  return { email, restaurantId: me.restaurants[0].id, slug: me.restaurants[0].slug };
+  const restaurantId = me.restaurants[0].id as string;
+  // the specs start from a finished guide, so Today shows no setup reminder
+  const finished = await page.request.patch(`/api/v1/restaurants/${restaurantId}/setup`, {
+    data: { completed: true },
+  });
+  expect(finished.status(), await finished.text()).toBe(200);
+  return { email, restaurantId, slug: me.restaurants[0].slug };
 }
 
 /** First future date with an open service, as YYYY-MM-DD. */

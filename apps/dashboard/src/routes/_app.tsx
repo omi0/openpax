@@ -61,6 +61,7 @@ function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
   const onboarding = pathname.startsWith("/onboarding");
+  const setup = /^\/r\/[^/]+\/setup(\/|$)/.test(pathname);
 
   // close the drawer after any navigation
   useEffect(() => {
@@ -73,7 +74,15 @@ function AppLayout() {
     await navigate({ to: "/login" });
   };
 
-  if (onboarding) return <MinimalLayout me={me} onLogout={logout} />;
+  if (onboarding || setup)
+    return (
+      <MinimalLayout
+        me={me}
+        current={current}
+        exitLabel={setup ? t("setup.later") : t("app.back")}
+        onLogout={logout}
+      />
+    );
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
@@ -177,30 +186,45 @@ function AppLayout() {
   );
 }
 
-/** Header-only frame used during onboarding, so the empty sidebar does not distract. */
-function MinimalLayout({ me, onLogout }: { me: Me; onLogout: () => Promise<void> }) {
-  const { t } = useTranslation();
-  const first = me.restaurants[0];
+/** Header-only frame for onboarding and the setup guide, so the sidebar does not distract. */
+function MinimalLayout({
+  me,
+  current,
+  exitLabel,
+  onLogout,
+}: {
+  me: Me;
+  current: Me["restaurants"][number] | null;
+  exitLabel: string;
+  onLogout: () => Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
+  const first = current ?? me.restaurants[0];
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex h-16 items-center justify-between border-b border-stone-200 bg-white px-4 md:px-8">
-        <BrandLockup />
-        <div className="flex items-center gap-2">
+      <header className="flex h-16 items-center justify-between gap-2 border-b border-stone-200 bg-white px-3 md:px-8">
+        <BrandMark size={34} className="sm:hidden" />
+        <BrandLockup className="hidden sm:flex" />
+        <div className="flex items-center gap-1 sm:gap-2">
+          <LanguageToggle value={i18n.language} onChange={setLanguage} className="w-32 sm:w-44" />
           {first ? (
             <Link
               to="/r/$restaurantId/today"
               params={{ restaurantId: first.id }}
-              className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100"
+              className="rounded-xl px-2 py-2 text-sm font-medium whitespace-nowrap text-stone-600 hover:bg-stone-100 sm:px-3"
             >
-              {t("app.back")}
+              {exitLabel}
             </Link>
           ) : null}
           <button
             type="button"
             onClick={() => void onLogout()}
-            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100"
+            aria-label={t("app.logout")}
+            title={t("app.logout")}
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium text-stone-600 hover:bg-stone-100 sm:px-3"
           >
-            <LogOut className="size-4" /> {t("app.logout")}
+            <LogOut className="size-4" />
+            <span className="hidden sm:inline">{t("app.logout")}</span>
           </button>
         </div>
       </header>
@@ -344,12 +368,17 @@ function RestaurantSwitcher({
 function LanguageToggle({
   value,
   onChange,
+  className,
 }: {
   value: string;
   onChange: (l: "it" | "en") => void;
+  className?: string;
 }) {
   return (
-    <fieldset className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1" aria-label="Language">
+    <fieldset
+      className={cn("grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1", className)}
+      aria-label="Language"
+    >
       {(["it", "en"] as const).map((l) => (
         <button
           key={l}

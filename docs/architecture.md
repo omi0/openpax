@@ -77,7 +77,12 @@ own routes and jobs, then register it in `modules/index.ts`.
 
 Current modules: `restaurants` (restaurants, services, policy, widget config,
 rooms, closures, capacity rules), `availability`, `widget` (hosted page config),
-`bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `csv`, `notifications`, `team`, `api-keys`, `analytics`
+`bookings`, `waitlist`, `tables`, `payments`, `feedback`, `customers`, `csv`, `notifications`, `team`, `api-keys`, `setup` (the setup
+guide: judges each step from the other modules' public APIs, `listServices`
+and `listAreas` from `restaurants`, `listTables` from `tables`,
+`resolveProvider` from `notifications`, `getTeam` from `team`, and stores the
+steps the owner went through plus the completion time on the restaurant row),
+`analytics`
 (read-only aggregates over bookings; capacity offered is computed two ways from
 the service hours and closures: `capacity` = slots × max covers per slot, and
 `seatCapacity` = seats of the open rooms × turns of each service, a turn being

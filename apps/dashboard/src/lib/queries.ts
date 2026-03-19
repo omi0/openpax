@@ -23,6 +23,7 @@ import type {
   RestaurantSummaryDto,
   ScheduleExceptionDto,
   ServiceDto,
+  SetupStatusDto,
   TableDto,
   TeamDto,
   WaitlistEntryDto,
@@ -74,6 +75,13 @@ export const policyQuery = (id: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "policy"],
     queryFn: () => api.get<BookingPolicyDto>(`/api/v1/restaurants/${id}/policy`),
+  });
+
+export const setupQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "setup"],
+    queryFn: () => api.get<SetupStatusDto>(`/api/v1/restaurants/${id}/setup`),
+    staleTime: 10_000,
   });
 
 export const widgetConfigQuery = (id: string) =>

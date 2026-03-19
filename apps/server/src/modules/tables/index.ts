@@ -5,3 +5,6 @@ export const tablesModule = defineModule({
   name: "tables",
   routes: tableRoutes,
 });
+
+/** Public API for other modules. */
+export { listTables } from "./service.js";

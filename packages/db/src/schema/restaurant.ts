@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organization } from "./auth.js";
 import { createdAt, id, updatedAt } from "./columns.js";
 
@@ -17,6 +17,10 @@ export const restaurant = pgTable(
     address: text(),
     phone: text(),
     email: text(),
+    /** Setup-guide steps the owner has gone through (see `SETUP_STEPS` in shared). */
+    setupSteps: text().array().notNull().default([]),
+    /** When the owner marked the setup guide as finished; null keeps the guide visible. */
+    setupCompletedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

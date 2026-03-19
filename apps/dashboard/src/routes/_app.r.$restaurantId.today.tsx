@@ -32,6 +32,7 @@ import {
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
+import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
 import {
   Avatar,
@@ -194,6 +195,8 @@ function TodayPage() {
           </Button>
         </div>
       </div>
+
+      <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
 
       {view === "floor" && tables.data ? (
         <FloorView

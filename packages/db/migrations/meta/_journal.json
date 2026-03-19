@@ -50,6 +50,13 @@
       "when": 1789218632804,
       "tag": "0006_room_seats",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789234539691,
+      "tag": "0007_setup_progress",
+      "breakpoints": true
     }
   ]
 }

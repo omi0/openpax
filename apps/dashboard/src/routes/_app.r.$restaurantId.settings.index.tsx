@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { SetupProgressCard } from "@/components/setup-card";
 import { PageHeader } from "@/components/ui";
 import { meQuery } from "@/lib/queries";
 import { SETTINGS_SECTIONS, type SettingsSection } from "@/lib/settings-nav";
@@ -21,6 +22,7 @@ function SettingsHub() {
   return (
     <div>
       <PageHeader title={t("app.settings")} description={t("settings.intro")} />
+      <SetupProgressCard restaurantId={restaurantId} role={role} variant="hub" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {sections.map((s) => (
           <HubCard key={s.to} section={s} restaurantId={restaurantId} />

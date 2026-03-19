@@ -13,3 +13,6 @@ export const notificationsModule = defineModule({
   eventHandlers: [...notificationEventHandlers, invitationCreatedHandler],
   providers: builtinProviders,
 });
+
+/** Public API for other modules: which provider would send on a channel, and from which scope. */
+export { resolveProvider } from "./service.js";

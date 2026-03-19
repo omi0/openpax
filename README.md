@@ -27,11 +27,13 @@ openssl rand -base64 32   # APP_ENCRYPTION_KEY
 docker compose up -d
 ```
 
-Open http://localhost:3000, create your account, and follow the two-step
-onboarding. The widget embed code is under **Settings → Widget**. The first
-account becomes the owner and sign-up closes behind it: colleagues join through
-invitations from **Settings → Team** (set `SIGNUP_MODE=open` for a shared,
-multi-tenant instance).
+Open http://localhost:3000 and create your account. The setup guide then
+walks you through the restaurant, its opening hours, rooms and seats, booking
+rules, email notifications, your team and going live (booking page link and
+widget embed code); every step can be skipped and the guide reopens from
+**Settings → Setup guide**. The first account becomes the owner and sign-up
+closes behind it: colleagues join through invitations from **Settings → Team**
+(set `SIGNUP_MODE=open` for a shared, multi-tenant instance).
 
 Behind a reverse proxy with TLS, set `PUBLIC_URL=https://bookings.example.com`
 and `TRUST_PROXY=true`. See [docs/self-hosting.md](docs/self-hosting.md).

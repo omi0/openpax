@@ -7,8 +7,9 @@ import {
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Mail, UserPlus, Users } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InviteForm } from "@/components/invite-form";
 import {
   Alert,
   Avatar,
@@ -59,16 +60,6 @@ function TeamPage() {
     else setError(e instanceof ApiClientError ? e.message : t("app.error"));
   };
 
-  const invite = useMutation({
-    mutationFn: (body: { email: string; role: MemberRole }) =>
-      api.post<InvitationDto>(`/api/v1/restaurants/${restaurantId}/team/invitations`, body),
-    onSuccess: async () => {
-      setError(null);
-      toast.success(t("team.sent"));
-      await invalidate();
-    },
-    onError,
-  });
   const cancel = useMutation({
     mutationFn: (id: string) =>
       api.delete(`/api/v1/restaurants/${restaurantId}/team/invitations/${id}`),
@@ -90,15 +81,6 @@ function TeamPage() {
     onError,
   });
 
-  const submitInvite = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    setError(null);
-    invite.mutate(
-      { email: String(f.get("email")), role: String(f.get("role")) as MemberRole },
-      { onSuccess: () => e.currentTarget?.reset?.() },
-    );
-  };
   const assignable = MEMBER_ROLES.filter((r) => r !== "owner" || myRole === "owner");
   const canEdit = (m: TeamMemberDto) =>
     canManage && m.userId !== me.user.id && (m.role !== "owner" || myRole === "owner");
@@ -191,26 +173,7 @@ function TeamPage() {
           }
           description={t("team.inviteHint")}
         >
-          <form
-            onSubmit={submitInvite}
-            className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end"
-          >
-            <Field label={t("team.email")}>
-              <Input name="email" type="email" inputMode="email" required autoComplete="off" />
-            </Field>
-            <Field label={t("team.role")}>
-              <Select name="role" defaultValue="staff" wrapperClassName="sm:w-44">
-                {assignable.map((r) => (
-                  <option key={r} value={r}>
-                    {t(`role.${r}`)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Button type="submit" icon={<Mail />} loading={invite.isPending}>
-              {t("team.send")}
-            </Button>
-          </form>
+          <InviteForm restaurantId={restaurantId} assignable={assignable} />
           <p className="mt-3 text-[13px] text-stone-500">{t("team.noProviderHint")}</p>
         </Card>
       ) : null}

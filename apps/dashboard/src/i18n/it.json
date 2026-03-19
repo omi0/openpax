@@ -63,21 +63,18 @@
   },
   "onboarding": {
     "title": "Configura il tuo ristorante",
-    "subtitle": "Due passaggi e il widget di prenotazione è pronto.",
-    "step1": "Ristorante",
-    "step2": "Primo servizio",
+    "subtitle": "Raccontaci del tuo ristorante. La guida ti accompagna poi tra orari, sale, regole, email e squadra.",
     "name": "Nome del ristorante",
     "timezone": "Fuso orario",
     "locale": "Lingua per gli ospiti",
     "email": "Email per le notifiche",
     "phone": "Telefono",
     "address": "Indirizzo",
-    "serviceIntro": "Un servizio è una fascia prenotabile, come Pranzo o Cena. Potrai aggiungerne altri dopo.",
     "continue": "Continua",
-    "finish": "Fine",
     "welcome": "Benvenuto in Sitli",
     "seats": "Quanti ospiti puoi far sedere contemporaneamente?",
-    "seatsHint": "Conta tutte le sale. Potrai dividerle in sale più tardi."
+    "seatsHint": "Conta tutte le sale. Potrai dividerle in sale più tardi.",
+    "emailHint": "Dove arrivano gli avvisi delle nuove prenotazioni. Puoi aggiungerla dopo."
   },
   "today": {
     "title": "Oggi",
@@ -879,5 +876,104 @@
     "emptyHint": "Aggiungi una sala con i suoi posti: le prenotazioni si fermano quando il locale è pieno.",
     "noSeatsWarning": "Imposta i posti di ogni sala aperta, altrimenti il totale non viene applicato.",
     "confirmDelete": "Eliminare questa sala? I tavoli restano, senza sala."
+  },
+  "setup": {
+    "title": "Guida alla configurazione",
+    "stepOf": "Passo {{n}} di {{total}}",
+    "progress": "{{done}} di {{total}} completati",
+    "back": "Indietro",
+    "skip": "Salta per ora",
+    "continue": "Continua",
+    "saveContinue": "Salva e continua",
+    "finish": "Termina la configurazione",
+    "later": "Finisci più tardi",
+    "finished": "Configurazione terminata. Il ristorante è pronto a ricevere prenotazioni.",
+    "cardTitle": "Completa la configurazione",
+    "cardHint": "Mancano pochi passi perché gli ospiti possano prenotare senza sorprese.",
+    "next": "Prossimo: {{step}}",
+    "openGuide": "Continua",
+    "hide": "Nascondi",
+    "hubTitle": "Guida alla configurazione",
+    "hubHint": "Passo dopo passo, tutto ciò che serve a un ristorante prima di andare online.",
+    "hubCompleted": "Terminata il {{date}}. Riaprila quando vuoi per rivedere un passo.",
+    "reopen": "Apri la guida",
+    "steps": {
+      "restaurant": {
+        "label": "Ristorante",
+        "title": "Il tuo ristorante",
+        "hint": "Nome, contatti e lingua. Gli ospiti li vedono nelle email e nella pagina di prenotazione; gli avvisi delle nuove prenotazioni arrivano all'email qui sotto."
+      },
+      "services": {
+        "label": "Orari",
+        "title": "Quando si può prenotare?",
+        "hint": "Un servizio è una fascia prenotabile, come Pranzo o Cena: i giorni, il primo e l'ultimo orario di arrivo e quanti ospiti possono arrivare in una fascia oraria."
+      },
+      "rooms": {
+        "label": "Sale e tavoli",
+        "title": "Sale e posti",
+        "hint": "I posti delle sale aperte limitano quanti ospiti possono essere seduti contemporaneamente. Dividi il locale in sale se a volte ne chiudi una, come il dehors quando piove."
+      },
+      "policy": {
+        "label": "Regole",
+        "title": "Regole di prenotazione",
+        "hint": "Cosa possono fare gli ospiti online: quanto preavviso serve, con quanto anticipo prenotare, il numero di persone e se le prenotazioni sono confermate subito o aspettano te."
+      },
+      "notifications": {
+        "label": "Notifiche",
+        "title": "Email agli ospiti e a te",
+        "hint": "Gli ospiti ricevono conferma e promemoria; tu un messaggio per ogni nuova prenotazione. Scegli come inviare le email, poi manda una prova a te stesso."
+      },
+      "team": {
+        "label": "Squadra",
+        "title": "Invita la tua squadra",
+        "hint": "I colleghi hanno il proprio accesso. Lo staff gestisce le prenotazioni; i manager anche le impostazioni. Puoi saltare e invitare più tardi."
+      },
+      "widget": {
+        "label": "Vai online",
+        "title": "Vai online",
+        "hint": "Condividi la pagina di prenotazione o incolla il widget nel tuo sito. Fai una prenotazione di prova per vedere tutto il percorso, poi termina."
+      }
+    },
+    "services": {
+      "first": "Il tuo primo servizio",
+      "firstHint": "La cena è già impostata. Sistema giorni e orari, poi salva. Subito dopo puoi aggiungere il pranzo e altri servizi.",
+      "listHint": "Queste sono le fasce che gli ospiti possono prenotare. Aggiungine un'altra o continua.",
+      "presets": "Aggiunta rapida:",
+      "lunch": "Pranzo",
+      "dinner": "Cena",
+      "editLater": "Modifica orari e capienza quando vuoi in Impostazioni →"
+    },
+    "rooms": {
+      "tablesTitle": "Tavoli (facoltativi)",
+      "tablesHint": "Con i tavoli, Sitli assegna ogni prenotazione a un tavolo, controlla che sia libero e mostra la piantina in Oggi. Senza tavoli contano solo i posti.",
+      "tablesLink": "Gestisci i tavoli",
+      "tablesCount_one": "Hai {{count}} tavolo.",
+      "tablesCount_other": "Hai {{count}} tavoli.",
+      "noTables": "Nessun tavolo. Salta se fai accomodare gli ospiti man mano."
+    },
+    "notifications": {
+      "none": "Non c'è ancora un modo per inviare email. Senza, gli ospiti non ricevono conferme e tu nessun avviso.",
+      "instance": "Questo server invia già le email con le proprie impostazioni di posta, quindi le conferme funzionano subito. Configura qui sotto un tuo provider per inviare dal tuo indirizzo.",
+      "ready": "Le email partono tramite {{provider}}.",
+      "noEmail": "Aggiungi un'email per le notifiche per ricevere gli avvisi delle nuove prenotazioni:",
+      "smsHint": "Gli SMS sono facoltativi. Configura un provider SMS in Impostazioni →"
+    },
+    "team": {
+      "who": "Chi ha accesso",
+      "invited": "Invitato",
+      "alone": "Per ora ci sei solo tu."
+    },
+    "widget": {
+      "checklist": "Prima di andare online",
+      "checklistHint": "Questi passi sono ancora aperti. Le prenotazioni funzionano comunque, ma controllali.",
+      "allDone": "È tutto pronto. È ora di ricevere prenotazioni.",
+      "fix": "Apri",
+      "hosted": "La tua pagina di prenotazione",
+      "hostedHint": "Funziona da sola: condividi il link su Google, Instagram, WhatsApp o con un QR code sul menu.",
+      "open": "Apri la pagina",
+      "embed": "Widget per il tuo sito",
+      "embedHint": "Incolla questo codice dove deve comparire il modulo di prenotazione.",
+      "test": "Provala: fai una prenotazione dalla pagina, poi trovala in Oggi e cancellala."
+    }
   }
 }

@@ -1,9 +1,10 @@
 import type { BookingPolicyDto, UpdateWidgetConfigInput, WidgetConfigDto } from "@sitli/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Code, Copy, ExternalLink, Hourglass, Palette, SlidersHorizontal } from "lucide-react";
+import { Code, Copy, ExternalLink, Palette, SlidersHorizontal } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PolicyForm } from "@/components/policy-form";
 import {
   Alert,
   Button,
@@ -38,7 +39,6 @@ function WidgetPage() {
   const { data: widget } = useSuspenseQuery(widgetConfigQuery(restaurantId));
   const { data: policy } = useSuspenseQuery(policyQuery(restaurantId));
   const [w, setW] = useState<UpdateWidgetConfigInput>({ ...widget });
-  const [p, setP] = useState<BookingPolicyDto>({ ...policy });
   const [error, setError] = useState<string | null>(null);
 
   const saveWidget = useMutation({
@@ -51,7 +51,8 @@ function WidgetPage() {
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const savePolicy = useMutation({
-    mutationFn: () => api.put<BookingPolicyDto>(`/api/v1/restaurants/${restaurantId}/policy`, p),
+    mutationFn: (next: BookingPolicyDto) =>
+      api.put<BookingPolicyDto>(`/api/v1/restaurants/${restaurantId}/policy`, next),
     onSuccess: async () => {
       toast.success(t("app.saved"));
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "policy"] });
@@ -68,12 +69,6 @@ function WidgetPage() {
     setError(null);
     saveWidget.mutate();
   };
-  const submitPolicy = (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    savePolicy.mutate();
-  };
-  const numOrNull = (v: string) => (v === "" ? null : Number(v));
 
   return (
     <div className="space-y-4">
@@ -195,102 +190,15 @@ function WidgetPage() {
           </Button>
         }
       >
-        <form id={policyFormId} onSubmit={submitPolicy} className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("widget.minLead")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={p.minLeadMinutes}
-              onChange={(e) => setP({ ...p, minLeadMinutes: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label={t("widget.maxAdvance")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={730}
-              value={p.maxAdvanceDays}
-              onChange={(e) => setP({ ...p, maxAdvanceDays: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label={t("widget.minParty")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={p.minPartySize}
-              onChange={(e) => setP({ ...p, minPartySize: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label={t("widget.maxParty")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={p.maxPartySize}
-              onChange={(e) => setP({ ...p, maxPartySize: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label={t("widget.cutoff")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={p.cancellationCutoffMinutes}
-              onChange={(e) => setP({ ...p, cancellationCutoffMinutes: Number(e.target.value) })}
-            />
-          </Field>
-          <Field label={t("widget.largeParty")} hint={t("widget.largePartyHint")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={p.largePartyThreshold ?? ""}
-              onChange={(e) => setP({ ...p, largePartyThreshold: numOrNull(e.target.value) })}
-            />
-          </Field>
-          <div className="sm:col-span-2">
-            <Switch
-              checked={p.autoConfirm}
-              onChange={(autoConfirm) => setP({ ...p, autoConfirm })}
-              label={t("widget.autoConfirm")}
-            />
-          </div>
-          <div className="space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-4 sm:col-span-2">
-            <div>
-              <p className="flex items-center gap-2 text-[15px] font-semibold">
-                <Hourglass className="size-[18px] text-brand-700" /> {t("widget.waitlist")}
-              </p>
-              <p className="mt-1 text-[13px] leading-snug text-stone-500">
-                {t("widget.waitlistHint")}
-              </p>
-            </div>
-            <Switch
-              checked={p.waitlistEnabled}
-              onChange={(waitlistEnabled) => setP({ ...p, waitlistEnabled })}
-              label={t("widget.waitlistEnabled")}
-            />
-            <Switch
-              checked={p.waitlistAutoOffer}
-              onChange={(waitlistAutoOffer) => setP({ ...p, waitlistAutoOffer })}
-              label={t("widget.waitlistAutoOffer")}
-              disabled={!p.waitlistEnabled}
-            />
-            <Field label={t("widget.waitlistOfferMinutes")} className="sm:max-w-xs">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={15}
-                max={10080}
-                value={p.waitlistOfferMinutes}
-                disabled={!p.waitlistEnabled}
-                onChange={(e) => setP({ ...p, waitlistOfferMinutes: Number(e.target.value) })}
-              />
-            </Field>
-          </div>
-        </form>
+        <PolicyForm
+          key={JSON.stringify(policy)}
+          initial={policy}
+          id={policyFormId}
+          onSubmit={(next) => {
+            setError(null);
+            savePolicy.mutate(next);
+          }}
+        />
       </Card>
     </div>
   );
