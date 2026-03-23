@@ -1,4 +1,4 @@
-import { PgBoss } from "pg-boss";
+import { type JobResult, PgBoss } from "pg-boss";
 import type { AppContext } from "../context.js";
 import type { Logger } from "../logger.js";
 import type { AnyJobDef, JobQueue, SendOptions } from "./queue.js";
@@ -36,16 +36,28 @@ export async function registerJobs(
       expireInSeconds: 120,
     });
     if (!work) continue;
-    // one job per fetch so a failure only retries that job
-    await boss.work(job.name, { pollingIntervalSeconds: 1, batchSize: 1 }, async (batch) => {
-      for (const item of batch) {
-        try {
-          await job.handler(item.data as never, ctx);
-        } catch (error) {
-          ctx.logger.error({ err: error, job: job.name, id: item.id }, "job failed");
-          throw error;
-        }
-      }
-    });
+    // Batches of ten, fetched back to back while the queue is deep (one job per
+    // second was not enough for a rush of confirmations); each job is settled on
+    // its own, so one failure retries that job only.
+    await boss.work(
+      job.name,
+      { pollingIntervalSeconds: 1, batchSize: 10, burstWhenBatchFull: true, perJobResults: true },
+      async (batch) =>
+        Promise.all(
+          batch.map(async (item): Promise<JobResult> => {
+            try {
+              await job.handler(item.data as never, ctx);
+              return { id: item.id, status: "completed" };
+            } catch (error) {
+              ctx.logger.error({ err: error, job: job.name, id: item.id }, "job failed");
+              return {
+                id: item.id,
+                status: "failed",
+                output: { message: error instanceof Error ? error.message : String(error) },
+              };
+            }
+          }),
+        ),
+    );
   }
 }

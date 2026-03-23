@@ -10,6 +10,7 @@ import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
 import { ApiError } from "../../lib/errors.js";
+import { lockServiceDates } from "../../lib/locks.js";
 
 type Row = typeof diningTable.$inferSelect;
 
@@ -152,6 +153,7 @@ export async function assignTables(
     const [row] = await tx
       .select({
         id: booking.id,
+        serviceDate: booking.serviceDate,
         startsAt: booking.startsAt,
         endsAt: booking.endsAt,
         status: booking.status,
@@ -160,6 +162,8 @@ export async function assignTables(
       .where(and(eq(booking.id, bookingId), eq(booking.restaurantId, r.id)))
       .for("update");
     if (!row) throw ApiError.notFound("Booking");
+    // same lock as booking creation: nobody else seats a party on that date meanwhile
+    await lockServiceDates(tx, r.id, [row.serviceDate]);
 
     const ids = [...new Set(input.tableIds)];
     const tables =

@@ -48,7 +48,9 @@ pnpm dev                                          # api :3000, dashboard :5173, 
 ```
 
 Tests: `pnpm test` (core unit tests, API integration tests against Postgres),
-`pnpm --filter @sitli/e2e test:e2e` (Playwright, full booking flow).
+`pnpm --filter @sitli/e2e test:e2e` (Playwright, full booking flow),
+`pnpm --filter @sitli/server load:test` (load test against a running server,
+see [docs/architecture.md](docs/architecture.md#concurrency-and-load-testing)).
 
 - [docs/architecture.md](docs/architecture.md) — how the pieces fit and how to add a module or a notification provider
 - [docs/embedding.md](docs/embedding.md) — putting the widget on a website

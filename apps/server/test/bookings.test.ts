@@ -134,6 +134,60 @@ describe("guest bookings", () => {
     expect(list.body.total).toBe(1);
   });
 
+  it("settles concurrent retries with one idempotency key on one booking", async () => {
+    const fx = await createFixture(t);
+    const key = `retry-${Math.random().toString(36).slice(2)}`;
+    const attempts = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        api<PublicBooking>(
+          t,
+          "POST",
+          publicBookings(fx),
+          guestBooking(fx, { idempotencyKey: key }),
+        ),
+      ),
+    );
+    expect(attempts.map((a) => a.status)).toEqual(Array.from({ length: 12 }, () => 201));
+    expect(new Set(attempts.map((a) => a.body.id)).size).toBe(1);
+    const list = await api<{ total: number }>(
+      t,
+      "GET",
+      `${bookings(fx)}?date=${FRIDAY}`,
+      undefined,
+      fx.session,
+    );
+    expect(list.body.total).toBe(1);
+  });
+
+  it("keeps one guest-book entry when the same guest books several dates at once", async () => {
+    const fx = await createFixture(t);
+    const dates = ["2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16"];
+    const attempts = await Promise.all(
+      dates.flatMap((date) =>
+        ["19:00", "21:00"].map((time) =>
+          api<PublicBooking>(
+            t,
+            "POST",
+            publicBookings(fx),
+            guestBooking(fx, {
+              startsAt: romeInstant(date, time),
+              guest: { name: "Luca Bianchi", email: "luca@example.com", phone: "+39 333 9998887" },
+            }),
+          ),
+        ),
+      ),
+    );
+    expect(attempts.map((a) => a.status)).toEqual(Array.from({ length: 10 }, () => 201));
+    const customers = await api<{ total: number; items: Array<{ visitCount: number }> }>(
+      t,
+      "GET",
+      `/api/v1/restaurants/${fx.restaurantId}/customers?search=luca`,
+      undefined,
+      fx.session,
+    );
+    expect(customers.body.total).toBe(1);
+  });
+
   it("lets the guest cancel through the manage link within the cutoff", async () => {
     const fx = await createFixture(t);
     const res = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));

@@ -265,6 +265,47 @@ Secrets at rest use `SecretBox` (AES-256-GCM); with
 `APP_ENCRYPTION_KEY_PREVIOUS` set, decryption falls back to the old keys and
 `rotateStoredSecrets()` re-encrypts every provider and payment secret at boot.
 
+## Concurrency and load testing
+
+Everything that can overbook runs inside one transaction under advisory
+locks (`apps/server/src/lib/locks.ts`), always taken in the same order:
+
+- `lockServiceDates(restaurant, dates)` serialises creating, moving,
+  reopening and hand-seating bookings of one service date (the previous day
+  is locked too, for after-midnight slots). Retries that carry an
+  `idempotencyKey` are looked up again under this lock, so a burst of
+  identical requests yields one booking.
+- `lockGuestIdentities(restaurant, email/phone)` inside `upsertCustomer`, so
+  the same guest booking two dates at once still gets one guest-book entry.
+- `createBooking` offers two hooks that run inside its transaction:
+  `onLocked` (after the date locks, before the capacity check) and
+  `onCreated` (after the row exists). The waitlist uses them to lock the
+  entry `FOR UPDATE` and flip it to `booked` atomically, so a double-click on
+  "accept" produces one booking and answers with it both times.
+
+Reopening a cancelled or no-show booking re-runs the availability check and
+refuses when the covers, the table or the room are gone (`full`, `no_table`,
+`room_closed`); it is then seated again on whatever table is free.
+
+pg-boss workers fetch jobs in batches of ten and keep fetching while the
+queue is deep (`burstWhenBatchFull`), settling each job on its own
+(`perJobResults`); one job per second, the previous setting, left a rush of
+confirmations waiting for minutes.
+
+`pnpm --filter @sitli/server load:test` is the load test. Point it at a
+server started with `RATE_LIMIT=off` and `SIGNUP_MODE=open`
+(`LOAD_BASE_URL`, `LOAD_DATABASE_URL`); it seeds three restaurants through
+the API (tables + rooms, pacing only, and one where staff override) and runs
+the scenarios `rush` (everyone wants the same slot), `idem` (identical
+retries), `same-guest`, `reopen`, `tables` (hand-seating race), `waitlist`
+(cancellations and offers at the same time) and `mixed` (guests browsing and
+booking while staff confirm, seat, move and cancel). After each one it
+checks the database: pacing and seat limits, no table double-booked, one
+guest-book entry per email/phone, visit and no-show counters equal to the
+audit trail, waitlist entries consistent, no failed events or jobs, and
+prints latency percentiles and how long the queues took to drain. Any 5xx
+or violation is a bug.
+
 ## Adding a migration
 
 Edit `packages/db/src/schema/*.ts`, then `pnpm db:generate`. Migrations run

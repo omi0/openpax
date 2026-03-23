@@ -1,6 +1,7 @@
 import type { DbOrTx } from "@sitli/db";
 import { customer } from "@sitli/db";
 import { and, eq } from "drizzle-orm";
+import { lockGuestIdentities } from "./locks.js";
 
 export type CustomerRow = typeof customer.$inferSelect;
 
@@ -15,6 +16,8 @@ export interface GuestIdentity {
 /**
  * Find the guest book entry for a guest (by id, then email, then phone) and
  * refresh what we learned, or create it. `phone` must already be normalised.
+ * Runs inside the caller's transaction and locks the identities first, so two
+ * bookings by the same guest at the same moment share one entry.
  */
 export async function upsertCustomer(
   tx: DbOrTx,
@@ -24,6 +27,8 @@ export async function upsertCustomer(
   marketingConsent: boolean | undefined,
 ): Promise<CustomerRow> {
   const email = guest.email?.trim().toLowerCase() || null;
+  const identities = [...(email ? [`email:${email}`] : []), ...(phone ? [`phone:${phone}`] : [])];
+  if (identities.length > 0) await lockGuestIdentities(tx, restaurantId, identities);
   let existing: CustomerRow | undefined;
   if (guest.id) {
     [existing] = await tx

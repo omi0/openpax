@@ -21,7 +21,12 @@ import { normalizePhone } from "../../lib/phone.js";
 import { newToken } from "../../lib/random.js";
 import { findRestaurantById } from "../../lib/restaurant-lookup.js";
 import { loadAvailabilityInput } from "../availability/service.js";
-import { type BookingWithRelations, createBooking, manageUrl } from "../bookings/index.js";
+import {
+  type BookingWithRelations,
+  createBooking,
+  getBookingWithRelations,
+  manageUrl,
+} from "../bookings/index.js";
 
 type EntryRow = typeof waitlistEntry.$inferSelect;
 type CustomerRow = typeof customer.$inferSelect;
@@ -445,7 +450,12 @@ export interface BookParams {
   actor: Actor;
 }
 
-/** Turn an entry into a confirmed booking. Capacity is checked like any booking. */
+/**
+ * Turn an entry into a confirmed booking. Capacity is checked like any
+ * booking, and the entry flips to "booked" in the same transaction under a
+ * row lock before that check, so two accepts of the same offer produce one
+ * booking (the second one sees "booked" and answers with the first).
+ */
 export async function bookEntry(
   ctx: AppContext,
   r: RestaurantRow,
@@ -470,27 +480,38 @@ export async function bookEntry(
     ignoreCapacity: p.ignoreCapacity ?? false,
     // an offered table must not end up pending: staff already vouched for it
     forceConfirmed: true,
-  });
-  await ctx.db.transaction(async (tx) => {
-    await tx
-      .update(waitlistEntry)
-      .set({ status: "booked", bookingId: booking.booking.id })
-      .where(eq(waitlistEntry.id, found.entry.id));
-    await emitEvent(tx, {
-      type: "waitlist.booked",
-      restaurantId: r.id,
-      aggregateType: "waitlist_entry",
-      aggregateId: found.entry.id,
-      payload: { entryId: found.entry.id, bookingId: booking.booking.id },
-    });
-    await writeAudit(tx, {
-      restaurantId: r.id,
-      actor: p.actor,
-      action: "waitlist.booked",
-      entityType: "waitlist_entry",
-      entityId: found.entry.id,
-      data: { bookingId: booking.booking.id },
-    });
+    // hold the entry while the booking is checked and written: a second accept
+    // waits here and then finds it booked
+    onLocked: async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(waitlistEntry)
+        .where(eq(waitlistEntry.id, found.entry.id))
+        .for("update");
+      if (!row) throw ApiError.notFound("Waitlist entry");
+      assertOpen(row);
+    },
+    onCreated: async (tx, created) => {
+      await tx
+        .update(waitlistEntry)
+        .set({ status: "booked", bookingId: created.id })
+        .where(eq(waitlistEntry.id, found.entry.id));
+      await emitEvent(tx, {
+        type: "waitlist.booked",
+        restaurantId: r.id,
+        aggregateType: "waitlist_entry",
+        aggregateId: found.entry.id,
+        payload: { entryId: found.entry.id, bookingId: created.id },
+      });
+      await writeAudit(tx, {
+        restaurantId: r.id,
+        actor: p.actor,
+        action: "waitlist.booked",
+        entityType: "waitlist_entry",
+        entityId: found.entry.id,
+        data: { bookingId: created.id },
+      });
+    },
   });
   return { entry: await getEntry(ctx.db, r.id, found.entry.id), booking };
 }
@@ -511,14 +532,29 @@ export async function acceptOffer(
     throw ApiError.conflict("no_offer", "There is no table on offer for this entry");
   if (e.offerExpiresAt.getTime() <= ctx.now().getTime())
     throw ApiError.conflict("offer_expired", "The offer has expired");
-  const result = await bookEntry(ctx, r, {
-    entryId: e.id,
-    serviceId: e.offeredServiceId,
-    startsAt: e.offeredStartsAt,
-    source: "widget",
-    actor: { type: "guest", id: null },
-  });
-  return { restaurant: r, ...result };
+  try {
+    const result = await bookEntry(ctx, r, {
+      entryId: e.id,
+      serviceId: e.offeredServiceId,
+      startsAt: e.offeredStartsAt,
+      source: "widget",
+      actor: { type: "guest", id: null },
+    });
+    return { restaurant: r, ...result };
+  } catch (error) {
+    // a double click: the first accept booked the table, answer with that booking
+    if (error instanceof ApiError && error.code === "not_open") {
+      const again = await getEntryByToken(ctx, token);
+      if (again.entry.status === "booked" && again.entry.bookingId) {
+        return {
+          restaurant: r,
+          entry: again,
+          booking: await getBookingWithRelations(ctx.db, r.id, again.entry.bookingId),
+        };
+      }
+    }
+    throw error;
+  }
 }
 
 // ---------- leaving

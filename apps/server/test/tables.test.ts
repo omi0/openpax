@@ -125,6 +125,117 @@ describe("tables and auto-assignment", () => {
     ]);
   });
 
+  it("reseats a reopened booking on a free table and refuses when every table is taken", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const publicPath = `/api/public/v1/restaurants/${fx.slug}`;
+    for (const [name, maxCovers, sortOrder] of [
+      ["T1", 2, 1],
+      ["T2", 4, 2],
+    ] as const) {
+      const res = await api(
+        t,
+        "POST",
+        `${base}/tables`,
+        { name, maxCovers, sortOrder, x: sortOrder * 15, y: 10 },
+        fx.session,
+      );
+      expect(res.status).toBe(201);
+    }
+    const book = (partySize: number, email: string) =>
+      api<Booking>(
+        t,
+        "POST",
+        `${publicPath}/bookings`,
+        guestBooking(fx, {
+          partySize,
+          guest: { name: "Guest", email, phone: `+39 333 ${String(Math.random()).slice(2, 9)}` },
+        }),
+      );
+    const tablesOf = async (id: string) =>
+      (
+        await api<Booking>(t, "GET", `${base}/bookings/${id}`, undefined, fx.session)
+      ).body.tables.map((x) => x.name);
+    const act = (id: string, action: string) =>
+      api<Booking & { reason?: string }>(
+        t,
+        "POST",
+        `${base}/bookings/${id}/actions`,
+        { action },
+        fx.session,
+      );
+
+    const anna = await book(2, "anna@example.com");
+    expect(await tablesOf(anna.body.id)).toEqual(["T1"]);
+    expect((await act(anna.body.id, "cancel")).status).toBe(200);
+    // Bruno takes the two-top Anna had
+    const bruno = await book(2, "bruno@example.com");
+    expect(await tablesOf(bruno.body.id)).toEqual(["T1"]);
+    // Anna comes back: she is moved to the four-top, not seated on Bruno's table
+    const reopened = await act(anna.body.id, "reopen");
+    expect(reopened.status).toBe(200);
+    expect(await tablesOf(anna.body.id)).toEqual(["T2"]);
+
+    expect((await act(anna.body.id, "cancel")).status).toBe(200);
+    const carla = await book(4, "carla@example.com");
+    expect(await tablesOf(carla.body.id)).toEqual(["T2"]);
+    // no table left for Anna now
+    const refused = await act(anna.body.id, "reopen");
+    expect(refused.status).toBe(409);
+    expect(refused.body.reason).toBe("no_table");
+  });
+
+  it("seats only one party when staff assign the same table to several bookings at once", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const publicPath = `/api/public/v1/restaurants/${fx.slug}`;
+    const ids: Record<string, string> = {};
+    for (const [name, maxCovers, sortOrder] of [
+      ["T1", 2, 1],
+      ["T2", 2, 2],
+      ["T3", 2, 3],
+      ["T4", 2, 4],
+      ["T6", 6, 5],
+    ] as const) {
+      const res = await api<{ id: string }>(
+        t,
+        "POST",
+        `${base}/tables`,
+        { name, maxCovers, sortOrder, x: sortOrder * 15, y: 10 },
+        fx.session,
+      );
+      expect(res.status).toBe(201);
+      ids[name] = res.body.id;
+    }
+    const parties = await Promise.all(
+      Array.from({ length: 4 }, (_, i) =>
+        api<Booking>(
+          t,
+          "POST",
+          `${publicPath}/bookings`,
+          guestBooking(fx, {
+            partySize: 2,
+            guest: { name: `P${i}`, email: `p${i}@example.com`, phone: `+39 333 100000${i}` },
+          }),
+        ),
+      ),
+    );
+    expect(parties.map((p) => p.status)).toEqual([201, 201, 201, 201]);
+    const moves = await Promise.all(
+      parties.map((p) =>
+        api<{ code?: string }>(
+          t,
+          "PUT",
+          `${base}/bookings/${p.body.id}/tables`,
+          { tableIds: [ids.T6] },
+          fx.session,
+        ),
+      ),
+    );
+    expect(moves.filter((m) => m.status === 200)).toHaveLength(1);
+    expect(moves.filter((m) => m.status === 409 && m.body.code === "table_taken")).toHaveLength(3);
+  });
+
   it("lets staff reassign by hand, refuses taken tables unless forced, and reseats on modification", async () => {
     const fx = await createFixture(t);
     const base = `/api/v1/restaurants/${fx.restaurantId}`;

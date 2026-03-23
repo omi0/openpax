@@ -271,6 +271,113 @@ describe("waitlist", () => {
     expect(left.body.status).toBe("cancelled");
   });
 
+  it("books once when the guest accepts the same offer several times at once", async () => {
+    const fx = await createFixture(t, { maxCoversPerSlot: 2 });
+    await enableWaitlist(fx);
+    const staff = `/api/v1/restaurants/${fx.restaurantId}`;
+    const joined = await api<PublicEntry>(
+      t,
+      "POST",
+      `/api/public/v1/restaurants/${fx.slug}/waitlist`,
+      joinBody({ partySize: 2, guest: { name: "Anna Neri", email: "anna2@example.com" } }),
+    );
+    expect(joined.status).toBe(201);
+    const offered = await api(
+      t,
+      "POST",
+      `${staff}/waitlist/${joined.body.id}/offer`,
+      { serviceId: fx.serviceId, startsAt: romeInstant(FRIDAY, "20:00") },
+      fx.session,
+    );
+    expect(offered.status).toBe(200);
+    const accepts = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        api<{ id: string }>(t, "POST", `/api/public/v1/waitlist/${tokenOf(joined.body)}/accept`),
+      ),
+    );
+    expect(accepts.map((a) => a.status)).toEqual(Array.from({ length: 6 }, () => 201));
+    expect(new Set(accepts.map((a) => a.body.id)).size).toBe(1);
+    const list = await api<{ total: number }>(
+      t,
+      "GET",
+      `${staff}/bookings?date=${FRIDAY}`,
+      undefined,
+      fx.session,
+    );
+    expect(list.body.total).toBe(1);
+    const entry = await api<PublicEntry>(
+      t,
+      "GET",
+      `/api/public/v1/waitlist/${tokenOf(joined.body)}`,
+    );
+    expect(entry.body.status).toBe("booked");
+    expect(entry.body.bookingManageUrl).not.toBeNull();
+  });
+
+  it("offers the next guest in line as soon as an offer is accepted", async () => {
+    const fx = await createFixture(t, { maxCoversPerSlot: 2 });
+    await enableWaitlist(fx);
+    const staff = `/api/v1/restaurants/${fx.restaurantId}`;
+    // every dinner slot taken by a party of two
+    const taken: Record<string, string> = {};
+    for (const time of ["19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"]) {
+      const res = await api<{ id: string }>(
+        t,
+        "POST",
+        `/api/public/v1/restaurants/${fx.slug}/bookings`,
+        guestBooking(fx, {
+          startsAt: romeInstant(FRIDAY, time),
+          guest: {
+            name: "Full",
+            email: `full-${time.replace(":", "")}@example.com`,
+            phone: `+39 333 2${time.replace(":", "")}00`,
+          },
+        }),
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(201);
+      taken[time] = res.body.id;
+    }
+    const anna = await api<PublicEntry>(
+      t,
+      "POST",
+      `/api/public/v1/restaurants/${fx.slug}/waitlist`,
+      joinBody({ partySize: 2, guest: { name: "Anna", email: "anna3@example.com" } }),
+    );
+    const paolo = await api<PublicEntry>(
+      t,
+      "POST",
+      `/api/public/v1/restaurants/${fx.slug}/waitlist`,
+      joinBody({ partySize: 2, guest: { name: "Paolo", email: "paolo3@example.com" } }),
+    );
+    await t.processEvents();
+    // two tables free up while Anna's offer is open: Paolo has to wait for his turn
+    await api(
+      t,
+      "POST",
+      `${staff}/bookings/${taken["20:00"]}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    await api(
+      t,
+      "POST",
+      `${staff}/bookings/${taken["21:00"]}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    await t.processEvents();
+    const status = async (e: PublicEntry) =>
+      (await api<PublicEntry>(t, "GET", `/api/public/v1/waitlist/${tokenOf(e)}`)).body.status;
+    expect(await status(anna.body)).toBe("offered");
+    expect(await status(paolo.body)).toBe("waiting");
+    // Anna accepts: Paolo gets the other free table without anyone else cancelling
+    const accepted = await api(t, "POST", `/api/public/v1/waitlist/${tokenOf(anna.body)}/accept`);
+    expect(accepted.status).toBe(201);
+    await t.processEvents();
+    expect(await status(anna.body)).toBe("booked");
+    expect(await status(paolo.body)).toBe("offered");
+  });
+
   it("lets staff add a caller and book them straight in", async () => {
     const fx = await createFixture(t);
     const staffPath = `/api/v1/restaurants/${fx.restaurantId}/waitlist`;

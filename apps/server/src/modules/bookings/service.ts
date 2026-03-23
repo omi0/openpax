@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   type AvailabilityInput,
   addDaysToLocalDate,
@@ -8,7 +9,6 @@ import {
   findTableAssignment,
   instantToLocal,
   isActiveStatus,
-  localDateParts,
   SlotUnavailableError,
   transition,
   usableTables,
@@ -27,6 +27,7 @@ import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
 import { upsertCustomer } from "../../lib/customers.js";
 import { ApiError } from "../../lib/errors.js";
+import { lockServiceDates, uniqueViolation } from "../../lib/locks.js";
 import { normalizePhone } from "../../lib/phone.js";
 import { newConfirmationCode, newToken } from "../../lib/random.js";
 import { findRestaurantById } from "../../lib/restaurant-lookup.js";
@@ -265,19 +266,31 @@ export interface CreateBookingParams {
   forceConfirmed?: boolean;
   /** CSV import: land in this status straight away, count the visit, send nothing. */
   imported?: { status: BookingStatus };
+  /**
+   * Hooks that run inside the booking transaction, for callers that must
+   * change their own rows together with the booking (waitlist entries).
+   * `onLocked` runs once the dates are locked, before capacity is checked
+   * (the row does not exist yet but will get `id`); `onCreated` runs after
+   * the row was written. Throwing from either rolls everything back.
+   */
+  onLocked?: (tx: DbOrTx, booking: { id: string }) => Promise<void>;
+  onCreated?: (tx: DbOrTx, booking: { id: string; startsAt: Date }) => Promise<void>;
 }
 
-function yyyymmdd(date: string): number {
-  const { year, month, day } = localDateParts(date);
-  return year * 10_000 + month * 100 + day;
-}
+/** Reasons that mean "there is no room": the only ones that stop staff from reopening a booking. */
+const CAPACITY_REASONS = new Set(["full", "no_table", "room_closed"]);
 
-/** Serialise bookings of the same restaurant on the same (and previous) service date. */
-async function lockDates(tx: DbOrTx, restaurantId: string, dates: string[]) {
-  const keys = [...new Set(dates.map(yyyymmdd))].sort((a, b) => a - b);
-  for (const key of keys) {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${restaurantId}), ${key})`);
-  }
+async function findByIdempotencyKey(
+  db: DbOrTx,
+  restaurantId: string,
+  key: string,
+): Promise<string | null> {
+  const [hit] = await db
+    .select({ id: booking.id })
+    .from(booking)
+    .where(and(eq(booking.restaurantId, restaurantId), eq(booking.idempotencyKey, key)))
+    .limit(1);
+  return hit?.id ?? null;
 }
 
 async function freeConfirmationCode(tx: DbOrTx, restaurantId: string): Promise<string> {
@@ -299,12 +312,8 @@ export async function createBooking(
   p: CreateBookingParams,
 ): Promise<BookingWithRelations> {
   if (p.idempotencyKey) {
-    const [hit] = await ctx.db
-      .select({ id: booking.id })
-      .from(booking)
-      .where(and(eq(booking.restaurantId, r.id), eq(booking.idempotencyKey, p.idempotencyKey)))
-      .limit(1);
-    if (hit) return getBookingWithRelations(ctx.db, r.id, hit.id);
+    const hit = await findByIdempotencyKey(ctx.db, r.id, p.idempotencyKey);
+    if (hit) return getBookingWithRelations(ctx.db, r.id, hit);
   }
 
   const phone = normalizePhone(p.guest.phone, p.guest.locale ?? r.locale);
@@ -321,143 +330,8 @@ export async function createBooking(
       ? await requirementFor(ctx, r, { partySize: p.partySize, source: p.source })
       : null;
 
-  const created = await ctx.db.transaction(async (tx) => {
-    await lockDates(tx, r.id, candidateDates);
-
-    let serviceDate = localDate;
-    let endsAt: Date | null = null;
-    let lastReason = "not_a_slot";
-    let floor: AvailabilityInput | null = null;
-    for (const date of candidateDates) {
-      const loaded = await loadAvailabilityInput(tx, ctx, r, {
-        date,
-        partySize: p.partySize,
-        areaId: p.areaId ?? null,
-      });
-      floor = loaded.input;
-      const verdict = assertSlotBookable(loaded.input, {
-        serviceId: p.serviceId,
-        startsAt: p.startsAt,
-        partySize: p.partySize,
-      });
-      if (verdict.ok) {
-        serviceDate = date;
-        endsAt = verdict.endsAt;
-        break;
-      }
-      lastReason = verdict.reason;
-      if (verdict.reason !== "not_a_slot") break;
-    }
-
-    if (!endsAt) {
-      if (!p.ignoreCapacity) throw new SlotUnavailableError(lastReason);
-      // Staff override: keep the requested time and derive the end from the service duration.
-      const [svc] = await tx
-        .select()
-        .from(service)
-        .where(and(eq(service.id, p.serviceId), eq(service.restaurantId, r.id)))
-        .limit(1);
-      if (!svc) throw ApiError.notFound("Service");
-      endsAt = new Date(p.startsAt.getTime() + svc.durationMinutes * 60_000);
-      const local = instantToLocal(p.startsAt, r.timezone);
-      serviceDate = local.minutesOfDay < 6 * 60 ? addDaysToLocalDate(local.date, -1) : local.date;
-    }
-
-    const [policy] = await tx
-      .select()
-      .from(bookingPolicy)
-      .where(eq(bookingPolicy.restaurantId, r.id))
-      .limit(1);
-    if (!policy) throw ApiError.notFound("Booking policy");
-
-    let status: BookingStatus;
-    if (p.imported) status = p.imported.status;
-    else if (p.seatNow) status = "seated";
-    else if (requirement) status = "pending";
-    else if (p.actor.type === "guest" && !p.forceConfirmed) {
-      const large =
-        policy.largePartyThreshold !== null && p.partySize >= policy.largePartyThreshold;
-      status = policy.autoConfirm && !large ? "confirmed" : "pending";
-    } else status = "confirmed";
-
-    const cust = await upsertCustomer(tx, r.id, p.guest, phone, p.marketingConsent);
-    const locale = p.guest.locale ?? cust.locale ?? r.locale;
-    const [row] = await tx
-      .insert(booking)
-      .values({
-        restaurantId: r.id,
-        serviceId: p.serviceId,
-        areaId: p.areaId ?? null,
-        customerId: cust.id,
-        serviceDate,
-        startsAt: p.startsAt,
-        endsAt,
-        partySize: p.partySize,
-        status,
-        source: p.source,
-        locale,
-        notes: p.notes ?? null,
-        confirmationCode: await freeConfirmationCode(tx, r.id),
-        manageToken: newToken(),
-        idempotencyKey: p.idempotencyKey ?? null,
-        createdByUserId: p.actor.type === "user" ? p.actor.id : null,
-      })
-      .returning();
-    if (!row) throw new Error("booking insert failed");
-    await assignTables(tx, row.id, floor, {
-      startsAt: p.startsAt,
-      endsAt,
-      partySize: p.partySize,
-      areaId: p.areaId ?? null,
-    });
-
-    if (status === "seated" || (p.imported && status === "completed")) {
-      await tx
-        .update(customer)
-        .set({
-          visitCount: sql`${customer.visitCount} + 1`,
-          lastVisitAt: sql`greatest(coalesce(${customer.lastVisitAt}, 'epoch'::timestamptz), ${(p.imported ? p.startsAt : ctx.now()).toISOString()}::timestamptz)`,
-        })
-        .where(eq(customer.id, cust.id));
-    } else if (p.imported && status === "no_show") {
-      await tx
-        .update(customer)
-        .set({ noShowCount: sql`${customer.noShowCount} + 1` })
-        .where(eq(customer.id, cust.id));
-    }
-
-    await emitEvent(tx, {
-      type: "booking.created",
-      restaurantId: r.id,
-      aggregateType: "booking",
-      aggregateId: row.id,
-      payload: {
-        bookingId: row.id,
-        status,
-        source: p.source,
-        partySize: row.partySize,
-        startsAt: row.startsAt.toISOString(),
-        ...(requirement ? { paymentRequired: true } : {}),
-        ...(p.imported ? { imported: true } : {}),
-      },
-    });
-    await writeAudit(tx, {
-      restaurantId: r.id,
-      actor: p.actor,
-      action: "booking.created",
-      entityType: "booking",
-      entityId: row.id,
-      data: {
-        status,
-        source: p.source,
-        partySize: row.partySize,
-        startsAt: row.startsAt.toISOString(),
-        ignoreCapacity: p.ignoreCapacity ?? false,
-        ...(p.imported ? { imported: true } : {}),
-      },
-    });
-    return row;
-  });
+  const created = await insertBooking(ctx, r, p, phone, candidateDates, localDate, requirement);
+  if ("existingId" in created) return getBookingWithRelations(ctx.db, r.id, created.existingId);
 
   if (requirement) {
     const full = await getBookingWithRelations(ctx.db, r.id, created.id);
@@ -490,6 +364,188 @@ export async function createBooking(
   return getBookingWithRelations(ctx.db, r.id, created.id);
 }
 
+/**
+ * The booking transaction: lock the dates, re-check the slot, write the row
+ * and everything that goes with it. Retries that carry an idempotency key are
+ * settled under the same lock, so they never race the first attempt.
+ */
+async function insertBooking(
+  ctx: AppContext,
+  r: RestaurantRow,
+  p: CreateBookingParams,
+  phone: string | null,
+  candidateDates: string[],
+  localDate: string,
+  requirement: Awaited<ReturnType<typeof requirementFor>> | null,
+): Promise<BookingRow | { existingId: string }> {
+  try {
+    return await ctx.db.transaction(async (tx) => {
+      await lockServiceDates(tx, r.id, candidateDates);
+      if (p.idempotencyKey) {
+        const hit = await findByIdempotencyKey(tx, r.id, p.idempotencyKey);
+        if (hit) return { existingId: hit };
+      }
+      const id = randomUUID();
+      if (p.onLocked) await p.onLocked(tx, { id });
+      return insertBookingLocked(tx, ctx, r, p, id, phone, candidateDates, localDate, requirement);
+    });
+  } catch (error) {
+    // the same key landed on another date (different lock): the first attempt won
+    if (p.idempotencyKey && uniqueViolation(error) === "booking_idempotency_uidx") {
+      const hit = await findByIdempotencyKey(ctx.db, r.id, p.idempotencyKey);
+      if (hit) return { existingId: hit };
+    }
+    throw error;
+  }
+}
+
+async function insertBookingLocked(
+  tx: DbOrTx,
+  ctx: AppContext,
+  r: RestaurantRow,
+  p: CreateBookingParams,
+  id: string,
+  phone: string | null,
+  candidateDates: string[],
+  localDate: string,
+  requirement: Awaited<ReturnType<typeof requirementFor>> | null,
+): Promise<BookingRow> {
+  let serviceDate = localDate;
+  let endsAt: Date | null = null;
+  let lastReason = "not_a_slot";
+  let floor: AvailabilityInput | null = null;
+  for (const date of candidateDates) {
+    const loaded = await loadAvailabilityInput(tx, ctx, r, {
+      date,
+      partySize: p.partySize,
+      areaId: p.areaId ?? null,
+    });
+    floor = loaded.input;
+    const verdict = assertSlotBookable(loaded.input, {
+      serviceId: p.serviceId,
+      startsAt: p.startsAt,
+      partySize: p.partySize,
+    });
+    if (verdict.ok) {
+      serviceDate = date;
+      endsAt = verdict.endsAt;
+      break;
+    }
+    lastReason = verdict.reason;
+    if (verdict.reason !== "not_a_slot") break;
+  }
+
+  if (!endsAt) {
+    if (!p.ignoreCapacity) throw new SlotUnavailableError(lastReason);
+    // Staff override: keep the requested time and derive the end from the service duration.
+    const [svc] = await tx
+      .select()
+      .from(service)
+      .where(and(eq(service.id, p.serviceId), eq(service.restaurantId, r.id)))
+      .limit(1);
+    if (!svc) throw ApiError.notFound("Service");
+    endsAt = new Date(p.startsAt.getTime() + svc.durationMinutes * 60_000);
+    const local = instantToLocal(p.startsAt, r.timezone);
+    serviceDate = local.minutesOfDay < 6 * 60 ? addDaysToLocalDate(local.date, -1) : local.date;
+  }
+
+  const [policy] = await tx
+    .select()
+    .from(bookingPolicy)
+    .where(eq(bookingPolicy.restaurantId, r.id))
+    .limit(1);
+  if (!policy) throw ApiError.notFound("Booking policy");
+
+  let status: BookingStatus;
+  if (p.imported) status = p.imported.status;
+  else if (p.seatNow) status = "seated";
+  else if (requirement) status = "pending";
+  else if (p.actor.type === "guest" && !p.forceConfirmed) {
+    const large = policy.largePartyThreshold !== null && p.partySize >= policy.largePartyThreshold;
+    status = policy.autoConfirm && !large ? "confirmed" : "pending";
+  } else status = "confirmed";
+
+  const cust = await upsertCustomer(tx, r.id, p.guest, phone, p.marketingConsent);
+  const locale = p.guest.locale ?? cust.locale ?? r.locale;
+  const [row] = await tx
+    .insert(booking)
+    .values({
+      id,
+      restaurantId: r.id,
+      serviceId: p.serviceId,
+      areaId: p.areaId ?? null,
+      customerId: cust.id,
+      serviceDate,
+      startsAt: p.startsAt,
+      endsAt,
+      partySize: p.partySize,
+      status,
+      source: p.source,
+      locale,
+      notes: p.notes ?? null,
+      confirmationCode: await freeConfirmationCode(tx, r.id),
+      manageToken: newToken(),
+      idempotencyKey: p.idempotencyKey ?? null,
+      createdByUserId: p.actor.type === "user" ? p.actor.id : null,
+    })
+    .returning();
+  if (!row) throw new Error("booking insert failed");
+  await assignTables(tx, row.id, floor, {
+    startsAt: p.startsAt,
+    endsAt,
+    partySize: p.partySize,
+    areaId: p.areaId ?? null,
+  });
+
+  if (status === "seated" || (p.imported && status === "completed")) {
+    await tx
+      .update(customer)
+      .set({
+        visitCount: sql`${customer.visitCount} + 1`,
+        lastVisitAt: sql`greatest(coalesce(${customer.lastVisitAt}, 'epoch'::timestamptz), ${(p.imported ? p.startsAt : ctx.now()).toISOString()}::timestamptz)`,
+      })
+      .where(eq(customer.id, cust.id));
+  } else if (p.imported && status === "no_show") {
+    await tx
+      .update(customer)
+      .set({ noShowCount: sql`${customer.noShowCount} + 1` })
+      .where(eq(customer.id, cust.id));
+  }
+
+  await emitEvent(tx, {
+    type: "booking.created",
+    restaurantId: r.id,
+    aggregateType: "booking",
+    aggregateId: row.id,
+    payload: {
+      bookingId: row.id,
+      status,
+      source: p.source,
+      partySize: row.partySize,
+      startsAt: row.startsAt.toISOString(),
+      ...(requirement ? { paymentRequired: true } : {}),
+      ...(p.imported ? { imported: true } : {}),
+    },
+  });
+  await writeAudit(tx, {
+    restaurantId: r.id,
+    actor: p.actor,
+    action: "booking.created",
+    entityType: "booking",
+    entityId: row.id,
+    data: {
+      status,
+      source: p.source,
+      partySize: row.partySize,
+      startsAt: row.startsAt.toISOString(),
+      ignoreCapacity: p.ignoreCapacity ?? false,
+      ...(p.imported ? { imported: true } : {}),
+    },
+  });
+  if (p.onCreated) await p.onCreated(tx, { id: row.id, startsAt: row.startsAt });
+  return row;
+}
+
 // ---------- status changes
 
 export interface ApplyActionParams {
@@ -513,20 +569,24 @@ export async function applyBookingAction(
     if (!row) throw ApiError.notFound("Booking");
     const next = transition(row.status, p.action);
 
+    let floor: AvailabilityInput | null = null;
     if (p.action === "reopen") {
-      // Re-check capacity before letting a cancelled booking back in.
-      await lockDates(tx, r.id, [row.serviceDate]);
+      // Re-check capacity before letting a cancelled booking back in: another
+      // party may have taken its covers, its table or its room meanwhile.
+      await lockServiceDates(tx, r.id, [row.serviceDate]);
       const loaded = await loadAvailabilityInput(tx, ctx, r, {
         date: row.serviceDate,
         partySize: row.partySize,
         areaId: row.areaId,
       });
+      floor = loaded.input;
       const verdict = assertSlotBookable(loaded.input, {
         serviceId: row.serviceId,
         startsAt: row.startsAt,
         partySize: row.partySize,
       });
-      if (!verdict.ok && verdict.reason === "full") throw new SlotUnavailableError(verdict.reason);
+      if (!verdict.ok && CAPACITY_REASONS.has(verdict.reason))
+        throw new SlotUnavailableError(verdict.reason);
     }
 
     await tx
@@ -539,6 +599,15 @@ export async function applyBookingAction(
         ...(p.action === "reopen" ? { cancelledAt: null, cancellationReason: null } : {}),
       })
       .where(eq(booking.id, row.id));
+    if (p.action === "reopen") {
+      // its old tables may be taken now: seat it again on what is free
+      await assignTables(tx, row.id, floor, {
+        startsAt: row.startsAt,
+        endsAt: row.endsAt,
+        partySize: row.partySize,
+        areaId: row.areaId,
+      });
+    }
 
     if (p.action === "seat") {
       await tx
@@ -662,7 +731,7 @@ export async function updateBooking(
     if (timingChanged) {
       const localDate = instantToLocal(startsAt, r.timezone).date;
       const candidates = [localDate, addDaysToLocalDate(localDate, -1)];
-      await lockDates(tx, r.id, [...candidates, row.serviceDate]);
+      await lockServiceDates(tx, r.id, [...candidates, row.serviceDate]);
       let ok = false;
       let lastReason = "not_a_slot";
       for (const date of candidates) {
