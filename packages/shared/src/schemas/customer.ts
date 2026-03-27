@@ -19,6 +19,7 @@ export const customerDtoSchema = z.object({
   notes: z.string().nullable(),
   visitCount: z.number().int(),
   noShowCount: z.number().int(),
+  cancelCount: z.number().int(),
   marketingConsent: z.boolean(),
   lastVisitAt: instantSchema.nullable(),
   createdAt: instantSchema,
@@ -52,3 +53,18 @@ export const customerTagDtoSchema = z.object({
   count: z.number().int(),
 });
 export type CustomerTagDto = z.infer<typeof customerTagDtoSchema>;
+
+export const CUSTOMER_MATCHES = ["email", "phone", "name"] as const;
+export type CustomerMatch = (typeof CUSTOMER_MATCHES)[number];
+
+/** Another guest-book entry that looks like the same person, and why. */
+export const customerDuplicateDtoSchema = customerDtoSchema.extend({
+  matches: z.array(z.enum(CUSTOMER_MATCHES)),
+});
+export type CustomerDuplicateDto = z.infer<typeof customerDuplicateDtoSchema>;
+
+export const mergeCustomersInputSchema = z.object({
+  /** The entry to fold into this one; it is deleted afterwards. */
+  sourceId: idSchema,
+});
+export type MergeCustomersInput = z.infer<typeof mergeCustomersInputSchema>;

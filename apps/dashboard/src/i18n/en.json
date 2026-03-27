@@ -185,6 +185,8 @@
     "noBookingsHint": "Online bookings and the ones you add by hand show up here.",
     "noShows_one": "{{count}} no-show",
     "noShows_other": "{{count}} no-shows",
+    "cancellations_one": "{{count}} cancellation",
+    "cancellations_other": "{{count}} cancellations",
     "created": "Booking for {{name}} created",
     "done": {
       "confirm": "Booking confirmed",
@@ -344,6 +346,7 @@
       "contact": "Contact",
       "visits": "Visits",
       "noShows": "No-shows",
+      "cancellations": "Cancellations",
       "lastVisit": "Last visit"
     },
     "allTags": "All tags",
@@ -367,9 +370,29 @@
     "stats": {
       "visits": "Visits",
       "noShows": "No-shows",
+      "cancellations": "Cancellations",
       "bookings": "Bookings",
       "lastVisit": "Last visit",
       "since": "Guest since"
+    },
+    "duplicates": {
+      "title": "Possible duplicates",
+      "hint": "The same guest can end up with two entries, for example one from an online booking with an email and one from a phone booking with only the number. Merging moves every booking onto this entry and combines notes, tags and counters.",
+      "none": "No other entry looks like this guest.",
+      "search": "Merge another guest into this one",
+      "searchPlaceholder": "Search by name, email or phone",
+      "noResults": "No other guest matches this search.",
+      "inCommon": "In common: {{what}}",
+      "matched": {
+        "email": "email",
+        "phone": "phone",
+        "name": "name"
+      },
+      "merge": "Merge into this guest",
+      "confirmTitle": "Merge {{name}} into this guest?",
+      "confirmDescription": "Their bookings, notes, tags and counters move to {{name}}. The other entry is deleted and this cannot be undone.",
+      "merged": "Guests merged",
+      "staffHint": "Ask a manager to merge duplicates."
     },
     "history": "Booking history",
     "noHistory": "No bookings yet.",

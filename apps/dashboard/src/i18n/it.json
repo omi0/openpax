@@ -185,6 +185,8 @@
     "noBookingsHint": "Le prenotazioni online e quelle inserite a mano compaiono qui.",
     "noShows_one": "{{count}} no-show",
     "noShows_other": "{{count}} no-show",
+    "cancellations_one": "{{count}} annullamento",
+    "cancellations_other": "{{count}} annullamenti",
     "created": "Prenotazione per {{name}} creata",
     "done": {
       "confirm": "Prenotazione confermata",
@@ -344,6 +346,7 @@
       "contact": "Contatti",
       "visits": "Visite",
       "noShows": "No-show",
+      "cancellations": "Annullamenti",
       "lastVisit": "Ultima visita"
     },
     "allTags": "Tutti i tag",
@@ -367,9 +370,29 @@
     "stats": {
       "visits": "Visite",
       "noShows": "No-show",
+      "cancellations": "Annullamenti",
       "bookings": "Prenotazioni",
       "lastVisit": "Ultima visita",
       "since": "Cliente dal"
+    },
+    "duplicates": {
+      "title": "Possibili duplicati",
+      "hint": "Lo stesso ospite può avere due schede, per esempio una da una prenotazione online con l'email e una da una telefonata con il solo numero. Unendole, tutte le prenotazioni passano su questa scheda e note, tag e contatori si sommano.",
+      "none": "Nessun'altra scheda somiglia a questo ospite.",
+      "search": "Unisci un altro ospite a questo",
+      "searchPlaceholder": "Cerca per nome, email o telefono",
+      "noResults": "Nessun altro ospite corrisponde alla ricerca.",
+      "inCommon": "In comune: {{what}}",
+      "matched": {
+        "email": "email",
+        "phone": "telefono",
+        "name": "nome"
+      },
+      "merge": "Unisci a questo ospite",
+      "confirmTitle": "Unire {{name}} a questo ospite?",
+      "confirmDescription": "Prenotazioni, note, tag e contatori passano a {{name}}. L'altra scheda viene eliminata e non si può annullare.",
+      "merged": "Ospiti uniti",
+      "staffHint": "Chiedi a un responsabile di unire i duplicati."
     },
     "history": "Storico prenotazioni",
     "noHistory": "Nessuna prenotazione ancora.",

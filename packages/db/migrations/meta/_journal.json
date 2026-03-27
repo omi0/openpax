@@ -57,6 +57,13 @@
       "when": 1789234539691,
       "tag": "0007_setup_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789375102143,
+      "tag": "0008_customer_cancellations",
+      "breakpoints": true
     }
   ]
 }

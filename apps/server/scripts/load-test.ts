@@ -613,12 +613,18 @@ async function checkCustomers(r: Restaurant, scope: string) {
   );
   for (const p of phones) violation(scope, `duplicate customer phone ${p.phone} ×${p.n}`);
   const { rows: counters } = await pool.query(
-    `select c.id, c.name, c.visit_count, c.no_show_count,
+    `select c.id, c.name, c.visit_count, c.no_show_count, c.cancel_count,
        (select count(*) from audit_log a join booking b on b.id::text = a.entity_id
          where b.customer_id = c.id and (a.action = 'booking.seat'
             or (a.action = 'booking.created' and a.data->>'status' = 'seated')))::int expected_visits,
-       (select count(*) from audit_log a join booking b on b.id::text = a.entity_id
-         where b.customer_id = c.id and a.action = 'booking.no_show')::int expected_no_shows
+       (select count(*) filter (where a.action = 'booking.no_show')
+             - count(*) filter (where a.action = 'booking.reopen' and a.data->>'from' = 'no_show')
+          from audit_log a join booking b on b.id::text = a.entity_id
+         where b.customer_id = c.id)::int expected_no_shows,
+       (select count(*) filter (where a.action = 'booking.cancel')
+             - count(*) filter (where a.action = 'booking.reopen' and a.data->>'from' = 'cancelled')
+          from audit_log a join booking b on b.id::text = a.entity_id
+         where b.customer_id = c.id)::int expected_cancellations
        from customer c where c.restaurant_id = $1`,
     [r.id],
   );
@@ -632,6 +638,11 @@ async function checkCustomers(r: Restaurant, scope: string) {
       violation(
         scope,
         `customer ${c.name} noShowCount=${c.no_show_count} expected ${c.expected_no_shows}`,
+      );
+    if (c.cancel_count !== c.expected_cancellations)
+      violation(
+        scope,
+        `customer ${c.name} cancelCount=${c.cancel_count} expected ${c.expected_cancellations}`,
       );
   }
 }

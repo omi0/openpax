@@ -31,6 +31,7 @@ export const customer = pgTable(
     notes: text(),
     visitCount: integer().notNull().default(0),
     noShowCount: integer().notNull().default(0),
+    cancelCount: integer().notNull().default(0),
     marketingConsent: boolean().notNull().default(false),
     lastVisitAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),

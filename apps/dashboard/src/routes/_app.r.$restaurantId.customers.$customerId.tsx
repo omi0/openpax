@@ -1,12 +1,14 @@
-import type { CustomerDto, UpdateCustomerInput } from "@sitli/shared";
+import type { CustomerDto, CustomerDuplicateDto, UpdateCustomerInput } from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   CalendarDays,
   CalendarPlus,
+  CalendarX,
   ClipboardList,
   Mail,
+  Merge,
   Phone,
   StickyNote,
   Trash,
@@ -35,7 +37,9 @@ import {
 import { ApiClientError, api } from "@/lib/api";
 import {
   customerBookingsQuery,
+  customerDuplicatesQuery,
   customerQuery,
+  customersQuery,
   customerTagsQuery,
   meQuery,
   restaurantQuery,
@@ -100,6 +104,18 @@ function CustomerPage() {
         setError(t("customers.invalidPhone"));
       else setError(e instanceof ApiClientError ? e.message : t("app.error"));
     },
+  });
+  const merge = useMutation({
+    mutationFn: (sourceId: string) =>
+      api.post<CustomerDto>(`/api/v1/restaurants/${restaurantId}/customers/${customerId}/merge`, {
+        sourceId,
+      }),
+    onSuccess: async (c) => {
+      setForm(toInput(c));
+      toast.success(t("customers.duplicates.merged"));
+      await invalidate();
+    },
+    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const remove = useMutation({
     mutationFn: () => api.delete(`/api/v1/restaurants/${restaurantId}/customers/${customerId}`),
@@ -182,7 +198,7 @@ function CustomerPage() {
         </div>
       </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <Stat
           label={t("customers.stats.visits")}
           value={customer.visitCount}
@@ -194,6 +210,12 @@ function CustomerPage() {
           value={customer.noShowCount}
           icon={<UserX />}
           tone={customer.noShowCount > 0 ? "bad" : "neutral"}
+        />
+        <Stat
+          label={t("customers.stats.cancellations")}
+          value={customer.cancelCount}
+          icon={<CalendarX />}
+          tone={customer.cancelCount > 0 ? "warn" : "neutral"}
         />
         <Stat
           label={t("customers.stats.bookings")}
@@ -341,6 +363,26 @@ function CustomerPage() {
             </form>
           </Card>
 
+          <DuplicatesCard
+            restaurantId={restaurantId}
+            customer={customer}
+            canMerge={role !== "staff"}
+            merging={merge.isPending}
+            onMerge={async (other) => {
+              if (
+                await confirm({
+                  title: t("customers.duplicates.confirmTitle", { name: other.name }),
+                  description: t("customers.duplicates.confirmDescription", {
+                    name: customer.name,
+                  }),
+                  confirmLabel: t("customers.duplicates.merge"),
+                  tone: "danger",
+                })
+              )
+                merge.mutate(other.id);
+            }}
+          />
+
           {role !== "staff" ? (
             <Card>
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -428,5 +470,101 @@ function CustomerPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+/**
+ * Entries that look like the same person, plus a search box to pick any other
+ * guest. Managers merge from here; staff only see the hint.
+ */
+function DuplicatesCard({
+  restaurantId,
+  customer,
+  canMerge,
+  merging,
+  onMerge,
+}: {
+  restaurantId: string;
+  customer: CustomerDto;
+  canMerge: boolean;
+  merging: boolean;
+  onMerge: (other: CustomerDto) => void;
+}) {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const term = search.trim();
+  const suggested = useQuery(customerDuplicatesQuery(restaurantId, customer.id));
+  const found = useQuery({
+    ...customersQuery(restaurantId, { search: term }),
+    enabled: term.length > 0,
+  });
+  const candidates: Array<CustomerDto & { matches?: CustomerDuplicateDto["matches"] }> = term
+    ? (found.data?.items ?? []).filter((c) => c.id !== customer.id).slice(0, 8)
+    : (suggested.data ?? []);
+  const loading = term ? found.isLoading : suggested.isLoading;
+
+  return (
+    <Card title={t("customers.duplicates.title")} description={t("customers.duplicates.hint")}>
+      {canMerge ? (
+        <Field label={t("customers.duplicates.search")} className="mb-3">
+          <Input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("customers.duplicates.searchPlaceholder")}
+          />
+        </Field>
+      ) : null}
+      {loading ? (
+        <PageLoader />
+      ) : candidates.length === 0 ? (
+        <p className="text-sm text-stone-500">
+          {term ? t("customers.duplicates.noResults") : t("customers.duplicates.none")}
+        </p>
+      ) : (
+        <ul className="divide-y divide-stone-100">
+          {candidates.map((c) => (
+            <li key={c.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <Avatar name={c.name} />
+              <div className="min-w-0 flex-1">
+                <Link
+                  to="/r/$restaurantId/customers/$customerId"
+                  params={{ restaurantId, customerId: c.id }}
+                  className="block truncate text-[15px] font-semibold text-stone-900 hover:text-brand-700"
+                >
+                  {c.name}
+                </Link>
+                <p className="truncate text-[13px] text-stone-500">
+                  {[c.email, c.phone, t("customers.visitsShort", { count: c.visitCount })]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                {c.matches && c.matches.length > 0 ? (
+                  <p className="text-[13px] font-medium text-amber-800">
+                    {t("customers.duplicates.inCommon", {
+                      what: c.matches.map((m) => t(`customers.duplicates.matched.${m}`)).join(", "),
+                    })}
+                  </p>
+                ) : null}
+              </div>
+              {canMerge ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Merge />}
+                  disabled={merging}
+                  onClick={() => onMerge(c)}
+                >
+                  {t("customers.duplicates.merge")}
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!canMerge && candidates.length > 0 ? (
+        <p className="mt-3 text-sm text-stone-500">{t("customers.duplicates.staffHint")}</p>
+      ) : null}
+    </Card>
   );
 }

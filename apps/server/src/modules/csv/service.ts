@@ -126,6 +126,7 @@ export async function exportCustomers(
       notes: c.notes,
       visits: c.visitCount,
       no_shows: c.noShowCount,
+      cancellations: c.cancelCount,
       marketing_consent: c.marketingConsent,
       last_visit: c.lastVisitAt?.toISOString() ?? "",
       created_at: c.createdAt.toISOString(),

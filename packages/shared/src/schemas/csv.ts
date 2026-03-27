@@ -64,6 +64,7 @@ export const CUSTOMER_CSV_COLUMNS = [
   "notes",
   "visits",
   "no_shows",
+  "cancellations",
   "marketing_consent",
   "last_visit",
   "created_at",

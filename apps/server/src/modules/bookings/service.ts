@@ -73,6 +73,7 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
       locale: x.customer.locale as BookingDto["customer"]["locale"],
       visitCount: x.customer.visitCount,
       noShowCount: x.customer.noShowCount,
+      cancelCount: x.customer.cancelCount,
     },
     serviceDate: x.booking.serviceDate,
     startsAt: x.booking.startsAt.toISOString(),
@@ -510,6 +511,11 @@ async function insertBookingLocked(
       .update(customer)
       .set({ noShowCount: sql`${customer.noShowCount} + 1` })
       .where(eq(customer.id, cust.id));
+  } else if (p.imported && status === "cancelled") {
+    await tx
+      .update(customer)
+      .set({ cancelCount: sql`${customer.cancelCount} + 1` })
+      .where(eq(customer.id, cust.id));
   }
 
   await emitEvent(tx, {
@@ -618,6 +624,21 @@ export async function applyBookingAction(
       await tx
         .update(customer)
         .set({ noShowCount: sql`${customer.noShowCount} + 1` })
+        .where(eq(customer.id, row.customerId));
+    } else if (p.action === "cancel") {
+      await tx
+        .update(customer)
+        .set({ cancelCount: sql`${customer.cancelCount} + 1` })
+        .where(eq(customer.id, row.customerId));
+    } else if (p.action === "reopen") {
+      // Reopening says the cancellation or no-show was a mistake: take the mark off the guest.
+      await tx
+        .update(customer)
+        .set(
+          row.status === "no_show"
+            ? { noShowCount: sql`greatest(${customer.noShowCount} - 1, 0)` }
+            : { cancelCount: sql`greatest(${customer.cancelCount} - 1, 0)` },
+        )
         .where(eq(customer.id, row.customerId));
     }
 

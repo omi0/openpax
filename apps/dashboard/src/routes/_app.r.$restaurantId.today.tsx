@@ -5,6 +5,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Armchair,
   CalendarDays,
+  CalendarX,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -542,6 +543,12 @@ function BookingRow({
               <span className="inline-flex items-center gap-1 font-medium text-red-600">
                 <UserX className="size-3.5" />{" "}
                 {t("today.noShows", { count: b.customer.noShowCount })}
+              </span>
+            ) : null}
+            {b.customer.cancelCount > 0 ? (
+              <span className="inline-flex items-center gap-1 font-medium text-amber-700">
+                <CalendarX className="size-3.5" />{" "}
+                {t("today.cancellations", { count: b.customer.cancelCount })}
               </span>
             ) : null}
             <span className="text-stone-400">{t(`today.source.${b.source}`)}</span>

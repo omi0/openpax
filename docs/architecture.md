@@ -145,6 +145,30 @@ the first answer emits `feedback.received`, which notifies the restaurant.
 The Feedback page lists answers with the average and the star distribution,
 and the analytics report carries the same summary for its period.
 
+### Guest book
+
+Every booking, from the widget, the hosted page, staff, a waitlist
+acceptance or a CSV import, goes through `upsertCustomer` (`lib/customers.ts`):
+the guest is looked up by id, then email, then phone, and created when nothing
+matches. Bookings taken with a name only (walk-ins, phone bookings without a
+number) create a new entry each time. The `customer` row carries the visit,
+no-show and cancellation counters: `seat` and `no_show` increment theirs,
+`cancel` increments `cancel_count`, and `reopen` takes the mark off again
+(imported bookings count once according to their status).
+
+The system cannot decide by itself that an entry with an email and another
+with a phone are one person, so merging is a staff action. The profile page
+lists look-alikes (`GET .../customers/:id/duplicates`: same email, same phone,
+or same name, deleted guests excluded) and any other guest by search;
+`POST .../customers/:id/merge` (managers and owners) moves the source's
+bookings, waitlist entries and feedback onto the target, adds the counters,
+unions the tags, joins the notes, fills missing contact details from the
+source, keeps the earliest `created_at` and deletes the source. When both
+entries have a different email or phone the target keeps its own and the
+source's are appended to the notes. The merge locks both guests' identities
+first, like booking creation does, so a booking arriving meanwhile lands on
+the surviving entry.
+
 ### CSV import and export
 
 The `csv` module exports bookings (with the list filters) and the guest book
@@ -301,8 +325,8 @@ retries), `same-guest`, `reopen`, `tables` (hand-seating race), `waitlist`
 (cancellations and offers at the same time) and `mixed` (guests browsing and
 booking while staff confirm, seat, move and cancel). After each one it
 checks the database: pacing and seat limits, no table double-booked, one
-guest-book entry per email/phone, visit and no-show counters equal to the
-audit trail, waitlist entries consistent, no failed events or jobs, and
+guest-book entry per email/phone, visit, no-show and cancellation counters
+equal to the audit trail (reopens taken off), waitlist entries consistent, no failed events or jobs, and
 prints latency percentiles and how long the queues took to drain. Any 5xx
 or violation is a bug.
 

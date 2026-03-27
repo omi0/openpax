@@ -70,6 +70,7 @@ export const bookingCustomerDtoSchema = z.object({
   locale: localeSchema.nullable(),
   visitCount: z.number().int(),
   noShowCount: z.number().int(),
+  cancelCount: z.number().int(),
 });
 
 export const bookingDtoSchema = z.object({

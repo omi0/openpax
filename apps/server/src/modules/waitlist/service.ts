@@ -55,6 +55,7 @@ export function toEntryDto(x: EntryWithRelations): WaitlistEntryDto {
       locale: x.customer.locale as WaitlistEntryDto["customer"]["locale"],
       visitCount: x.customer.visitCount,
       noShowCount: x.customer.noShowCount,
+      cancelCount: x.customer.cancelCount,
     },
     serviceId: e.serviceId,
     serviceName: x.serviceName,

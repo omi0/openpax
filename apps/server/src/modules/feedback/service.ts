@@ -34,6 +34,7 @@ function toDto(row: {
       locale: row.customer.locale as FeedbackDto["customer"]["locale"],
       visitCount: row.customer.visitCount,
       noShowCount: row.customer.noShowCount,
+      cancelCount: row.customer.cancelCount,
     },
     serviceDate: row.booking.serviceDate,
     startsAt: row.booking.startsAt.toISOString(),

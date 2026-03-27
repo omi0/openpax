@@ -102,11 +102,11 @@ describe("CSV import and export", () => {
     expect(exported.type).toContain("text/csv");
     const lines = exported.text.replace(/^﻿/, "").trim().split("\r\n");
     expect(lines[0]).toBe(
-      "name,email,phone,locale,tags,notes,visits,no_shows,marketing_consent,last_visit,created_at",
+      "name,email,phone,locale,tags,notes,visits,no_shows,cancellations,marketing_consent,last_visit,created_at",
     );
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain(
-      'Mario Rossi,mario@example.com,+393331234567,it,"vip, regular",Ama il Barolo,0,0,true',
+      'Mario Rossi,mario@example.com,+393331234567,it,"vip, regular",Ama il Barolo,0,0,0,true',
     );
 
     // staff cannot export the guest book

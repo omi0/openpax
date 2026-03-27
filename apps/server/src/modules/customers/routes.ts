@@ -2,8 +2,10 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import {
   customerDtoSchema,
+  customerDuplicateDtoSchema,
   customerTagDtoSchema,
   listCustomersQuerySchema,
+  mergeCustomersInputSchema,
   paginatedSchema,
   updateCustomerInputSchema,
 } from "@sitli/shared";
@@ -79,6 +81,48 @@ export function customerRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
             c.get("restaurant"),
             c.req.valid("param").customerId,
             c.req.valid("json"),
+            c.get("actor"),
+          ),
+        ),
+        200,
+      ),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/restaurants/{restaurantId}/customers/{customerId}/duplicates",
+      tags,
+      summary: "Other entries that look like the same guest (same email, phone or name)",
+      middleware: [requireRestaurant(ctx, { customer: ["read"] })] as const,
+      request: { params: customerIdParam },
+      responses: { 200: jsonResponse(z.array(customerDuplicateDtoSchema), "Look-alikes") },
+    }),
+    async (c) =>
+      c.json(
+        await svc.listDuplicates(ctx, c.get("restaurant"), c.req.valid("param").customerId),
+        200,
+      ),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/v1/restaurants/{restaurantId}/customers/{customerId}/merge",
+      tags,
+      summary: "Merge another entry into this guest and delete it",
+      middleware: [requireRestaurant(ctx, { customer: ["delete"] })] as const,
+      request: { params: customerIdParam, body: jsonBody(mergeCustomersInputSchema) },
+      responses: { 200: jsonResponse(customerDtoSchema, "The merged customer") },
+    }),
+    async (c) =>
+      c.json(
+        svc.toCustomerDto(
+          await svc.mergeCustomers(
+            ctx,
+            c.get("restaurant"),
+            c.req.valid("param").customerId,
+            c.req.valid("json").sourceId,
             c.get("actor"),
           ),
         ),

@@ -1,7 +1,7 @@
 import { CUSTOMER_SORTS, type CustomerSort } from "@sitli/shared";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Mail, Phone, Users, UserX } from "lucide-react";
+import { CalendarX, Mail, Phone, Users, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CsvActions } from "@/components/csv-actions";
@@ -147,18 +147,19 @@ function CustomersPage() {
         </EmptyState>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5rem_5.5rem_11rem] gap-3 border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500 md:grid">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5rem_5.5rem_6.5rem_11rem] gap-3 border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500 md:grid">
             <span>{t("customers.columns.name")}</span>
             <span>{t("customers.columns.contact")}</span>
             <span className="text-right">{t("customers.columns.visits")}</span>
             <span className="text-right">{t("customers.columns.noShows")}</span>
+            <span className="text-right">{t("customers.columns.cancellations")}</span>
             <span>{t("customers.columns.lastVisit")}</span>
           </div>
           <ul className="divide-y divide-stone-100">
             {data.items.map((c) => (
               <li
                 key={c.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-stone-50 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5rem_5.5rem_11rem] md:gap-3"
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-stone-50 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5rem_5.5rem_6.5rem_11rem] md:gap-3"
               >
                 <Avatar name={c.name} className="row-span-2 md:hidden" />
                 <div className="flex min-w-0 items-center gap-3">
@@ -201,6 +202,11 @@ function CustomersPage() {
                         {t("today.noShows", { count: c.noShowCount })}
                       </span>
                     ) : null}
+                    {c.cancelCount > 0 ? (
+                      <span className="ml-2 text-amber-700">
+                        {t("today.cancellations", { count: c.cancelCount })}
+                      </span>
+                    ) : null}
                   </span>
                 </div>
                 <span className="hidden text-right text-[15px] font-semibold tabular-nums md:block">
@@ -214,6 +220,15 @@ function CustomersPage() {
                 >
                   {c.noShowCount > 0 ? <UserX className="size-3.5" /> : null}
                   {c.noShowCount}
+                </span>
+                <span
+                  className={cn(
+                    "hidden items-center justify-end gap-1 text-right text-[15px] font-semibold tabular-nums md:inline-flex",
+                    c.cancelCount > 0 ? "text-amber-700" : "text-stone-300",
+                  )}
+                >
+                  {c.cancelCount > 0 ? <CalendarX className="size-3.5" /> : null}
+                  {c.cancelCount}
                 </span>
                 <span className="hidden text-sm text-stone-600 md:block">
                   {c.lastVisitAt

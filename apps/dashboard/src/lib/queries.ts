@@ -7,6 +7,7 @@ import type {
   BookingPolicyDto,
   CapacityRuleDto,
   CustomerDto,
+  CustomerDuplicateDto,
   CustomerSort,
   CustomerTagDto,
   FeedbackDto,
@@ -130,6 +131,15 @@ export const customerQuery = (id: string, customerId: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "customers", customerId],
     queryFn: () => api.get<CustomerDto>(`/api/v1/restaurants/${id}/customers/${customerId}`),
+  });
+
+export const customerDuplicatesQuery = (id: string, customerId: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "customers", customerId, "duplicates"],
+    queryFn: () =>
+      api.get<CustomerDuplicateDto[]>(
+        `/api/v1/restaurants/${id}/customers/${customerId}/duplicates`,
+      ),
   });
 
 export const customerTagsQuery = (id: string) =>

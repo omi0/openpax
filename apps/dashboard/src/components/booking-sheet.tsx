@@ -6,6 +6,7 @@ import {
   Armchair,
   Ban,
   CalendarDays,
+  CalendarX,
   CheckCheck,
   CircleCheck,
   Copy,
@@ -115,6 +116,11 @@ export function BookingSheet({
                 {b.customer.noShowCount > 0 ? (
                   <Badge tone="danger" size="sm" icon={<UserX />}>
                     {t("today.noShows", { count: b.customer.noShowCount })}
+                  </Badge>
+                ) : null}
+                {b.customer.cancelCount > 0 ? (
+                  <Badge tone="warning" size="sm" icon={<CalendarX />}>
+                    {t("today.cancellations", { count: b.customer.cancelCount })}
                   </Badge>
                 ) : null}
               </div>
