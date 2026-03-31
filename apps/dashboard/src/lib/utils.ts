@@ -64,3 +64,28 @@ export function startOfWeek(date: string): string {
 export function dateRange(start: string, days: number): string[] {
   return Array.from({ length: days }, (_, i) => addDays(start, i));
 }
+
+/** "14–20 September 2026" / "September 14 – 20, 2026": a range of days in the locale's own idiom. */
+export function formatDateRange(start: string, end: string, locale: string): string {
+  const at = (date: string) => {
+    const [y, m, d] = date.split("-").map(Number);
+    return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1));
+  };
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).formatRange(at(start), at(end));
+}
+
+/** ISO 8601 week number of a date (weeks start on Monday; week 1 holds the first Thursday). */
+export function isoWeek(date: string): number {
+  const [y, m, d] = date.split("-").map(Number);
+  const day = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1));
+  const thursday = new Date(day);
+  thursday.setUTCDate(day.getUTCDate() + 3 - ((day.getUTCDay() + 6) % 7));
+  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4));
+  firstThursday.setUTCDate(firstThursday.getUTCDate() + 3 - ((firstThursday.getUTCDay() + 6) % 7));
+  return 1 + Math.round((thursday.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+}

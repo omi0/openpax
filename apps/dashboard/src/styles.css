@@ -24,10 +24,11 @@
   --color-surface: #ffffff;
   --color-ink: #1c1917;
 
-  --radius-xl: 0.875rem;
-  --radius-2xl: 1.125rem;
+  /* sharper corners: controls 8px, cards 10px (the big pill look read as a template) */
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.625rem;
 
-  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.05);
   --shadow-pop: 0 10px 30px -10px rgb(28 25 23 / 0.25), 0 2px 6px rgb(28 25 23 / 0.08);
   --shadow-sheet: 0 -8px 30px -10px rgb(28 25 23 / 0.3);
 

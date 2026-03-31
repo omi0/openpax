@@ -215,6 +215,43 @@ export function StatusBadge({ status, size }: { status: string; size?: "sm" | "m
   );
 }
 
+const statusDots: Record<string, string> = {
+  pending: "bg-amber-500",
+  confirmed: "bg-emerald-500",
+  seated: "bg-sky-500",
+  completed: "bg-stone-400",
+  cancelled: "bg-red-500",
+  no_show: "bg-rose-500",
+};
+
+/** Booking status as a small dot and its label: quieter than a badge, for dense lists. */
+export function StatusMark({
+  status,
+  muted,
+  className,
+}: {
+  status: string;
+  muted?: boolean;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium whitespace-nowrap",
+        muted ? "text-stone-500" : "text-stone-700",
+        className,
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn("size-1.5 shrink-0 rounded-full", statusDots[status] ?? "bg-stone-300")}
+      />
+      {t(`today.status.${status}`)}
+    </span>
+  );
+}
+
 /* -------------------------------------------------------------------- alerts */
 
 export function Alert({

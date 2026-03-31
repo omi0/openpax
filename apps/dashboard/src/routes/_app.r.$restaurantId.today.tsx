@@ -14,10 +14,8 @@ import {
   LayoutGrid,
   List,
   Pencil,
-  Phone,
   Plus,
   StickyNote,
-  Users,
   UserX,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -28,7 +26,6 @@ import {
   ACTIVE_STATUSES,
   actionIcons,
   actionsFor,
-  actionVariant,
   BookingSheet,
   primaryActionFor,
 } from "@/components/booking-sheet";
@@ -36,7 +33,6 @@ import { FloorPlan, type TableStatus } from "@/components/floor-plan";
 import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
 import {
-  Avatar,
   Button,
   Dialog,
   EmptyState,
@@ -46,7 +42,7 @@ import {
   type MenuItem,
   PageLoader,
   Segmented,
-  StatusBadge,
+  StatusMark,
   Switch,
   Textarea,
   useToast,
@@ -135,53 +131,68 @@ function TodayPage() {
     }
     g.items.push(b);
   }
+  const longDate = formatDate(date, i18n.language, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   return (
     <div>
-      <DayStrip date={date} today={today} onChange={setDate} />
-
-      <div className="mt-4 mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight capitalize md:text-[28px]">
-            {date === today ? t("today.title") : formatDate(date, i18n.language)}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight capitalize md:text-2xl">
+            {date === today ? t("today.title") : longDate}
           </h1>
-          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-stone-500">
-            {date === today ? (
-              <span className="capitalize">{formatDate(date, i18n.language)}</span>
-            ) : null}
-            {date === today ? <span aria-hidden="true">·</span> : null}
-            <span>
-              {t("today.bookings", { count: active.length })} ·{" "}
-              {t("today.covers", { count: covers })}
-            </span>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-stone-500 tabular-nums">
+            {date === today ? <span className="capitalize">{longDate}</span> : null}
+            {date === today ? <Sep /> : null}
+            <span>{t("today.bookings", { count: active.length })}</span>
+            <Sep />
+            <span>{t("today.covers", { count: covers })}</span>
             {seatedNow > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[13px] font-medium text-sky-900">
-                <Armchair className="size-3.5" /> {t("today.seatedNow", { count: seatedNow })}
-              </span>
+              <>
+                <Sep />
+                <span className="inline-flex items-center gap-1 font-medium text-sky-800">
+                  <Armchair className="size-3.5" />
+                  {t("today.seatedNow", { count: seatedNow })}
+                </span>
+              </>
             ) : null}
             {pending > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[13px] font-medium text-amber-900">
-                <Clock className="size-3.5" /> {t("today.toConfirm", { count: pending })}
-              </span>
+              <>
+                <Sep />
+                <span className="inline-flex items-center gap-1 font-medium text-amber-800">
+                  <Clock className="size-3.5" />
+                  {t("today.toConfirm", { count: pending })}
+                </span>
+              </>
             ) : null}
             {closedRooms.map((r) => (
-              <span
-                key={r.id}
-                className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[13px] font-medium text-amber-900"
-              >
-                <DoorOpen className="size-3.5" /> {t("today.roomClosed", { name: r.name })}
+              <span key={r.id} className="contents">
+                <Sep />
+                <span className="inline-flex items-center gap-1 font-medium text-amber-800">
+                  <DoorOpen className="size-3.5" />
+                  {t("today.roomClosed", { name: r.name })}
+                </span>
               </span>
             ))}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {rooms.length > 0 ? (
-            <Button variant="outline" icon={<DoorOpen />} onClick={() => setRoomsOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<DoorOpen />}
+              onClick={() => setRoomsOpen(true)}
+            >
               {t("today.rooms")}
             </Button>
           ) : null}
           {hasFloor ? (
             <Segmented
+              size="sm"
               ariaLabel={t("today.viewLabel")}
               value={view}
               onChange={setView}
@@ -191,13 +202,17 @@ function TodayPage() {
               ]}
             />
           ) : null}
-          <Button size="lg" icon={<Plus />} onClick={() => setOpen(true)}>
+          <Button icon={<Plus />} onClick={() => setOpen(true)}>
             {t("today.newBooking")}
           </Button>
         </div>
       </div>
 
-      <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
+      <DayStrip date={date} today={today} onChange={setDate} />
+
+      <div className="mt-4">
+        <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
+      </div>
 
       {view === "floor" && tables.data ? (
         <FloorView
@@ -212,27 +227,43 @@ function TodayPage() {
       ) : bookings.isLoading ? (
         <PageLoader />
       ) : items.length === 0 ? (
-        <EmptyState
-          icon={<CalendarDays />}
-          title={t("today.noBookings")}
-          action={
-            <Button icon={<Plus />} onClick={() => setOpen(true)}>
-              {t("today.newBooking")}
-            </Button>
-          }
-        >
-          {t("today.noBookingsHint")}
-        </EmptyState>
+        <div className="rounded-lg border border-dashed border-stone-300 bg-white">
+          <EmptyState
+            icon={<CalendarDays />}
+            title={t("today.noBookings")}
+            action={
+              <Button variant="outline" icon={<Plus />} onClick={() => setOpen(true)}>
+                {t("today.newBooking")}
+              </Button>
+            }
+          >
+            {t("today.noBookingsHint")}
+          </EmptyState>
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+          <div
+            aria-hidden="true"
+            className={cn(
+              "hidden gap-x-3 border-b border-stone-200 px-4 py-1.5 text-[11px] font-semibold tracking-wider text-stone-500 uppercase md:grid",
+              hasFloor ? ROW_COLS_FLOOR : ROW_COLS,
+            )}
+          >
+            <span>{t("today.time")}</span>
+            <span>{t("today.guest")}</span>
+            <span>{t("today.party")}</span>
+            {hasFloor ? <span>{t("today.table")}</span> : null}
+            <span>{t("bookings.columns.status")}</span>
+            <span />
+          </div>
           {groups.map((g) => {
             const gActive = g.items.filter((b) => ACTIVE_STATUSES.has(b.status));
             return (
               <section key={g.id}>
                 {groups.length > 1 ? (
-                  <h2 className="mb-2 flex items-baseline gap-2 px-1">
-                    <span className="text-base font-semibold">{g.name}</span>
-                    <span className="text-sm text-stone-500">
+                  <h2 className="flex items-baseline justify-between gap-3 border-y border-stone-200 bg-stone-50 px-4 py-1.5 first:border-t-0">
+                    <span className="text-[13px] font-semibold text-stone-800">{g.name}</span>
+                    <span className="text-xs text-stone-500 tabular-nums">
                       {t("today.bookings", { count: gActive.length })} ·{" "}
                       {t("today.covers", {
                         count: gActive.reduce((n, b) => n + b.partySize, 0),
@@ -240,7 +271,7 @@ function TodayPage() {
                     </span>
                   </h2>
                 ) : null}
-                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
+                <ul className="divide-y divide-stone-100">
                   {g.items.map((b) => (
                     <BookingRow
                       key={b.id}
@@ -342,7 +373,17 @@ function TodayPage() {
   );
 }
 
-/** Seven tappable days around the chosen date, plus arrows and a date picker for jumps. */
+const Sep = () => (
+  <span aria-hidden="true" className="text-stone-300">
+    ·
+  </span>
+);
+
+/* Row columns on wide screens: time, guest, party, (table), status, actions. */
+const ROW_COLS = "md:grid-cols-[4.25rem_minmax(0,1fr)_5.5rem_8.5rem_10rem]";
+const ROW_COLS_FLOOR = "md:grid-cols-[4.25rem_minmax(0,1fr)_5.5rem_8rem_8.5rem_10rem]";
+
+/** Week of tappable days as tabs, with arrows, a date picker and a way back to today. */
 function DayStrip({
   date,
   today,
@@ -363,10 +404,9 @@ function DayStrip({
     else el.click();
   };
   return (
-    <div className="flex items-center gap-2">
+    <div className="mt-4 flex items-center gap-1 border-b border-stone-200">
       <IconButton
         label={t("today.prevWeek")}
-        variant="outline"
         size="sm"
         className="hidden sm:inline-flex"
         onClick={() => onChange(addDays(date, -7))}
@@ -375,14 +415,13 @@ function DayStrip({
       </IconButton>
       <IconButton
         label={t("today.prev")}
-        variant="outline"
         size="sm"
         className="sm:hidden"
         onClick={() => onChange(addDays(date, -1))}
       >
         <ChevronLeft />
       </IconButton>
-      <div className="grid min-w-0 flex-1 grid-cols-7 gap-1 rounded-2xl border border-stone-200 bg-white p-1 shadow-card">
+      <div className="-mb-px grid min-w-0 flex-1 grid-cols-7">
         {days.map((d) => {
           const isSelected = d === date;
           const isToday = d === today;
@@ -395,35 +434,29 @@ function DayStrip({
               aria-current={isToday ? "date" : undefined}
               onClick={() => onChange(d)}
               className={cn(
-                "flex h-14 flex-col items-center justify-center rounded-xl transition-colors",
+                "flex h-12 flex-col items-center justify-center border-b-2 px-1 transition-colors",
                 isSelected
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "text-stone-700 hover:bg-stone-100",
+                  ? "border-brand-600 text-stone-900"
+                  : "border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-900",
               )}
             >
-              <span
-                className={cn(
-                  "text-[11px] font-medium uppercase tracking-wide",
-                  isSelected ? "text-white/80" : "text-stone-500",
-                )}
-              >
+              <span className="text-[11px] font-medium tracking-wider uppercase">
                 {formatDate(d, i18n.language, { weekday: "short" }).replace(".", "")}
               </span>
-              <span className="text-lg leading-tight font-bold tabular-nums">{Number(dd)}</span>
               <span
-                aria-hidden="true"
                 className={cn(
-                  "mt-0.5 size-1 rounded-full",
-                  isToday ? (isSelected ? "bg-white" : "bg-brand-600") : "bg-transparent",
+                  "text-[17px] leading-tight font-semibold tabular-nums",
+                  isToday && "text-brand-700",
                 )}
-              />
+              >
+                {Number(dd)}
+              </span>
             </button>
           );
         })}
       </div>
       <IconButton
         label={t("today.next")}
-        variant="outline"
         size="sm"
         className="sm:hidden"
         onClick={() => onChange(addDays(date, 1))}
@@ -432,7 +465,6 @@ function DayStrip({
       </IconButton>
       <IconButton
         label={t("today.nextWeek")}
-        variant="outline"
         size="sm"
         className="hidden sm:inline-flex"
         onClick={() => onChange(addDays(date, 7))}
@@ -440,7 +472,7 @@ function DayStrip({
         <ChevronRight />
       </IconButton>
       <div className="relative hidden sm:block">
-        <IconButton label={t("today.pickDate")} variant="outline" size="sm" onClick={openPicker}>
+        <IconButton label={t("today.pickDate")} size="sm" onClick={openPicker}>
           <CalendarDays />
         </IconButton>
         <input
@@ -483,6 +515,7 @@ function BookingRow({
 }) {
   const { t, i18n } = useTranslation();
   const isActive = ACTIVE_STATUSES.has(b.status);
+  const struck = b.status === "cancelled" || b.status === "no_show";
   const primary = primaryActionFor[b.status];
   const secondary = (actionsFor[b.status] ?? []).filter((a) => a !== primary);
   const menu: Array<MenuItem | "separator"> = [];
@@ -497,89 +530,109 @@ function BookingRow({
       tone: a === "cancel" || a === "no_show" ? "danger" : "default",
       onSelect: () => onAction(a),
     });
+  const flags = [
+    b.customer.noShowCount > 0 ? (
+      <span key="ns" className="inline-flex items-center gap-1 font-medium text-red-700">
+        <UserX className="size-3.5" />
+        {t("today.noShows", { count: b.customer.noShowCount })}
+      </span>
+    ) : null,
+    b.customer.cancelCount > 0 ? (
+      <span key="cx" className="inline-flex items-center gap-1 font-medium text-amber-700">
+        <CalendarX className="size-3.5" />
+        {t("today.cancellations", { count: b.customer.cancelCount })}
+      </span>
+    ) : null,
+  ].filter(Boolean);
 
   return (
-    <li className={cn("px-3 py-3 md:px-4", !isActive && "bg-stone-50/60")}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <li className={cn("px-4 py-2.5 md:py-2", !isActive && "bg-stone-50/70")}>
+      <div
+        className={cn(
+          "grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-x-3",
+          "[grid-template-areas:'time_name_status'_'party_meta_meta'_'table_table_table'_'actions_actions_actions']",
+          "md:[grid-template-areas:'time_name_party_status_actions'] md:items-center",
+          hasFloor ? "md:[grid-template-areas:'time_name_party_table_status_actions']" : undefined,
+          hasFloor ? ROW_COLS_FLOOR : ROW_COLS,
+        )}
+      >
         <button
           type="button"
           onClick={onOpen}
           className={cn(
-            "w-[3.25rem] shrink-0 text-left text-xl font-bold tabular-nums",
+            "[grid-area:time] self-start text-left text-[15px] font-semibold tabular-nums md:self-center",
             !isActive && "text-stone-400",
           )}
         >
           {formatTime(b.startsAt, timezone, i18n.language)}
         </button>
-        <Avatar
-          name={b.customer.name}
-          size="md"
-          className={cn("hidden md:inline-flex", !isActive && "opacity-50")}
-        />
         <button
           type="button"
           onClick={onOpen}
-          className="min-w-0 flex-1 basis-40 text-left"
+          className="flex min-w-0 items-baseline gap-x-2 [grid-area:name] text-left"
           aria-label={t("today.details")}
         >
           <span
             className={cn(
-              "block truncate text-base font-semibold",
-              !isActive && "text-stone-500 line-through decoration-stone-300",
+              "min-w-0 truncate text-[15px] font-medium",
+              !isActive && "text-stone-500",
+              struck && "line-through decoration-stone-300",
             )}
           >
             {b.customer.name}
           </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-stone-500">
-            <span className="inline-flex items-center gap-1">
-              <Users className="size-3.5" /> {t("today.guests", { count: b.partySize })}
-            </span>
-            {b.customer.phone ? (
-              <span className="inline-flex items-center gap-1">
-                <Phone className="size-3.5" /> {b.customer.phone}
-              </span>
-            ) : null}
-            {b.customer.noShowCount > 0 ? (
-              <span className="inline-flex items-center gap-1 font-medium text-red-600">
-                <UserX className="size-3.5" />{" "}
-                {t("today.noShows", { count: b.customer.noShowCount })}
-              </span>
-            ) : null}
-            {b.customer.cancelCount > 0 ? (
-              <span className="inline-flex items-center gap-1 font-medium text-amber-700">
-                <CalendarX className="size-3.5" />{" "}
-                {t("today.cancellations", { count: b.customer.cancelCount })}
-              </span>
-            ) : null}
-            <span className="text-stone-400">{t(`today.source.${b.source}`)}</span>
+          <span className="hidden min-w-0 shrink-[2] items-baseline gap-x-2 truncate text-[13px] text-stone-500 md:flex">
+            {b.customer.phone ? <span className="tabular-nums">{b.customer.phone}</span> : null}
+            <span>{t(`today.source.${b.source}`)}</span>
+            {flags}
           </span>
         </button>
-        {hasFloor && isActive ? (
-          <button
-            type="button"
-            onClick={onAssign}
-            title={t("today.assignTables")}
-            className={cn(
-              "inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-sm font-semibold",
-              b.tables.length > 0
-                ? "border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100"
-                : "border-dashed border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100",
-            )}
-          >
-            <LayoutGrid className="size-3.5" />
-            {b.tables.length > 0 ? b.tables.map((x) => x.name).join(" + ") : t("today.noTable")}
-          </button>
+        <span
+          className={cn(
+            "[grid-area:party] text-[13px] text-stone-500 tabular-nums md:text-sm md:text-stone-700",
+          )}
+        >
+          {t("today.guests", { count: b.partySize })}
+        </span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 [grid-area:meta] text-[13px] text-stone-500 md:hidden">
+          {b.customer.phone ? <span>{b.customer.phone}</span> : null}
+          <span>{t(`today.source.${b.source}`)}</span>
+          {flags}
+        </span>
+        {hasFloor ? (
+          <span className="mt-1.5 [grid-area:table] md:mt-0">
+            {isActive ? (
+              <button
+                type="button"
+                onClick={onAssign}
+                title={t("today.assignTables")}
+                className={cn(
+                  "inline-flex h-7 max-w-full items-center gap-1 rounded-md border px-2 text-xs font-semibold tabular-nums",
+                  b.tables.length > 0
+                    ? "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                    : "border-dashed border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100",
+                )}
+              >
+                <LayoutGrid className="size-3" />
+                <span className="truncate">
+                  {b.tables.length > 0
+                    ? b.tables.map((x) => x.name).join(" + ")
+                    : t("today.noTable")}
+                </span>
+              </button>
+            ) : null}
+          </span>
         ) : null}
-        <StatusBadge status={b.status} />
-        <div className="flex basis-full items-center gap-2 md:basis-auto">
+        <StatusMark status={b.status} muted={!isActive} className="[grid-area:status]" />
+        <div className="mt-2 flex items-center gap-1.5 [grid-area:actions] md:mt-0 md:justify-end">
           {primary ? (
             <Button
-              size="md"
-              variant={actionVariant[primary]}
+              size="sm"
+              variant="outline"
               icon={actionIcons[primary]}
               disabled={busy}
               onClick={() => onAction(primary)}
-              className="flex-1 md:flex-none"
+              className="h-10 flex-1 md:h-8 md:flex-none md:px-2.5"
             >
               {t(`today.actions.${primary}`)}
             </Button>
@@ -590,10 +643,10 @@ function BookingRow({
               trigger={({ open, toggle }) => (
                 <IconButton
                   label={t("today.moreActions")}
-                  variant="outline"
+                  size="sm"
                   onClick={toggle}
                   aria-expanded={open}
-                  className={cn(open && "bg-stone-100")}
+                  className={cn("h-10 w-10 md:size-8", open && "bg-stone-100")}
                 >
                   <EllipsisVertical />
                 </IconButton>
@@ -603,8 +656,8 @@ function BookingRow({
         </div>
       </div>
       {b.notes ? (
-        <p className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950 md:ml-[4.75rem]">
-          <StickyNote className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <p className="mt-1 flex items-start gap-1.5 text-[13px] text-amber-900 md:pl-[calc(4.25rem+0.75rem)]">
+          <StickyNote className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
           <span className="min-w-0 whitespace-pre-wrap">{b.notes}</span>
         </p>
       ) : null}
@@ -669,57 +722,61 @@ function FloorView({
     };
   };
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-card">
+    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-stone-200 px-4 py-2">
         <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
           {t("today.floorTime")}
           <input
             type="time"
             value={time}
             onChange={(e) => e.target.value && setTime(e.target.value)}
-            className="h-10 rounded-xl border border-stone-300 px-2.5 text-[15px] font-semibold tabular-nums"
+            className="h-8 min-h-8 rounded-md border border-stone-300 px-2 text-sm font-semibold tabular-nums"
           />
         </label>
-        <div className="flex flex-wrap items-center gap-3 text-sm text-stone-600">
+        <div className="flex flex-wrap items-center gap-3 text-[13px] text-stone-600">
           <span className="inline-flex items-center gap-1.5 capitalize">
-            <span className="inline-block size-3.5 rounded-md border border-stone-300 bg-white" />
+            <span className="inline-block size-3 rounded-sm border border-stone-300 bg-white" />
             {t("today.free")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block size-3.5 rounded-md border border-amber-500 bg-amber-100" />
+            <span className="inline-block size-3 rounded-sm border border-amber-500 bg-amber-100" />
             {t("today.status.confirmed")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block size-3.5 rounded-md border border-sky-500 bg-sky-100" />
+            <span className="inline-block size-3 rounded-sm border border-sky-500 bg-sky-100" />
             {t("today.status.seated")}
           </span>
         </div>
       </div>
-      <FloorPlan
-        tables={tables}
-        areas={areas}
-        statusOf={statusOf}
-        onSelect={(table) => {
-          const b = seatedAt(table.id);
-          if (b) onPick(b);
-        }}
-      />
+      <div className="p-3">
+        <FloorPlan
+          tables={tables}
+          areas={areas}
+          statusOf={statusOf}
+          onSelect={(table) => {
+            const b = seatedAt(table.id);
+            if (b) onPick(b);
+          }}
+        />
+      </div>
       {unassigned.length > 0 ? (
-        <div className="rounded-2xl border border-dashed border-amber-400 bg-amber-50 px-4 py-3">
-          <p className="mb-2 text-sm font-semibold text-amber-900">{t("today.unassigned")}</p>
+        <div className="border-t border-stone-200 px-4 py-3">
+          <p className="mb-2 text-[11px] font-semibold tracking-wider text-stone-500 uppercase">
+            {t("today.unassigned")}
+          </p>
           <ul className="flex flex-wrap gap-2">
             {unassigned.map((b) => (
               <li key={b.id}>
                 <button
                   type="button"
                   onClick={() => onPick(b)}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-300 bg-white px-3 text-sm font-medium hover:bg-amber-100"
+                  className="inline-flex h-8 items-center gap-2 rounded-md border border-dashed border-amber-400 bg-amber-50 px-2.5 text-[13px] font-medium text-amber-900 hover:bg-amber-100"
                 >
-                  <span className="tabular-nums">
+                  <span className="font-semibold tabular-nums">
                     {formatTime(b.startsAt, timezone, i18n.language)}
                   </span>
                   {b.customer.name}
-                  <span className="text-stone-500">{b.partySize}</span>
+                  <span className="text-amber-700 tabular-nums">{b.partySize}</span>
                 </button>
               </li>
             ))}
@@ -777,11 +834,11 @@ function RoomsDialog({
           <li key={r.id} className="flex items-center gap-4 py-3">
             <span
               className={cn(
-                "inline-flex size-10 shrink-0 items-center justify-center rounded-xl",
+                "inline-flex size-9 shrink-0 items-center justify-center rounded-lg",
                 r.active ? "bg-brand-50 text-brand-700" : "bg-stone-100 text-stone-400",
               )}
             >
-              <DoorOpen className="size-5" />
+              <DoorOpen className="size-[18px]" />
             </span>
             <div className="min-w-0 flex-1">
               <p className={cn("text-[15px] font-semibold", !r.active && "text-stone-500")}>

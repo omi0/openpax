@@ -415,6 +415,7 @@
     "customHours": "Special hours",
     "noBookings": "—",
     "weekTotal": "{{bookings}} bookings · {{covers}} covers this week",
+    "weekNumber": "Week {{n}}",
     "openDay": "Open day view"
   },
   "closures": {

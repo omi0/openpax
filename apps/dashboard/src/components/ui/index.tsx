@@ -34,6 +34,7 @@ export {
   Spinner,
   Stat,
   StatusBadge,
+  StatusMark,
   statusIcons,
 } from "./surfaces";
 export { ToastProvider, useToast } from "./toast";

@@ -1,11 +1,11 @@
 import type { BookingDto, ScheduleExceptionDto } from "@sitli/shared";
 import { useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, CalendarOff, ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
-import { Badge, Button, IconButton } from "@/components/ui";
+import { Button, IconButton } from "@/components/ui";
 import {
   bookingsQuery,
   exceptionsQuery,
@@ -18,7 +18,9 @@ import {
   cn,
   dateRange,
   formatDate,
+  formatDateRange,
   formatTime,
+  isoWeek,
   startOfWeek,
   todayLocal,
 } from "@/lib/utils";
@@ -34,13 +36,14 @@ export const Route = createFileRoute("/_app/r/$restaurantId/calendar")({
 });
 
 const ACTIVE = new Set(["pending", "confirmed", "seated"]);
-const dot: Record<string, string> = {
-  pending: "bg-amber-400",
-  confirmed: "bg-emerald-500",
-  seated: "bg-sky-500",
-  completed: "bg-stone-400",
-  cancelled: "bg-red-300",
-  no_show: "bg-red-300",
+/* The time carries the status: no room for a badge in a week column. */
+const timeTone: Record<string, string> = {
+  pending: "text-amber-700",
+  confirmed: "text-stone-900",
+  seated: "text-sky-700",
+  completed: "text-stone-500",
+  cancelled: "text-stone-400 line-through",
+  no_show: "text-stone-400 line-through",
 };
 
 function CalendarPage() {
@@ -71,75 +74,79 @@ function CalendarPage() {
       bookings: active.length,
       covers: active.reduce((n, b) => n + b.partySize, 0),
       exceptions: (exceptions.data ?? []).filter((e) => e.date === date),
+      loading: !!results[i]?.isLoading,
     };
   });
   const weekBookings = byDay.reduce((n, d) => n + d.bookings, 0);
   const weekCovers = byDay.reduce((n, d) => n + d.covers, 0);
-  const busiest = Math.max(1, ...byDay.map((d) => d.covers));
   const last = days[6] ?? week;
-  const sameMonth = week.slice(0, 7) === last.slice(0, 7);
-  const label = `${formatDate(week, i18n.language, {
-    day: "numeric",
-    ...(sameMonth ? {} : { month: "short" }),
-  })} – ${formatDate(last, i18n.language, { day: "numeric", month: "long", year: "numeric" })}`;
+  const sortedServices = [...services].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight md:text-2xl">
+            {formatDateRange(week, last, i18n.language)}
+          </h1>
+          <p className="mt-0.5 text-sm text-stone-500 tabular-nums">
+            {t("calendar.weekNumber", { n: isoWeek(week) })}
+            <span aria-hidden="true" className="mx-1.5 text-stone-300">
+              ·
+            </span>
+            {t("calendar.weekTotal", { bookings: weekBookings, covers: weekCovers })}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center rounded-lg border border-stone-300 bg-white shadow-xs">
             <IconButton
               label={t("calendar.prev")}
-              variant="outline"
               size="sm"
+              className="rounded-r-none"
               onClick={() => setWeek(addDays(week, -7))}
             >
               <ChevronLeft />
             </IconButton>
+            <span aria-hidden="true" className="h-5 w-px bg-stone-200" />
             <IconButton
               label={t("calendar.next")}
-              variant="outline"
               size="sm"
+              className="rounded-l-none"
               onClick={() => setWeek(addDays(week, 7))}
             >
               <ChevronRight />
             </IconButton>
-            {week !== thisWeek ? (
-              <Button variant="ghost" size="sm" onClick={() => setWeek(thisWeek)}>
-                {t("calendar.thisWeek")}
-              </Button>
-            ) : null}
           </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight capitalize md:text-[28px]">
-            {label}
-          </h1>
-          <p className="mt-1 text-[15px] text-stone-500">
-            {t("calendar.weekTotal", { bookings: weekBookings, covers: weekCovers })}
-          </p>
+          {week !== thisWeek ? (
+            <Button variant="outline" size="sm" onClick={() => setWeek(thisWeek)}>
+              {t("calendar.thisWeek")}
+            </Button>
+          ) : null}
+          <Button icon={<Plus />} onClick={() => setOpen(true)}>
+            {t("today.newBooking")}
+          </Button>
         </div>
-        <Button size="lg" icon={<Plus />} onClick={() => setOpen(true)}>
-          {t("today.newBooking")}
-        </Button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-7 md:gap-2">
-        {byDay.map((day) => (
-          <DayColumn
-            key={day.date}
-            restaurantId={restaurantId}
-            date={day.date}
-            isToday={day.date === today}
-            isPast={day.date < today}
-            items={day.items}
-            bookings={day.bookings}
-            covers={day.covers}
-            share={day.covers / busiest}
-            exceptions={day.exceptions}
-            services={services}
-            timezone={restaurant.timezone}
-            loading={!!results[days.indexOf(day.date)]?.isLoading}
-          />
-        ))}
+      <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div className="grid grid-cols-1 divide-y divide-stone-200 md:grid-cols-7 md:divide-x md:divide-y-0">
+          {byDay.map((day) => (
+            <DayColumn
+              key={day.date}
+              restaurantId={restaurantId}
+              date={day.date}
+              isToday={day.date === today}
+              isPast={day.date < today}
+              items={day.items}
+              bookings={day.bookings}
+              covers={day.covers}
+              exceptions={day.exceptions}
+              services={sortedServices}
+              timezone={restaurant.timezone}
+              loading={day.loading}
+            />
+          ))}
+        </div>
       </div>
 
       <BookingFormDialog
@@ -161,7 +168,6 @@ function DayColumn({
   items,
   bookings,
   covers,
-  share,
   exceptions,
   services,
   timezone,
@@ -174,7 +180,6 @@ function DayColumn({
   items: BookingDto[];
   bookings: number;
   covers: number;
-  share: number;
   exceptions: ScheduleExceptionDto[];
   services: Array<{ id: string; name: string; sortOrder: number }>;
   timezone: string;
@@ -182,8 +187,7 @@ function DayColumn({
 }) {
   const { t, i18n } = useTranslation();
   const closedAll = exceptions.find((e) => e.serviceId === null && e.closed);
-  const groups = [...services]
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const groups = services
     .map((s) => ({
       service: s,
       items: items.filter((b) => b.serviceId === s.id),
@@ -193,104 +197,114 @@ function DayColumn({
   // bookings whose service was deleted or deactivated still need a home
   const known = new Set(services.map((s) => s.id));
   const orphans = items.filter((b) => !known.has(b.serviceId));
-  const empty = !loading && !closedAll && groups.length === 0 && orphans.length === 0;
+  const hasBody = loading || groups.length > 0 || orphans.length > 0;
+  const dayNumber = formatDate(date, i18n.language, { day: "numeric" });
+  const weekday = formatDate(date, i18n.language, { weekday: "short" }).replace(".", "");
 
   return (
-    <section
-      className={cn(
-        "flex min-h-44 flex-col overflow-hidden rounded-2xl border bg-white shadow-card",
-        isToday ? "border-brand-500 ring-2 ring-brand-500/15" : "border-stone-200",
-        closedAll && "bg-stone-50",
-        isPast && !isToday && "opacity-80",
-      )}
-    >
+    <section className={cn("flex min-w-0 flex-col md:min-h-56", closedAll && "bg-stone-50")}>
       <Link
         to="/r/$restaurantId/today"
         params={{ restaurantId }}
         search={{ date }}
         title={t("calendar.openDay")}
         className={cn(
-          "group flex items-center justify-between gap-2 border-b px-3 py-2.5 transition-colors hover:bg-stone-50",
-          isToday ? "border-brand-100 bg-brand-50" : "border-stone-100",
+          "flex items-center gap-2 px-3 py-2 transition-colors hover:bg-stone-50 md:h-[5.25rem] md:flex-col md:items-stretch md:gap-1 md:border-b md:border-stone-200",
+          isPast && !isToday && "text-stone-500",
         )}
       >
-        <span className="flex items-baseline gap-2">
-          <span className={cn("text-2xl font-bold tabular-nums", isToday && "text-brand-700")}>
-            {formatDate(date, i18n.language, { day: "numeric" })}
+        <span className="flex items-center gap-1.5 md:justify-between">
+          <span className="text-[11px] font-semibold tracking-wider uppercase md:order-2">
+            {weekday}
           </span>
-          <span className="text-[13px] font-medium text-stone-500 uppercase tracking-wide">
-            {formatDate(date, i18n.language, { weekday: "short" }).replace(".", "")}
+          <span
+            className={cn(
+              "inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-[17px] font-semibold tabular-nums",
+              isToday && "bg-brand-600 text-white",
+            )}
+          >
+            {dayNumber}
           </span>
         </span>
-        <ArrowRight className="size-4 text-stone-300 transition group-hover:text-brand-600" />
+        <span className="min-w-0 flex-1 truncate text-[13px] text-stone-500 tabular-nums md:flex-none md:whitespace-normal">
+          {closedAll ? (
+            <span className="font-medium text-red-700">
+              {t("calendar.closed")}
+              {closedAll.reason ? ` · ${closedAll.reason}` : ""}
+            </span>
+          ) : bookings > 0 ? (
+            <>
+              <span className="md:block">{t("today.covers", { count: covers })}</span>
+              <span aria-hidden="true" className="md:hidden">
+                {" · "}
+              </span>
+              <span className="md:block">{t("today.bookings", { count: bookings })}</span>
+            </>
+          ) : (
+            <span className="text-stone-300">{t("calendar.noBookings")}</span>
+          )}
+        </span>
       </Link>
-      <div className="px-3 pt-2">
-        {bookings > 0 ? (
-          <>
-            <p className="flex items-center gap-1 text-sm font-semibold text-stone-700">
-              <Users className="size-3.5 text-stone-400" /> {t("today.covers", { count: covers })}
-            </p>
-            <p className="text-xs text-stone-500">{t("today.bookings", { count: bookings })}</p>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
-              <div
-                className="h-full rounded-full bg-brand-500"
-                style={{ width: `${Math.max(6, Math.round(share * 100))}%` }}
-              />
-            </div>
-          </>
-        ) : null}
-      </div>
-      <div className="flex-1 space-y-3 px-3 py-2.5 text-sm">
-        {closedAll ? (
-          <Badge tone="danger" icon={<CalendarOff />}>
-            {t("calendar.closed")}
-            {closedAll.reason ? ` · ${closedAll.reason}` : ""}
-          </Badge>
-        ) : null}
-        {loading ? <p className="text-xs text-stone-400">{t("app.loading")}</p> : null}
-        {groups.map((g) => (
-          <div key={g.service.id}>
-            <p className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-stone-400 uppercase tracking-wide">
-              {g.service.name}
-              {g.exception ? (
-                <Badge size="sm" tone={g.exception.closed ? "danger" : "warning"}>
-                  {g.exception.closed ? t("calendar.closed") : t("calendar.customHours")}
-                </Badge>
+      {hasBody ? (
+        <div className="space-y-2.5 px-3 pt-1 pb-3 md:px-2.5 md:pt-2">
+          {loading ? <p className="text-xs text-stone-400">{t("app.loading")}</p> : null}
+          {groups.map((g) => (
+            <div key={g.service.id}>
+              {services.length > 1 || g.exception ? (
+                <p className="mb-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">
+                  {services.length > 1 ? g.service.name : null}
+                  {g.exception ? (
+                    <span className={g.exception.closed ? "text-red-700" : "text-amber-700"}>
+                      {g.exception.closed ? t("calendar.closed") : t("calendar.customHours")}
+                    </span>
+                  ) : null}
+                </p>
               ) : null}
-            </p>
-            <BookingRows items={g.items} timezone={timezone} />
-          </div>
-        ))}
-        {orphans.length > 0 ? <BookingRows items={orphans} timezone={timezone} /> : null}
-        {empty ? (
-          <p className="pt-2 text-center text-[13px] text-stone-300">{t("calendar.noBookings")}</p>
-        ) : null}
-      </div>
+              <BookingRows items={g.items} timezone={timezone} />
+            </div>
+          ))}
+          {orphans.length > 0 ? <BookingRows items={orphans} timezone={timezone} /> : null}
+        </div>
+      ) : null}
     </section>
   );
 }
 
+/** "Lucia B." for the narrow week columns; the full name is in the tooltip. */
+function shortName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0]} ${parts[parts.length - 1]?.charAt(0)}.`;
+}
+
 function BookingRows({ items, timezone }: { items: BookingDto[]; timezone: string }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
-    <ul className="space-y-1">
+    <ul>
       {items.map((b) => {
         const inactive = !ACTIVE.has(b.status);
         return (
           <li
             key={b.id}
             className={cn(
-              "flex items-center gap-1.5 rounded-md",
+              "flex items-center gap-1.5 text-[13px] leading-6",
               inactive && "text-stone-400 line-through decoration-stone-300",
             )}
-            title={`${b.customer.name} · ${b.partySize} · ${b.status}`}
+            title={`${b.customer.name} · ${t("today.guests", { count: b.partySize })} · ${t(`today.status.${b.status}`)}`}
           >
-            <span className={cn("size-2 shrink-0 rounded-full", dot[b.status] ?? "bg-stone-300")} />
-            <span className="text-[13px] font-semibold tabular-nums">
+            <span
+              className={cn(
+                "text-xs font-semibold tabular-nums",
+                timeTone[b.status] ?? "text-stone-700",
+              )}
+            >
               {formatTime(b.startsAt, timezone, i18n.language)}
             </span>
-            <span className="min-w-0 flex-1 truncate">{b.customer.name}</span>
-            <span className="text-xs font-medium tabular-nums text-stone-500">{b.partySize}</span>
+            <span className="min-w-0 flex-1 truncate">
+              <span className="md:hidden">{b.customer.name}</span>
+              <span className="hidden md:inline">{shortName(b.customer.name)}</span>
+            </span>
+            <span className="text-xs font-medium text-stone-500 tabular-nums">{b.partySize}</span>
           </li>
         );
       })}
