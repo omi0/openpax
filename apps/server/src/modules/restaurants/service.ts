@@ -127,6 +127,7 @@ const toExceptionDto = (row: typeof scheduleException.$inferSelect): ScheduleExc
   restaurantId: row.restaurantId,
   serviceId: row.serviceId,
   date: row.date,
+  endDate: row.endDate,
   closed: row.closed,
   windows: row.windows,
   reason: row.reason,
@@ -140,6 +141,7 @@ const toRuleDto = (row: typeof capacityRule.$inferSelect): CapacityRuleDto => ({
   areaId: row.areaId,
   weekday: row.weekday as CapacityRuleDto["weekday"],
   date: row.date,
+  endDate: row.endDate,
   startTime: row.startTime,
   endTime: row.endTime,
   maxCovers: row.maxCovers,
@@ -555,7 +557,7 @@ export async function createException(
 ): Promise<ScheduleExceptionDto> {
   const [row] = await ctx.db
     .insert(scheduleException)
-    .values({ restaurantId: r.id, ...input })
+    .values({ restaurantId: r.id, ...input, endDate: input.endDate ?? input.date })
     .returning();
   if (!row) throw new Error("insert failed");
   return toExceptionDto(row);
@@ -568,7 +570,7 @@ export async function updateException(
 ): Promise<ScheduleExceptionDto> {
   const [row] = await ctx.db
     .update(scheduleException)
-    .set(input)
+    .set({ ...input, endDate: input.endDate ?? input.date })
     .where(and(eq(scheduleException.id, id), eq(scheduleException.restaurantId, r.id)))
     .returning();
   if (!row) throw ApiError.notFound("Exception");
@@ -604,7 +606,7 @@ export async function createCapacityRule(
 ): Promise<CapacityRuleDto> {
   const [row] = await ctx.db
     .insert(capacityRule)
-    .values({ restaurantId: r.id, ...input })
+    .values({ restaurantId: r.id, ...input, endDate: input.date ? input.endDate : null })
     .returning();
   if (!row) throw new Error("insert failed");
   return toRuleDto(row);
@@ -617,7 +619,7 @@ export async function updateCapacityRule(
 ): Promise<CapacityRuleDto> {
   const [row] = await ctx.db
     .update(capacityRule)
-    .set(input)
+    .set({ ...input, endDate: input.date ? input.endDate : null })
     .where(and(eq(capacityRule.id, id), eq(capacityRule.restaurantId, r.id)))
     .returning();
   if (!row) throw ApiError.notFound("Capacity rule");

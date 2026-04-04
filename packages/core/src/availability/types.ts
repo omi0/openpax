@@ -34,7 +34,10 @@ export interface ServiceDef {
 export interface ScheduleExceptionDef {
   /** null = applies to every service of the restaurant that day. */
   serviceId: string | null;
+  /** First day the exception covers. */
   date: LocalDate;
+  /** Last day (inclusive); omitted = the single `date`. */
+  endDate?: LocalDate | null;
   closed: boolean;
   /** When set (and not closed) these windows replace the weekly hours for that day. */
   windows: TimeWindow[] | null;
@@ -50,7 +53,10 @@ export interface CapacityRuleDef {
   serviceId: string | null;
   areaId: string | null;
   weekday: Weekday | null;
+  /** First day of the rule's date range; null = any day. */
   date: LocalDate | null;
+  /** Last day (inclusive) of the range; null or omitted = only `date`. */
+  endDate?: LocalDate | null;
   /** Wall-clock window in which the SLOT START must fall for the rule to apply. */
   startTime: LocalTime | null;
   endTime: LocalTime | null;
@@ -66,6 +72,12 @@ export interface BookingPolicyDef {
   maxAdvanceDays: number;
   minPartySize: number;
   maxPartySize: number;
+  /**
+   * Slots that started up to this many minutes ago still count as bookable,
+   * so staff can record a walk-in or a late party on the slot it belongs to.
+   * Default 0: anything already started is "in_past".
+   */
+  pastGraceMinutes?: number;
 }
 
 /** An existing booking that occupies capacity (active statuses only). */

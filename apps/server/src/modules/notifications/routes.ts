@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
-import { notificationLog } from "@sitli/db";
+import { booking, notificationLog } from "@sitli/db";
 import {
   localeSchema,
   notificationAudienceSchema,
@@ -20,9 +20,11 @@ import {
 import { and, desc, eq } from "drizzle-orm";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
+import { ApiError } from "../../lib/errors.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";
 import { rateLimit } from "../../lib/rate-limit.js";
 import { describeProvider } from "../../notifications/provider.js";
+import { resendToGuest } from "./dispatch.js";
 import * as svc from "./service.js";
 import * as templates from "./templates.js";
 
@@ -221,6 +223,33 @@ export function notificationRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         })),
         200,
       );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/v1/restaurants/{restaurantId}/bookings/{bookingId}/notifications/resend",
+      tags,
+      summary: "Send the guest the message for the booking's current status again",
+      middleware: [requireRestaurant(ctx, { booking: ["update"] })] as const,
+      request: { params: restaurantIdParam.extend({ bookingId: z.uuid() }) },
+      responses: {
+        200: jsonResponse(
+          z.object({ queued: z.number().int(), event: notificationEventSchema.nullable() }),
+          "How many messages were queued",
+        ),
+      },
+    }),
+    async (c) => {
+      const bookingId = c.req.valid("param").bookingId;
+      const [row] = await ctx.db
+        .select({ id: booking.id })
+        .from(booking)
+        .where(and(eq(booking.id, bookingId), eq(booking.restaurantId, c.get("restaurant").id)))
+        .limit(1);
+      if (!row) throw ApiError.notFound("Booking");
+      return c.json(await resendToGuest(ctx, bookingId), 200);
     },
   );
 

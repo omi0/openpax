@@ -7,10 +7,13 @@ import type {
   UpsertCapacityRuleInput,
   UpsertScheduleExceptionInput,
 } from "@sitli/shared";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CalendarOff, Clock, Plus, Trash } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Button,
   Field,
   IconButton,
@@ -18,8 +21,9 @@ import {
   Segmented,
   Select,
   Switch,
-  Textarea,
 } from "@/components/ui";
+import { bookingsInRangeQuery } from "@/lib/queries";
+import { formatDate } from "@/lib/utils";
 
 type Window = { start: string; end: string };
 const numOrNull = (v: string) => (v === "" ? null : Number(v));
@@ -80,11 +84,104 @@ export function WindowsEditor({
   );
 }
 
+/** First and last day of a closure or rule; the last day is optional (same day). */
+function DateRangeFields({
+  from,
+  to,
+  onChange,
+}: {
+  from: string;
+  to: string | null;
+  onChange: (v: { date: string; endDate: string | null }) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Field label={t("closures.fromDate")} required>
+        <Input
+          type="date"
+          value={from}
+          onChange={(e) => {
+            const date = e.target.value;
+            onChange({ date, endDate: to !== null && to < date ? null : to });
+          }}
+          required
+        />
+      </Field>
+      <Field label={t("closures.toDate")} hint={t("closures.toDateHint")}>
+        <Input
+          type="date"
+          value={to ?? ""}
+          min={from}
+          onChange={(e) => onChange({ date: from, endDate: e.target.value || null })}
+        />
+      </Field>
+    </>
+  );
+}
+
+/**
+ * Bookings already taken on the days about to be closed or changed: the
+ * owner has to call those guests, so say it before they save.
+ */
+function AffectedBookings({
+  restaurantId,
+  from,
+  to,
+  serviceId,
+}: {
+  restaurantId: string;
+  from: string;
+  to: string;
+  serviceId: string | null;
+}) {
+  const { t, i18n } = useTranslation();
+  const bookings = useQuery({
+    ...bookingsInRangeQuery(restaurantId, from, to),
+    enabled: from <= to,
+  });
+  const hit = (bookings.data?.items ?? []).filter(
+    (b) =>
+      (b.status === "pending" || b.status === "confirmed" || b.status === "seated") &&
+      (serviceId === null || b.serviceId === serviceId),
+  );
+  if (hit.length === 0) return null;
+  const byDay = new Map<string, number>();
+  for (const b of hit) byDay.set(b.serviceDate, (byDay.get(b.serviceDate) ?? 0) + 1);
+  const covers = hit.reduce((n, b) => n + b.partySize, 0);
+  return (
+    <Alert tone="warning" title={t("closures.affected", { count: hit.length, covers })}>
+      <p>{t("closures.affectedHint")}</p>
+      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+        {[...byDay.entries()].map(([date, n]) => (
+          <li key={date}>
+            <Link
+              to="/r/$restaurantId/today"
+              params={{ restaurantId }}
+              search={{ date }}
+              className="font-medium underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+            >
+              {formatDate(date, i18n.language, {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+              })}
+              {" · "}
+              {t("today.bookings", { count: n })}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Alert>
+  );
+}
+
 // ---------- schedule exceptions
 
 export const defaultExceptionInput = (date: string): UpsertScheduleExceptionInput => ({
   serviceId: null,
   date,
+  endDate: null,
   closed: true,
   windows: null,
   reason: null,
@@ -93,6 +190,7 @@ export const defaultExceptionInput = (date: string): UpsertScheduleExceptionInpu
 export const exceptionToInput = (e: ScheduleExceptionDto): UpsertScheduleExceptionInput => ({
   serviceId: e.serviceId,
   date: e.date,
+  endDate: e.endDate === e.date ? null : e.endDate,
   closed: e.closed,
   windows: e.windows,
   reason: e.reason,
@@ -104,6 +202,7 @@ export function ExceptionForm({
   onSubmit,
   busy,
   id,
+  restaurantId,
 }: {
   initial: UpsertScheduleExceptionInput;
   services: ServiceDto[];
@@ -111,6 +210,8 @@ export function ExceptionForm({
   busy: boolean;
   /** When set, the host renders the submit button (dialog footer) via `form={id}`. */
   id?: string;
+  /** When set, the form warns about bookings already taken on those days. */
+  restaurantId?: string;
 }) {
   const { t } = useTranslation();
   const [v, setV] = useState(initial);
@@ -118,33 +219,18 @@ export function ExceptionForm({
     e.preventDefault();
     onSubmit({
       ...v,
+      endDate: v.endDate && v.endDate !== v.date ? v.endDate : null,
       windows: v.closed ? null : (v.windows ?? []),
       reason: v.reason?.trim() || null,
     });
   };
   return (
     <form id={id} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-      <Field label={t("closures.date")} required>
-        <Input
-          type="date"
-          value={v.date}
-          onChange={(e) => setV({ ...v, date: e.target.value })}
-          required
-        />
-      </Field>
-      <Field label={t("closures.scope")}>
-        <Select
-          value={v.serviceId ?? ""}
-          onChange={(e) => setV({ ...v, serviceId: e.target.value || null })}
-        >
-          <option value="">{t("closures.allServices")}</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <DateRangeFields
+        from={v.date}
+        to={v.endDate ?? null}
+        onChange={(range) => setV({ ...v, ...range })}
+      />
       <div className="sm:col-span-2">
         <Segmented
           value={v.closed ? "closed" : "special"}
@@ -167,14 +253,37 @@ export function ExceptionForm({
           <WindowsEditor value={v.windows ?? []} onChange={(windows) => setV({ ...v, windows })} />
         </div>
       ) : null}
-      <Field label={t("closures.reason")} hint={t("closures.reasonHint")} className="sm:col-span-2">
-        <Textarea
+      <Field label={t("closures.scope")}>
+        <Select
+          value={v.serviceId ?? ""}
+          onChange={(e) => setV({ ...v, serviceId: e.target.value || null })}
+        >
+          <option value="">{t("closures.allServices")}</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("closures.reason")} hint={t("closures.reasonHint")}>
+        <Input
           value={v.reason ?? ""}
           maxLength={200}
-          className="min-h-14"
+          placeholder={t("closures.reasonPlaceholder")}
           onChange={(e) => setV({ ...v, reason: e.target.value })}
         />
       </Field>
+      {restaurantId && v.date ? (
+        <div className="sm:col-span-2">
+          <AffectedBookings
+            restaurantId={restaurantId}
+            from={v.date}
+            to={v.endDate ?? v.date}
+            serviceId={v.serviceId ?? null}
+          />
+        </div>
+      ) : null}
       {id ? null : (
         <div className="flex justify-end sm:col-span-2">
           <Button type="submit" loading={busy}>
@@ -194,6 +303,7 @@ export const defaultRuleInput = (): UpsertCapacityRuleInput => ({
   areaId: null,
   weekday: null,
   date: null,
+  endDate: null,
   startTime: null,
   endTime: null,
   maxCovers: null,
@@ -208,6 +318,7 @@ export const ruleToInput = (r: CapacityRuleDto): UpsertCapacityRuleInput => ({
   areaId: r.areaId,
   weekday: r.weekday,
   date: r.date,
+  endDate: r.endDate,
   startTime: r.startTime,
   endTime: r.endTime,
   maxCovers: r.maxCovers,
@@ -246,6 +357,7 @@ export function CapacityRuleForm({
       name: v.name?.trim() || null,
       weekday: mode === "weekday" ? v.weekday : null,
       date: mode === "date" ? v.date : null,
+      endDate: mode === "date" && v.endDate && v.endDate !== v.date ? v.endDate : null,
       startTime: v.startTime || null,
       endTime: v.endTime || null,
     });
@@ -288,11 +400,11 @@ export function CapacityRuleForm({
           ))}
         </Select>
       </Field>
-      <Field label={t("closures.when")}>
+      <Field label={t("closures.when")} className={mode === "date" ? "sm:col-span-2" : undefined}>
         <Select value={mode} onChange={(e) => setMode(e.target.value as WhenMode)}>
           <option value="always">{t("closures.everyDay")}</option>
           <option value="weekday">{t("closures.weekday")}</option>
-          <option value="date">{t("closures.onDate")}</option>
+          <option value="date">{t("closures.onDates")}</option>
         </Select>
       </Field>
       {mode === "weekday" ? (
@@ -316,14 +428,11 @@ export function CapacityRuleForm({
           </Select>
         </Field>
       ) : mode === "date" ? (
-        <Field label={t("closures.date")}>
-          <Input
-            type="date"
-            value={v.date ?? ""}
-            onChange={(e) => setV({ ...v, date: e.target.value || null })}
-            required
-          />
-        </Field>
+        <DateRangeFields
+          from={v.date ?? ""}
+          to={v.endDate ?? null}
+          onChange={(range) => setV({ ...v, ...range })}
+        />
       ) : (
         <div className="hidden sm:block" />
       )}

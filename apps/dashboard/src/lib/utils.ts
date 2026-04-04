@@ -79,6 +79,25 @@ export function formatDateRange(start: string, end: string, locale: string): str
   }).formatRange(at(start), at(end));
 }
 
+/** Does a closure or rule that runs from `date` to `endDate` (inclusive) cover `day`? */
+export function coversDate(range: { date: string; endDate?: string | null }, day: string): boolean {
+  return range.date <= day && day <= (range.endDate ?? range.date);
+}
+
+/** Minutes as people say them: "45 min", "1 h 30 min", "2 h", "3 days". */
+export function formatDuration(
+  minutes: number,
+  locale: string,
+  days: (count: number) => string,
+): string {
+  if (minutes >= 1440 && minutes % 1440 === 0) return days(minutes / 1440);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = new Intl.NumberFormat(locale).format(h);
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${hours} h` : `${hours} h ${m} min`;
+}
+
 /** ISO 8601 week number of a date (weeks start on Monday; week 1 holds the first Thursday). */
 export function isoWeek(date: string): number {
   const [y, m, d] = date.split("-").map(Number);

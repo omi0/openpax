@@ -11,6 +11,8 @@ export const it = {
   guests: "Persone",
   guestsOne: "1 persona",
   guestsMany: "{n} persone",
+  largerParty: "Più di {n}? Chiamaci al {phone}.",
+  largerPartyNoPhone: "Per gruppi di più di {n} persone contatta il ristorante.",
   date: "Data",
   time: "Orario",
   closed: "Chiuso",

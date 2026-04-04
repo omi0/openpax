@@ -75,7 +75,23 @@ export interface LoadParams {
   now?: Date;
   /** Exclude one booking from the load (when modifying it). */
   excludeBookingId?: string;
+  /**
+   * The restaurant itself is booking (staff, an accepted waitlist offer):
+   * the online-only rules (notice, horizon, party size) do not apply and a
+   * slot that started a little while ago is still fine for a walk-in. Real
+   * capacity (pacing, rooms, tables, closures) applies as usual.
+   */
+  staff?: boolean;
 }
+
+/** What replaces the online booking rules when staff book: only capacity counts. */
+export const STAFF_POLICY: AvailabilityInput["policy"] = {
+  minLeadMinutes: 0,
+  maxAdvanceDays: 730,
+  minPartySize: 1,
+  maxPartySize: 100,
+  pastGraceMinutes: 120,
+};
 
 /** Load everything the engine needs for one restaurant date. Safe to call inside a transaction. */
 export async function loadAvailabilityInput(
@@ -92,7 +108,13 @@ export async function loadAvailabilityInput(
   const exceptions = await db
     .select()
     .from(scheduleException)
-    .where(and(eq(scheduleException.restaurantId, r.id), eq(scheduleException.date, params.date)));
+    .where(
+      and(
+        eq(scheduleException.restaurantId, r.id),
+        lte(scheduleException.date, params.date),
+        gte(scheduleException.endDate, params.date),
+      ),
+    );
   const rules = await db
     .select()
     .from(capacityRule)
@@ -172,6 +194,7 @@ export async function loadAvailabilityInput(
       (e): ScheduleExceptionDef => ({
         serviceId: e.serviceId,
         date: e.date,
+        endDate: e.endDate,
         closed: e.closed,
         windows: e.windows,
       }),
@@ -183,6 +206,7 @@ export async function loadAvailabilityInput(
         areaId: c.areaId,
         weekday: c.weekday as CapacityRuleDef["weekday"],
         date: c.date,
+        endDate: c.endDate,
         startTime: c.startTime,
         endTime: c.endTime,
         maxCovers: c.maxCovers,
@@ -190,12 +214,14 @@ export async function loadAvailabilityInput(
         maxPartySize: c.maxPartySize,
       }),
     ),
-    policy: {
-      minLeadMinutes: policy.minLeadMinutes,
-      maxAdvanceDays: policy.maxAdvanceDays,
-      minPartySize: policy.minPartySize,
-      maxPartySize: policy.maxPartySize,
-    },
+    policy: params.staff
+      ? STAFF_POLICY
+      : {
+          minLeadMinutes: policy.minLeadMinutes,
+          maxAdvanceDays: policy.maxAdvanceDays,
+          minPartySize: policy.minPartySize,
+          maxPartySize: policy.maxPartySize,
+        },
     existingBookings: existing,
     rooms: rooms.map(
       (x): RoomDef => ({ id: x.id, name: x.name, seats: x.seats, active: x.active }),
@@ -266,8 +292,8 @@ export async function getMonthAvailability(
       .where(
         and(
           eq(scheduleException.restaurantId, r.id),
-          gte(scheduleException.date, first),
           lt(scheduleException.date, nextMonth),
+          gte(scheduleException.endDate, first),
         ),
       ),
   ]);
@@ -276,6 +302,7 @@ export async function getMonthAvailability(
     (e): ScheduleExceptionDef => ({
       serviceId: e.serviceId,
       date: e.date,
+      endDate: e.endDate,
       closed: e.closed,
       windows: e.windows,
     }),

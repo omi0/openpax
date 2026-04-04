@@ -64,6 +64,13 @@
       "when": 1789375102143,
       "tag": "0008_customer_cancellations",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789402187477,
+      "tag": "0009_date_ranges",
+      "breakpoints": true
     }
   ]
 }

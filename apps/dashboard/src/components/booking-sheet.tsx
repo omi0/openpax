@@ -14,6 +14,7 @@ import {
   Mail,
   Pencil,
   Phone,
+  Send,
   StickyNote,
   Undo2,
   UserRound,
@@ -244,7 +245,15 @@ export function BookingSheet({
             </Link>
           </div>
 
-          <NotificationLog restaurantId={restaurant.id} bookingId={b.id} />
+          <NotificationLog
+            restaurantId={restaurant.id}
+            bookingId={b.id}
+            canResend={
+              (b.customer.email !== null || b.customer.phone !== null) &&
+              b.status !== "completed" &&
+              b.status !== "no_show"
+            }
+          />
         </div>
       ) : null}
     </Sheet>
@@ -263,14 +272,52 @@ function Row({ icon, label, children }: { icon: ReactNode; label: string; childr
   );
 }
 
-function NotificationLog({ restaurantId, bookingId }: { restaurantId: string; bookingId: string }) {
+function NotificationLog({
+  restaurantId,
+  bookingId,
+  canResend,
+}: {
+  restaurantId: string;
+  bookingId: string;
+  canResend: boolean;
+}) {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const log = useQuery(bookingNotificationsQuery(restaurantId, bookingId));
+  // "the email never arrived": send the guest the message for the current status again
+  const resend = useMutation({
+    mutationFn: () =>
+      api.post<{ queued: number }>(
+        `/api/v1/restaurants/${restaurantId}/bookings/${bookingId}/notifications/resend`,
+      ),
+    onSuccess: async (r) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["restaurant", restaurantId, "bookings", bookingId, "notifications"],
+      });
+      if (r.queued > 0) toast.success(t("today.resent"));
+      else toast.error(t("today.resendNothing"));
+    },
+    onError: () => toast.error(t("app.error")),
+  });
   return (
     <div>
-      <p className="mb-2 text-[13px] font-semibold text-stone-500 uppercase tracking-wide">
-        {t("today.notifications")}
-      </p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[13px] font-semibold text-stone-500 uppercase tracking-wide">
+          {t("today.notifications")}
+        </p>
+        {canResend ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Send />}
+            loading={resend.isPending}
+            onClick={() => resend.mutate()}
+          >
+            {t("today.resend")}
+          </Button>
+        ) : null}
+      </div>
       {log.data?.length ? (
         <ul className="space-y-1.5 text-sm">
           {log.data.map((n) => (

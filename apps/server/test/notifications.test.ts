@@ -1,5 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { api, createFixture, createTestApp, guestBooking, type TestApp } from "./helpers.js";
+import {
+  api,
+  createFixture,
+  createTestApp,
+  FRIDAY,
+  guestBooking,
+  romeInstant,
+  type TestApp,
+} from "./helpers.js";
 
 let t: TestApp;
 beforeAll(async () => {
@@ -150,6 +158,54 @@ describe("notifications", () => {
     // re-delivering the same event does not send again
     await t.processEvents();
     expect(t.sentEmails.slice(emailsBefore)).toHaveLength(2);
+  });
+
+  it("keeps the guest out when staff ask, and can send the message later", async () => {
+    const fx = await createFixture(t, { restaurantEmail: "staff@example.com" });
+    await api(
+      t,
+      "PUT",
+      `/api/v1/restaurants/${fx.restaurantId}/notification-providers/email`,
+      {
+        providerId: "test-email",
+        config: { apiKey: "secret-key-1234", from: "Trattoria <info@example.com>" },
+      },
+      fx.session,
+    );
+    const before = t.sentEmails.length;
+    const created = await api<{ id: string; confirmationCode: string }>(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/bookings`,
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 3,
+        customer: { name: "Cugino Gigi", email: "gigi@example.com" },
+        source: "phone",
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    expect(created.status).toBe(201);
+    await t.processEvents();
+    const sent = t.sentEmails.slice(before);
+    expect(sent.map((m) => m.to)).toEqual(["staff@example.com"]);
+
+    // "he asked for the email after all": resend queues the confirmation for the guest only
+    const resent = await api<{ queued: number; event: string }>(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/bookings/${created.body.id}/notifications/resend`,
+      undefined,
+      fx.session,
+    );
+    expect(resent.status).toBe(200);
+    expect(resent.body).toEqual({ queued: 1, event: "booking.confirmed" });
+    await t.processEvents();
+    const again = t.sentEmails.slice(before);
+    expect(again.map((m) => m.to)).toEqual(["staff@example.com", "gigi@example.com"]);
+    expect(again[1]?.text).toContain(created.body.confirmationCode);
   });
 
   it("sends SMS once a provider is configured and the rule is enabled", async () => {

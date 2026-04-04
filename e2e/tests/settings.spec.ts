@@ -6,8 +6,8 @@ test("closures, capacity rules, areas and the restaurant profile", async ({ page
   const date = await nextOpenDate(page, owner.slug);
 
   await page.goto(`/r/${owner.restaurantId}/settings/closures`);
-  await page.getByRole("button", { name: "Add date" }).click();
-  await page.getByRole("dialog").getByLabel("Date").fill(date);
+  await page.getByRole("button", { name: "Add closure" }).click();
+  await page.getByRole("dialog").getByLabel("From").fill(date);
   await page.getByLabel("Reason (optional)").fill("Ferragosto");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Ferragosto")).toBeVisible();

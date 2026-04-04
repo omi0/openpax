@@ -22,6 +22,8 @@ export interface DomainEventPayloads {
     paymentRequired?: boolean;
     /** Loaded from a CSV (history from another system): no messages, no feedback request. */
     imported?: boolean;
+    /** Staff chose not to send the guest the confirmation (the restaurant is still told). */
+    notifyGuest?: boolean;
   };
   "booking.confirmed": { bookingId: string; previousStatus: BookingStatus };
   "booking.cancelled": {
@@ -29,7 +31,12 @@ export interface DomainEventPayloads {
     previousStatus: BookingStatus;
     cancelledBy: "guest" | "staff" | "system";
   };
-  "booking.modified": { bookingId: string; changes: string[] };
+  "booking.modified": {
+    bookingId: string;
+    changes: string[];
+    /** Staff chose not to tell the guest about the change. */
+    notifyGuest?: boolean;
+  };
   "booking.seated": { bookingId: string };
   "booking.completed": { bookingId: string };
   "booking.no_show": { bookingId: string };

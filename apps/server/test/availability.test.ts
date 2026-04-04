@@ -72,6 +72,109 @@ describe("public availability", () => {
     expect(big.body.slots.every((s) => s.reason === "party_too_large")).toBe(true);
   });
 
+  it("closes a whole period with one closure", async () => {
+    const fx = await createFixture(t);
+    const created = await api<{ endDate: string }>(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/schedule-exceptions`,
+      { date: "2026-06-15", endDate: "2026-06-18", closed: true, reason: "Ferie" },
+      fx.session,
+    );
+    expect(created.status).toBe(201);
+    expect(created.body.endDate).toBe("2026-06-18");
+    for (const [date, closed] of [
+      ["2026-06-14", false],
+      ["2026-06-15", true],
+      ["2026-06-17", true],
+      ["2026-06-18", true],
+      ["2026-06-19", false],
+    ] as const) {
+      const res = await api<Availability>(
+        t,
+        "GET",
+        `/api/public/v1/restaurants/${fx.slug}/availability?date=${date}&partySize=2`,
+      );
+      expect(res.body.closed, date).toBe(closed);
+    }
+    const month = await api<{ openDates: string[] }>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/availability/month?month=2026-06`,
+    );
+    expect(month.body.openDates).toContain("2026-06-14");
+    expect(month.body.openDates).not.toContain("2026-06-16");
+    expect(month.body.openDates).toContain("2026-06-19");
+
+    // a single day keeps its end date equal to the start; a backwards range is refused
+    const single = await api<{ date: string; endDate: string }>(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/schedule-exceptions`,
+      { date: "2026-06-22", closed: true },
+      fx.session,
+    );
+    expect(single.body.endDate).toBe("2026-06-22");
+    const backwards = await api(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/schedule-exceptions`,
+      { date: "2026-06-22", endDate: "2026-06-21", closed: true },
+      fx.session,
+    );
+    expect(backwards.status).toBe(400);
+  });
+
+  it("shows staff every slot with room, without the online booking rules", async () => {
+    const fx = await createFixture(t);
+    // day 61: beyond the 60-day horizon, and a party above the online maximum of 10
+    const far = "2026-08-10";
+    const guest = await api<Availability>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/availability?date=${far}&partySize=12`,
+    );
+    expect(guest.body.reasons).toEqual(
+      expect.arrayContaining(["too_far_ahead", "party_too_large"]),
+    );
+    expect(guest.body.slots.some((s) => s.available)).toBe(false);
+
+    const staff = await api<Availability>(
+      t,
+      "GET",
+      `/api/v1/restaurants/${fx.restaurantId}/availability?date=${far}&partySize=12`,
+      undefined,
+      fx.session,
+    );
+    expect(staff.status).toBe(200);
+    expect(staff.body.reasons).toEqual([]);
+    expect(staff.body.slots.every((s) => s.available)).toBe(true);
+
+    // capacity still counts: a closed day stays closed for staff too
+    await api(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/schedule-exceptions`,
+      { date: far, closed: true },
+      fx.session,
+    );
+    const closed = await api<Availability>(
+      t,
+      "GET",
+      `/api/v1/restaurants/${fx.restaurantId}/availability?date=${far}&partySize=2`,
+      undefined,
+      fx.session,
+    );
+    expect(closed.body.closed).toBe(true);
+
+    const anonymous = await api(
+      t,
+      "GET",
+      `/api/v1/restaurants/${fx.restaurantId}/availability?date=${far}&partySize=2`,
+    );
+    expect(anonymous.status).toBe(401);
+  });
+
   it("validates the query and unknown restaurants", async () => {
     const fx = await createFixture(t);
     const bad = await api<{ code: string }>(

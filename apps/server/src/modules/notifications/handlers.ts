@@ -7,11 +7,14 @@ export const notificationEventHandlers = [
     handle: async (event, ctx) => {
       const { bookingId, status } = event.payload;
       if (event.payload.imported) return;
+      // staff may keep the guest out of it (a regular booked by phone); the restaurant is still told
+      const audiences = event.payload.notifyGuest === false ? ["restaurant" as const] : undefined;
       if (status === "confirmed" || status === "seated") {
         await queueNotifications(ctx, {
           bookingId,
           event: "booking.confirmed",
           dedupeBase: event.id,
+          audiences,
         });
         await scheduleReminders(ctx, bookingId);
       } else if (status === "pending") {
@@ -19,6 +22,7 @@ export const notificationEventHandlers = [
           bookingId,
           event: event.payload.paymentRequired ? "booking.payment_required" : "booking.pending",
           dedupeBase: event.id,
+          audiences,
         });
       }
     },
@@ -51,6 +55,7 @@ export const notificationEventHandlers = [
         bookingId: event.payload.bookingId,
         event: "booking.modified",
         dedupeBase: event.id,
+        audiences: event.payload.notifyGuest === false ? ["restaurant"] : undefined,
       });
       if (event.payload.changes.includes("startsAt"))
         await scheduleReminders(ctx, event.payload.bookingId);

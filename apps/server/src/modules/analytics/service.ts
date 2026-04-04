@@ -137,8 +137,8 @@ async function aggregateRange(
       .where(
         and(
           eq(scheduleException.restaurantId, r.id),
-          gte(scheduleException.date, from),
           lte(scheduleException.date, to),
+          gte(scheduleException.endDate, from),
         ),
       ),
   ]);

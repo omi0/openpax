@@ -146,7 +146,11 @@
       "slotUnavailable": "That time is not available: {{reason}}.",
       "noChanges": "Nothing changed.",
       "notesPlaceholder": "Allergies, high chair, birthday…",
-      "ignoreCapacityHint": "Book even if the time shows as full."
+      "ignoreCapacityHint": "Book even if the time shows as full.",
+      "notifyGuest": "Send the confirmation to the guest",
+      "notifyGuestHint": "By email or SMS, as set under Notifications.",
+      "notifyChange": "Tell the guest about the change",
+      "notifyChangeHint": "By email or SMS, as set under Notifications."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -198,7 +202,16 @@
     },
     "rooms": "Rooms",
     "roomsHint": "Close a room to take its seats and tables out of today's bookings.",
-    "roomClosed": "{{name}} closed"
+    "roomClosed": "{{name}} closed",
+    "print": "Print",
+    "closeDay": "Close this day",
+    "closeDayHint": "Closed all day or special hours. Bookings already taken stay and need a call.",
+    "closedDay": "Closed on this day",
+    "specialDay": "Special hours",
+    "closureEdit": "Manage closures",
+    "resend": "Resend to guest",
+    "resent": "Message queued for the guest",
+    "resendNothing": "Nothing to send: no channel is on for this status, or the guest has no contact."
   },
   "services": {
     "title": "Services",
@@ -206,8 +219,8 @@
     "add": "Add service",
     "edit": "Edit service",
     "name": "Name",
-    "slotInterval": "Slot interval (min)",
-    "duration": "Table turn time (min)",
+    "slotInterval": "Slot interval",
+    "duration": "Table turn time",
     "maxCovers": "Max covers per slot",
     "maxBookings": "Max parties per slot",
     "minParty": "Min party size",
@@ -221,8 +234,8 @@
     "coversHint": "Guests that may arrive within one slot interval. Leave empty for no limit.",
     "lastSeating": "Times are first and last bookable arrival.",
     "list": "Your services",
-    "every": "Arrivals every {{count}} min",
-    "turn": "{{count}} min per table",
+    "every": "Arrivals every {{value}}",
+    "turn": "{{value}} per table",
     "maxCoversShort": "max {{count}} covers per slot",
     "timing": "Timing",
     "capacity": "Capacity",
@@ -231,7 +244,8 @@
     "partyHint": "Leave empty to use the general booking rules.",
     "addHours": "Add hours",
     "activeHint": "Inactive services are hidden from guests.",
-    "confirmDelete": "Guests will no longer be able to book it."
+    "confirmDelete": "Guests will no longer be able to book it.",
+    "copyToAll": "Copy these hours to every day"
   },
   "notifications": {
     "title": "Notifications",
@@ -303,22 +317,27 @@
     "terms": "Terms URL",
     "privacy": "Privacy URL",
     "policy": "Booking rules",
-    "minLead": "Minimum notice (minutes)",
+    "minLead": "Minimum notice",
     "maxAdvance": "Book up to (days ahead)",
     "minParty": "Min party size",
     "maxParty": "Max party size",
     "autoConfirm": "Confirm bookings automatically",
-    "cutoff": "Online cancellation cutoff (minutes before)",
+    "cutoff": "Online cancellation until",
     "largeParty": "Require approval from party size",
     "largePartyHint": "Leave empty to confirm every size automatically.",
     "waitlist": "Waitlist",
     "waitlistHint": "When a date is full, guests can leave their details from the widget. Freed tables can be offered to them automatically, first come first served; an offer that is not accepted in time moves on to the next guest.",
     "waitlistEnabled": "Let guests join a waitlist",
     "waitlistAutoOffer": "Offer freed tables automatically",
-    "waitlistOfferMinutes": "Offer validity (minutes)",
+    "waitlistOfferMinutes": "Offer validity",
     "copyCode": "Copy code",
     "appearanceHint": "How the booking form looks on your website.",
-    "rulesHint": "What guests can and cannot do when they book online."
+    "rulesHint": "What guests can and cannot do when they book online. Bookings taken by staff only meet the capacity.",
+    "minLeadHint": "How far ahead guests must book online.",
+    "noNotice": "No notice needed",
+    "maxAdvanceHint": "How many days ahead guests can book.",
+    "cutoffHint": "Before arrival. Later than that, guests have to call.",
+    "noCutoff": "Any time"
   },
   "weekday": {
     "mon": "Mon",
@@ -421,9 +440,9 @@
   "closures": {
     "title": "Closures & capacity",
     "exceptions": "Closures and special hours",
-    "exceptionsHint": "Override the weekly hours on specific dates: holidays, private events, extended hours.",
-    "add": "Add date",
-    "edit": "Edit date",
+    "exceptionsHint": "Close for a day or a whole period, or change the hours on specific dates: holidays, private events, extended hours.",
+    "add": "Add closure",
+    "edit": "Edit closure",
     "empty": "No closures or special hours planned.",
     "date": "Date",
     "scope": "Applies to",
@@ -471,7 +490,17 @@
     "activeHint": "Switch off to keep the rule without applying it.",
     "confirmDelete": "Remove this date?",
     "confirmDeleteRule": "Delete this rule?",
-    "confirmDeleteArea": "Delete this area?"
+    "confirmDeleteArea": "Delete this area?",
+    "fromDate": "From",
+    "toDate": "To",
+    "toDateHint": "Leave empty for a single day.",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "affected_one": "{{count}} booking already taken on these days ({{covers}} covers)",
+    "affected_other": "{{count}} bookings already taken on these days ({{covers}} covers)",
+    "affectedHint": "They stay as they are: call the guests or move them before you close.",
+    "onDates": "On specific dates",
+    "reasonPlaceholder": "Summer holidays, private event…"
   },
   "role": {
     "owner": "Owner",
@@ -999,5 +1028,9 @@
       "embedHint": "Paste this code where the booking form should appear.",
       "test": "Try it: make a booking from the page, then find it on Today and cancel it."
     }
+  },
+  "duration": {
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
   }
 }

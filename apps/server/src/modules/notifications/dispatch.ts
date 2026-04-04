@@ -175,6 +175,8 @@ export type QueueParams = {
   dedupeBase: string;
   /** Reminders: only settings with this offset. */
   offsetMinutes?: number;
+  /** Only these audiences (default: every enabled one). */
+  audiences?: NotificationAudience[];
 } & (
   | { bookingId: string; waitlistEntryId?: never }
   | { waitlistEntryId: string; bookingId?: never }
@@ -197,6 +199,7 @@ export async function queueNotifications(ctx: AppContext, p: QueueParams): Promi
   for (const s of settings) {
     if (s.event !== p.event || !s.enabled) continue;
     if (p.offsetMinutes !== undefined && s.offsetMinutes !== p.offsetMinutes) continue;
+    if (p.audiences && !p.audiences.includes(s.audience)) continue;
     const recipient = recipientFor(subject, s.channel, s.audience);
     const dedupeKey = `${p.dedupeBase}:${s.channel}:${s.audience}`;
     const [row] = await ctx.db
@@ -220,6 +223,47 @@ export async function queueNotifications(ctx: AppContext, p: QueueParams): Promi
     queued += 1;
   }
   return queued;
+}
+
+/** The guest-facing message that describes a booking in its current status. */
+export function eventForStatus(status: string): NotificationEvent | null {
+  switch (status) {
+    case "confirmed":
+    case "seated":
+    case "completed":
+      return "booking.confirmed";
+    case "pending":
+      return "booking.pending";
+    case "cancelled":
+      return "booking.cancelled";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Send the guest the message for the booking's current status again (the
+ * email went to spam, the phone number was fixed). Bypasses the dedupe key
+ * of the original event and only reaches the guest.
+ */
+export async function resendToGuest(
+  ctx: AppContext,
+  bookingId: string,
+): Promise<{ queued: number; event: NotificationEvent | null }> {
+  const [row] = await ctx.db
+    .select({ status: booking.status })
+    .from(booking)
+    .where(eq(booking.id, bookingId))
+    .limit(1);
+  const event = row ? eventForStatus(row.status) : null;
+  if (!event) return { queued: 0, event: null };
+  const queued = await queueNotifications(ctx, {
+    bookingId,
+    event,
+    dedupeBase: `resend:${bookingId}:${ctx.now().getTime()}:${Math.random().toString(36).slice(2, 8)}`,
+    audiences: ["guest"],
+  });
+  return { queued, event };
 }
 
 /** Schedule reminder jobs for every enabled reminder setting of the restaurant. */

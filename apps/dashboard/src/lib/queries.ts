@@ -184,6 +184,32 @@ export const bookingsSearchQuery = (id: string, params: BookingsSearchParams) =>
     placeholderData: (prev) => prev,
   });
 
+/** Slots as staff see them: only real capacity, none of the online-only rules. */
+export const staffAvailabilityQuery = (id: string, date: string, partySize: number) =>
+  queryOptions({
+    queryKey: ["availability", "staff", id, date, partySize],
+    queryFn: () =>
+      api.get<AvailabilityResponse>(`/api/v1/restaurants/${id}/availability`, {
+        date,
+        partySize,
+      }),
+    staleTime: 5_000,
+  });
+
+/** Every booking between two dates (inclusive), e.g. to see what a closure would hit. */
+export const bookingsInRangeQuery = (id: string, from: string, to: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "bookings", { range: [from, to] }],
+    queryFn: () =>
+      api.get<Paginated<BookingDto>>(`/api/v1/restaurants/${id}/bookings`, {
+        from,
+        to,
+        order: "asc",
+        pageSize: 200,
+      }),
+    staleTime: 10_000,
+  });
+
 export const availabilityQuery = (slug: string, date: string, partySize: number) =>
   queryOptions({
     queryKey: ["availability", slug, date, partySize],

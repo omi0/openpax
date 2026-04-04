@@ -87,7 +87,7 @@ function AppLayout() {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       {/* phone: top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-stone-200 bg-white/95 px-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-stone-200 bg-white/95 px-3 backdrop-blur md:hidden print:hidden">
         <button
           type="button"
           aria-label={t("app.menu")}
@@ -128,7 +128,7 @@ function AppLayout() {
       ) : null}
 
       {/* desktop: sidebar */}
-      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-stone-200 bg-white px-4 pt-5 pb-4 md:sticky md:top-0 md:flex md:h-dvh">
+      <aside className="hidden w-[264px] shrink-0 flex-col border-r border-stone-200 bg-white px-4 pt-5 pb-4 md:sticky md:top-0 md:flex md:h-dvh print:hidden">
         <BrandLockup className="mb-5 px-2" />
         <NavContent me={me} current={current} onLogout={logout} />
       </aside>
@@ -143,7 +143,7 @@ function AppLayout() {
       {current ? (
         <nav
           aria-label="Primary"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden"
         >
           {sections
             .filter((s) => s.mobile)

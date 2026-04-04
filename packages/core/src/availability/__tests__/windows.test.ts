@@ -37,6 +37,35 @@ describe("resolveServiceWindows", () => {
     expect(resolveServiceWindows(lunch, FRIDAY, ex).closed).toBe(true);
   });
 
+  it("covers every day of a range", () => {
+    const ex = [
+      { serviceId: null, date: FRIDAY, endDate: "2026-06-14", closed: true, windows: null },
+    ];
+    expect(resolveServiceWindows(dinner, "2026-06-11", ex).closed).toBe(false);
+    expect(resolveServiceWindows(dinner, FRIDAY, ex).closed).toBe(true);
+    expect(resolveServiceWindows(dinner, "2026-06-13", ex).closed).toBe(true);
+    expect(resolveServiceWindows(dinner, "2026-06-14", ex).closed).toBe(true);
+    expect(resolveServiceWindows(dinner, "2026-06-15", ex).closed).toBe(false);
+  });
+
+  it("lets a later exception reopen one day inside a closed period", () => {
+    const ex = [
+      { serviceId: null, date: FRIDAY, endDate: "2026-06-20", closed: true, windows: null },
+      {
+        serviceId: null,
+        date: "2026-06-15",
+        closed: false,
+        windows: [{ start: "12:00", end: "14:00" }],
+      },
+    ];
+    expect(resolveServiceWindows(dinner, "2026-06-14", ex).closed).toBe(true);
+    expect(resolveServiceWindows(dinner, "2026-06-15", ex)).toEqual({
+      closed: false,
+      windows: [{ startMin: 720, endMin: 840 }],
+    });
+    expect(resolveServiceWindows(dinner, "2026-06-16", ex).closed).toBe(true);
+  });
+
   it("falls back to weekly hours for an open exception without windows", () => {
     const ex = [{ serviceId: null, date: FRIDAY, closed: false, windows: null }];
     expect(resolveServiceWindows(dinner, FRIDAY, ex).windows).toEqual([

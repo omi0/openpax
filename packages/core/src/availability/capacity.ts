@@ -21,7 +21,8 @@ export interface SlotContext {
 export function ruleAppliesToSlot(rule: CapacityRuleDef, ctx: SlotContext): boolean {
   if (rule.serviceId !== null && rule.serviceId !== ctx.serviceId) return false;
   if (rule.areaId !== null && rule.areaId !== ctx.areaId) return false;
-  if (rule.date !== null && rule.date !== ctx.date) return false;
+  if (rule.date !== null && (ctx.date < rule.date || ctx.date > (rule.endDate ?? rule.date)))
+    return false;
   if (rule.weekday !== null && rule.weekday !== ctx.weekday) return false;
   if (rule.startTime !== null || rule.endTime !== null) {
     const start = rule.startTime !== null ? parseLocalTime(rule.startTime) : 0;

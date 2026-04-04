@@ -529,6 +529,13 @@ export async function acceptOffer(
   const found = await getEntryByToken(ctx, token);
   const r = await findRestaurantById(ctx, found.entry.restaurantId);
   const e = found.entry;
+  // a second tap that lands after the first one booked: answer with that booking
+  if (e.status === "booked" && e.bookingId)
+    return {
+      restaurant: r,
+      entry: found,
+      booking: await getBookingWithRelations(ctx.db, r.id, e.bookingId),
+    };
   if (e.status !== "offered" || !e.offeredServiceId || !e.offeredStartsAt || !e.offerExpiresAt)
     throw ApiError.conflict("no_offer", "There is no table on offer for this entry");
   if (e.offerExpiresAt.getTime() <= ctx.now().getTime())

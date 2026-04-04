@@ -169,6 +169,7 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         actor,
         ignoreCapacity: body.ignoreCapacity && canOverride,
         seatNow: body.seatNow,
+        notifyGuest: body.notifyGuest,
       });
       return c.json(svc.toBookingDto(result), 201);
     },

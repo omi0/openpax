@@ -2,6 +2,7 @@ import type { BookingPolicyDto } from "@sitli/shared";
 import { Hourglass } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DurationSelect, NOTICE_OPTIONS, OFFER_OPTIONS } from "@/components/duration-select";
 import { Button, Field, Input, Switch } from "@/components/ui";
 
 const numOrNull = (v: string) => (v === "" ? null : Number(v));
@@ -32,16 +33,15 @@ export function PolicyForm({
   };
   return (
     <form id={id} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-      <Field label={t("widget.minLead")}>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
+      <Field label={t("widget.minLead")} hint={t("widget.minLeadHint")}>
+        <DurationSelect
           value={p.minLeadMinutes}
-          onChange={(e) => setP({ ...p, minLeadMinutes: Number(e.target.value) })}
+          options={NOTICE_OPTIONS}
+          none={t("widget.noNotice")}
+          onChange={(minLeadMinutes) => setP({ ...p, minLeadMinutes })}
         />
       </Field>
-      <Field label={t("widget.maxAdvance")}>
+      <Field label={t("widget.maxAdvance")} hint={t("widget.maxAdvanceHint")}>
         <Input
           type="number"
           inputMode="numeric"
@@ -69,13 +69,12 @@ export function PolicyForm({
           onChange={(e) => setP({ ...p, maxPartySize: Number(e.target.value) })}
         />
       </Field>
-      <Field label={t("widget.cutoff")}>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
+      <Field label={t("widget.cutoff")} hint={t("widget.cutoffHint")}>
+        <DurationSelect
           value={p.cancellationCutoffMinutes}
-          onChange={(e) => setP({ ...p, cancellationCutoffMinutes: Number(e.target.value) })}
+          options={NOTICE_OPTIONS}
+          none={t("widget.noCutoff")}
+          onChange={(cancellationCutoffMinutes) => setP({ ...p, cancellationCutoffMinutes })}
         />
       </Field>
       <Field label={t("widget.largeParty")} hint={t("widget.largePartyHint")}>
@@ -113,14 +112,11 @@ export function PolicyForm({
           disabled={!p.waitlistEnabled}
         />
         <Field label={t("widget.waitlistOfferMinutes")} className="sm:max-w-xs">
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={15}
-            max={10080}
+          <DurationSelect
             value={p.waitlistOfferMinutes}
+            options={OFFER_OPTIONS}
             disabled={!p.waitlistEnabled}
-            onChange={(e) => setP({ ...p, waitlistOfferMinutes: Number(e.target.value) })}
+            onChange={(waitlistOfferMinutes) => setP({ ...p, waitlistOfferMinutes })}
           />
         </Field>
       </div>

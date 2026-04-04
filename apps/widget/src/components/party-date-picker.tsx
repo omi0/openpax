@@ -24,6 +24,8 @@ export function PartyDatePicker() {
   )
     sizes.push(n);
   const maxDate = addDays(today.value, cfg.policy.maxAdvanceDays);
+  const largest = sizes[sizes.length - 1] ?? cfg.policy.maxPartySize;
+  const phone = cfg.restaurant.phone;
   const grid = monthGrid(month.value);
   const canGoPrev = month.value > monthOf(today.value);
   const canGoNext = month.value < monthOf(maxDate);
@@ -49,6 +51,9 @@ export function PartyDatePicker() {
           </button>
         ))}
       </div>
+      <p class="fine larger">
+        {phone ? t("largerParty", { n: largest, phone }) : t("largerPartyNoPhone", { n: largest })}
+      </p>
 
       <span class="label">
         {t("date")}

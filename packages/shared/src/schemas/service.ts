@@ -34,37 +34,67 @@ export const serviceDtoSchema = z.object({
 });
 export type ServiceDto = z.infer<typeof serviceDtoSchema>;
 
-export const upsertScheduleExceptionInputSchema = z.object({
-  serviceId: idSchema.nullable().default(null),
-  date: localDateSchema,
-  closed: z.boolean().default(true),
-  windows: z.array(timeWindowSchema).max(6).nullable().default(null),
-  reason: z.string().trim().max(200).nullable().default(null),
-});
+const dateRangeInOrder = (v: { date: string; endDate: string | null }) =>
+  v.endDate === null || v.endDate >= v.date;
+
+export const upsertScheduleExceptionInputSchema = z
+  .object({
+    serviceId: idSchema.nullable().default(null),
+    /** First day. */
+    date: localDateSchema,
+    /** Last day (inclusive); null or equal to `date` for a single day. */
+    endDate: localDateSchema.nullable().default(null),
+    closed: z.boolean().default(true),
+    windows: z.array(timeWindowSchema).max(6).nullable().default(null),
+    reason: z.string().trim().max(200).nullable().default(null),
+  })
+  .refine(dateRangeInOrder, { message: "endDate must not be before date", path: ["endDate"] });
 export type UpsertScheduleExceptionInput = z.infer<typeof upsertScheduleExceptionInputSchema>;
 
-export const scheduleExceptionDtoSchema = upsertScheduleExceptionInputSchema.extend({
+export const scheduleExceptionDtoSchema = z.object({
   id: idSchema,
   restaurantId: idSchema,
+  serviceId: idSchema.nullable(),
+  date: localDateSchema,
+  /** Last day (inclusive); equals `date` for a single day. */
+  endDate: localDateSchema,
+  closed: z.boolean(),
+  windows: z.array(timeWindowSchema).nullable(),
+  reason: z.string().nullable(),
 });
 export type ScheduleExceptionDto = z.infer<typeof scheduleExceptionDtoSchema>;
 
-export const upsertCapacityRuleInputSchema = z.object({
+const capacityRuleFields = {
   name: z.string().trim().max(80).nullable().default(null),
   serviceId: idSchema.nullable().default(null),
   areaId: idSchema.nullable().default(null),
   weekday: weekdaySchema.nullable().default(null),
+  /** First day the rule applies to; null = every day (or the weekday). */
   date: localDateSchema.nullable().default(null),
+  /** Last day (inclusive) of a date range; null = only `date`. */
+  endDate: localDateSchema.nullable().default(null),
   startTime: localTimeSchema.nullable().default(null),
   endTime: localTimeSchema.nullable().default(null),
   maxCovers: z.number().int().min(0).max(10000).nullable().default(null),
   maxBookings: z.number().int().min(0).max(10000).nullable().default(null),
   maxPartySize: z.number().int().min(1).max(100).nullable().default(null),
   active: z.boolean().default(true),
-});
+};
+
+export const upsertCapacityRuleInputSchema = z
+  .object(capacityRuleFields)
+  .refine((v) => v.date !== null || v.endDate === null, {
+    message: "endDate needs a date",
+    path: ["endDate"],
+  })
+  .refine((v) => v.date === null || dateRangeInOrder({ date: v.date, endDate: v.endDate }), {
+    message: "endDate must not be before date",
+    path: ["endDate"],
+  });
 export type UpsertCapacityRuleInput = z.infer<typeof upsertCapacityRuleInputSchema>;
 
-export const capacityRuleDtoSchema = upsertCapacityRuleInputSchema.extend({
+export const capacityRuleDtoSchema = z.object({
+  ...capacityRuleFields,
   id: idSchema,
   restaurantId: idSchema,
 });

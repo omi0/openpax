@@ -28,6 +28,23 @@ slot interval, turn time, pacing limits), rooms, exceptions, capacity rules,
 the booking policy and the existing bookings. It has no I/O and is covered by
 unit tests, including DST transitions and services that cross midnight.
 
+Exceptions (closures and special hours) and capacity rules cover a range of
+days: `date` is the first day and `end_date` the last one (inclusive; for a
+rule it is null unless a range was set). On a day covered by several
+exceptions the one that starts last wins, so one day inside a summer closure
+can be reopened with special hours. The server loads them with an overlap
+query (`date <= day and end_date >= day`).
+
+The booking policy (notice, horizon, party sizes) is what guests meet online.
+Staff bookings, edits, reopens and accepted waitlist offers load the engine
+with `staff: true`, which swaps in `STAFF_POLICY`: no notice, a two-year
+horizon, any party size, and a two-hour grace so a walk-in can be recorded on
+the slot that just started. Real capacity (pacing, rooms, tables, closures)
+still applies; `ignoreCapacity` is the separate manager override for that.
+The dashboard's booking dialogs read
+`GET /api/v1/restaurants/{id}/availability`, which is the same computation
+with the staff policy.
+
 Capacity is layered. A service's *max covers per slot* is a pacing limit: it
 counts guests whose booking starts within one slot interval and ignores the
 turn time. *Rooms* (`area` rows with a seat count and an open/closed flag)
@@ -108,7 +125,11 @@ time or party size reseats the booking, cancelling frees the tables (only
 active statuses count as load). Staff override (`ignoreCapacity`) creates
 the booking unassigned; the Today page flags it and offers manual
 assignment (`PUT /bookings/{id}/tables`, which refuses a taken table unless
-`force`). Settings → Rooms & tables holds the rooms, the table CRUD and a
+`force`). Staff can create or edit a booking with `notifyGuest: false`, which
+keeps the guest out of the resulting messages (the restaurant alert still
+goes out), and `POST /bookings/{id}/notifications/resend` queues the
+guest-facing message for the booking's current status again, bypassing the
+event dedupe key. Settings → Rooms & tables holds the rooms, the table CRUD and a
 drag-and-drop plan; Today has a floor view for any time of the day and a
 quick switch to close or reopen a room.
 

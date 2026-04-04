@@ -9,7 +9,7 @@ import { defaultServiceInput, ServiceForm, serviceToInput } from "@/components/s
 import { Badge, Button, Card, Dialog, EmptyState, useConfirm, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { servicesQuery } from "@/lib/queries";
-import { cn } from "@/lib/utils";
+import { cn, formatDuration } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/services")({
   loader: ({ context, params }) =>
@@ -18,10 +18,12 @@ export const Route = createFileRoute("/_app/r/$restaurantId/settings/services")(
 });
 
 function ServicesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { restaurantId } = Route.useParams();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
+  const duration = (m: number) =>
+    formatDuration(m, i18n.language, (count) => t("duration.days", { count }));
   const toast = useToast();
   const formId = useId();
   const { data: services } = useSuspenseQuery(servicesQuery(restaurantId));
@@ -84,8 +86,8 @@ function ServicesPage() {
                   {!s.active ? <Badge size="sm">{t("tables.inactive")}</Badge> : null}
                 </p>
                 <p className="mt-0.5 text-sm text-stone-500">
-                  {t("services.every", { count: s.slotIntervalMinutes })} ·{" "}
-                  {t("services.turn", { count: s.durationMinutes })} ·{" "}
+                  {t("services.every", { value: duration(s.slotIntervalMinutes) })} ·{" "}
+                  {t("services.turn", { value: duration(s.durationMinutes) })} ·{" "}
                   {s.maxCoversPerSlot !== null
                     ? t("services.maxCoversShort", { count: s.maxCoversPerSlot })
                     : t("services.unlimited")}

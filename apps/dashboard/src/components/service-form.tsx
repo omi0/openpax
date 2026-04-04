@@ -1,8 +1,9 @@
 import { WEEKDAYS } from "@sitli/core";
 import type { ServiceDto, UpsertServiceInput } from "@sitli/shared";
-import { Plus, Trash } from "lucide-react";
+import { Copy, Plus, Trash } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DurationSelect, INTERVAL_OPTIONS, TURN_OPTIONS } from "@/components/duration-select";
 import { Button, Field, IconButton, Input, Switch } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +51,9 @@ export function WeeklyHoursEditor({
   const { t } = useTranslation();
   const set = (day: (typeof WEEKDAYS)[number], windows: Window[]) =>
     onChange({ ...value, [day]: windows });
+  // "same hours every day": copy one day's windows to the other six
+  const copyToAll = (windows: Window[]) =>
+    onChange(Object.fromEntries(WEEKDAYS.map((d) => [d, windows.map((w) => ({ ...w }))])));
   return (
     <div className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200 bg-white">
       {WEEKDAYS.map((day) => {
@@ -110,17 +114,29 @@ export function WeeklyHoursEditor({
                 </span>
               ))}
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={<Plus />}
-              className="ml-auto text-brand-700"
-              onClick={() =>
-                set(day, [...windows, { start: windows.at(-1)?.end ?? "19:00", end: "22:00" }])
-              }
-            >
-              {t("services.addHours")}
-            </Button>
+            <span className="ml-auto flex items-center gap-1">
+              {open ? (
+                <IconButton
+                  size="sm"
+                  label={t("services.copyToAll")}
+                  className="text-stone-400 hover:text-brand-700"
+                  onClick={() => copyToAll(windows)}
+                >
+                  <Copy />
+                </IconButton>
+              ) : null}
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Plus />}
+                className="text-brand-700"
+                onClick={() =>
+                  set(day, [...windows, { start: windows.at(-1)?.end ?? "19:00", end: "22:00" }])
+                }
+              >
+                {t("services.addHours")}
+              </Button>
+            </span>
           </div>
         );
       })}
@@ -174,25 +190,17 @@ export function ServiceForm({
         <SectionTitle>{t("services.timing")}</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("services.slotInterval")} hint={t("services.slotIntervalHint")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={5}
-              max={240}
-              step={5}
+            <DurationSelect
               value={v.slotIntervalMinutes}
-              onChange={(e) => patch({ slotIntervalMinutes: Number(e.target.value) })}
+              options={INTERVAL_OPTIONS}
+              onChange={(slotIntervalMinutes) => patch({ slotIntervalMinutes })}
             />
           </Field>
           <Field label={t("services.duration")} hint={t("services.durationHint")}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={15}
-              max={600}
-              step={5}
+            <DurationSelect
               value={v.durationMinutes}
-              onChange={(e) => patch({ durationMinutes: Number(e.target.value) })}
+              options={TURN_OPTIONS}
+              onChange={(durationMinutes) => patch({ durationMinutes })}
             />
           </Field>
         </div>

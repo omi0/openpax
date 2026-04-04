@@ -98,6 +98,13 @@ describe("ruleAppliesToSlot", () => {
     expect(ruleAppliesToSlot({ ...anyRule, date: FRIDAY }, ctx)).toBe(true);
   });
 
+  it("matches a range of dates", () => {
+    const august = { ...anyRule, date: "2026-06-10", endDate: "2026-06-14" };
+    expect(ruleAppliesToSlot(august, ctx)).toBe(true);
+    expect(ruleAppliesToSlot({ ...august, endDate: "2026-06-11" }, ctx)).toBe(false);
+    expect(ruleAppliesToSlot({ ...august, date: "2026-06-13" }, ctx)).toBe(false);
+  });
+
   it("matches time windows, including ones that wrap midnight", () => {
     expect(ruleAppliesToSlot({ ...anyRule, startTime: "19:00", endTime: "21:00" }, ctx)).toBe(true);
     expect(ruleAppliesToSlot({ ...anyRule, startTime: "20:30", endTime: "22:00" }, ctx)).toBe(

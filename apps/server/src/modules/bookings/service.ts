@@ -262,6 +262,8 @@ export interface CreateBookingParams {
   /** Staff options. */
   ignoreCapacity?: boolean;
   seatNow?: boolean;
+  /** false = do not send the guest the confirmation (default true). */
+  notifyGuest?: boolean;
   requirePhone?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
   forceConfirmed?: boolean;
@@ -420,6 +422,9 @@ async function insertBookingLocked(
       date,
       partySize: p.partySize,
       areaId: p.areaId ?? null,
+      // the online rules are for guests booking on their own; staff (and an
+      // accepted offer) only meet the capacity
+      staff: p.actor.type !== "guest" || p.forceConfirmed === true,
     });
     floor = loaded.input;
     const verdict = assertSlotBookable(loaded.input, {
@@ -531,6 +536,7 @@ async function insertBookingLocked(
       startsAt: row.startsAt.toISOString(),
       ...(requirement ? { paymentRequired: true } : {}),
       ...(p.imported ? { imported: true } : {}),
+      ...(p.notifyGuest === false ? { notifyGuest: false } : {}),
     },
   });
   await writeAudit(tx, {
@@ -584,6 +590,7 @@ export async function applyBookingAction(
         date: row.serviceDate,
         partySize: row.partySize,
         areaId: row.areaId,
+        staff: true,
       });
       floor = loaded.input;
       const verdict = assertSlotBookable(loaded.input, {
@@ -761,6 +768,7 @@ export async function updateBooking(
           partySize,
           areaId,
           excludeBookingId: row.id,
+          staff: actor.type !== "guest",
         });
         floor = loaded.input;
         const verdict = assertSlotBookable(loaded.input, { serviceId, startsAt, partySize });
@@ -820,7 +828,11 @@ export async function updateBooking(
       restaurantId: r.id,
       aggregateType: "booking",
       aggregateId: row.id,
-      payload: { bookingId: row.id, changes },
+      payload: {
+        bookingId: row.id,
+        changes,
+        ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
+      },
     });
     await writeAudit(tx, {
       restaurantId: r.id,

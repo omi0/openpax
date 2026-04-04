@@ -629,6 +629,10 @@ button:disabled {
 .sitli .fine a {
   color: inherit;
 }
+.sitli .fine.larger {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
 
 /* ---------------------------------------------------------------- buttons */
 .sitli .actions {

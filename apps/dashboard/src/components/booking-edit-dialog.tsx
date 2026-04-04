@@ -16,7 +16,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { availabilityQuery } from "@/lib/queries";
+import { staffAvailabilityQuery } from "@/lib/queries";
 import { formatTime } from "@/lib/utils";
 
 const at = (iso: string) => new Date(iso).getTime();
@@ -43,9 +43,10 @@ export function BookingEditDialog({
   const [slot, setSlot] = useState(`${booking.serviceId}|${at(booking.startsAt)}`);
   const [notes, setNotes] = useState(booking.notes ?? "");
   const [ignoreCapacity, setIgnoreCapacity] = useState(false);
+  const [notifyGuest, setNotifyGuest] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const availability = useQuery({
-    ...availabilityQuery(restaurant.slug, day, partySize),
+    ...staffAvailabilityQuery(restaurant.id, day, partySize),
     enabled: open,
   });
 
@@ -100,7 +101,7 @@ export function BookingEditDialog({
     e.preventDefault();
     const chosen = options.find((o) => o.key === slot);
     if (!chosen) return;
-    const body: UpdateBookingInput = { ignoreCapacity, notifyGuest: true };
+    const body: UpdateBookingInput = { ignoreCapacity, notifyGuest };
     if (chosen.serviceId !== booking.serviceId) body.serviceId = chosen.serviceId;
     if (at(chosen.startsAt) !== at(booking.startsAt)) body.startsAt = chosen.startsAt;
     if (partySize !== booking.partySize) body.partySize = partySize;
@@ -165,16 +166,22 @@ export function BookingEditDialog({
         <Field label={t("today.form.notes")} className="sm:col-span-2">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         </Field>
-        {canOverride ? (
-          <div className="sm:col-span-2">
+        <div className="space-y-3 sm:col-span-2">
+          <Checkbox
+            checked={notifyGuest}
+            onChange={(e) => setNotifyGuest(e.target.checked)}
+            label={t("today.form.notifyChange")}
+            description={t("today.form.notifyChangeHint")}
+          />
+          {canOverride ? (
             <Checkbox
               checked={ignoreCapacity}
               onChange={(e) => setIgnoreCapacity(e.target.checked)}
               label={t("today.form.ignoreCapacity")}
               description={t("today.form.ignoreCapacityHint")}
             />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
         {error ? (
           <div className="sm:col-span-2">
             <Alert>{error}</Alert>

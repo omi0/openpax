@@ -26,7 +26,7 @@ import {
   servicesQuery,
 } from "@/lib/queries";
 import { useCrud } from "@/lib/use-crud";
-import { cn, formatDate, todayLocal } from "@/lib/utils";
+import { cn, formatDate, formatDateRange, todayLocal } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/closures")({
   loader: async ({ context, params }) => {
@@ -104,7 +104,9 @@ function ExceptionsCard({ restaurantId }: { restaurantId: string }) {
       ) : (
         <ul className="divide-y divide-stone-100">
           {exceptions.map((e) => {
-            const past = e.date < today;
+            const past = e.endDate < today;
+            const range = e.endDate !== e.date;
+            const days = range ? daysBetween(e.date, e.endDate) : 1;
             return (
               <li
                 key={e.id}
@@ -130,12 +132,19 @@ function ExceptionsCard({ restaurantId }: { restaurantId: string }) {
                 </span>
                 <div className="min-w-0 flex-1 basis-48">
                   <p className="flex flex-wrap items-center gap-2 text-base font-semibold capitalize">
-                    {formatDate(e.date, i18n.language, {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {range
+                      ? formatDateRange(e.date, e.endDate, i18n.language)
+                      : formatDate(e.date, i18n.language, {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                    {range ? (
+                      <Badge size="sm" tone="neutral">
+                        {t("closures.days", { count: days })}
+                      </Badge>
+                    ) : null}
                     {past ? (
                       <Badge size="sm" tone="neutral">
                         {t("closures.past")}
@@ -194,10 +203,18 @@ function ExceptionsCard({ restaurantId }: { restaurantId: string }) {
             services={services}
             onSubmit={(v) => crud.save.mutate(v)}
             busy={crud.save.isPending}
+            restaurantId={restaurantId}
           />
         ) : null}
       </Dialog>
     </Card>
+  );
+}
+
+/** Days from `from` to `to`, both inclusive. */
+function daysBetween(from: string, to: string): number {
+  return (
+    Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1
   );
 }
 
@@ -222,7 +239,9 @@ function RulesCard({ restaurantId }: { restaurantId: string }) {
         : t("closures.anyService"),
     );
     if (r.areaId) parts.push(areas.find((a) => a.id === r.areaId)?.name ?? "?");
-    if (r.date)
+    if (r.date && r.endDate && r.endDate !== r.date)
+      parts.push(formatDateRange(r.date, r.endDate, i18n.language));
+    else if (r.date)
       parts.push(
         formatDate(r.date, i18n.language, { day: "numeric", month: "short", year: "numeric" }),
       );

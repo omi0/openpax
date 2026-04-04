@@ -7,7 +7,7 @@ import type {
   PublicWidgetConfigDto,
 } from "@sitli/shared";
 import { ApiRequestError, api } from "./api.js";
-import { monthOf, todayLocal } from "./dates.js";
+import { addDays, addMonths, monthOf, todayLocal } from "./dates.js";
 import { setLocale } from "./i18n.js";
 
 export type Step = "when" | "details" | "done" | "waitlist" | "waitlist_done";
@@ -54,8 +54,10 @@ export async function loadConfig(value: string, lang?: string | null) {
     setLocale(lang ?? cfg.widget.defaultLocale);
     partySize.value = Math.max(cfg.policy.minPartySize, Math.min(2, cfg.policy.maxPartySize));
     const t = todayLocal(cfg.restaurant.timezone);
-    date.value = t;
     await setMonth(monthOf(t));
+    // start on the first day that can be booked: today when open, otherwise the
+    // next open day (a guest landing on the closing day should not see "Closed")
+    date.value = (await firstOpenDate(t, addDays(t, cfg.policy.maxAdvanceDays))) ?? t;
     await loadSlots();
   } catch (error) {
     loadError.value =
@@ -63,6 +65,19 @@ export async function loadConfig(value: string, lang?: string | null) {
         ? "errors.notFound"
         : "errors.generic";
   }
+}
+
+/** First open date between `from` and `to`, looking at most two months ahead; leaves the month on it. */
+async function firstOpenDate(from: string, to: string): Promise<string | null> {
+  for (let i = 0; i < 2; i += 1) {
+    const hit = [...openDates.value].filter((d) => d >= from && d <= to).sort()[0];
+    if (hit) return hit;
+    const next = addMonths(month.value, 1);
+    if (`${next}-01` > to) return null;
+    await setMonth(next);
+  }
+  await setMonth(monthOf(from));
+  return null;
 }
 
 export async function setMonth(value: string) {

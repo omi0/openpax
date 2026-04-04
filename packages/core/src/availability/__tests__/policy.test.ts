@@ -40,4 +40,16 @@ describe("policy checks", () => {
     expect(checkSlotTiming(at(FRIDAY, "19:00"), now, policy)).toBe("outside_lead_time");
     expect(checkSlotTiming(at(FRIDAY, "19:30"), now, policy)).toBeNull();
   });
+
+  it("keeps recent slots bookable within the past grace (staff recording a walk-in)", () => {
+    const now = at(FRIDAY, "20:10");
+    const staff = { ...policy, minLeadMinutes: 0, pastGraceMinutes: 120 };
+    expect(checkSlotTiming(at(FRIDAY, "20:00"), now, staff)).toBeNull();
+    expect(checkSlotTiming(at(FRIDAY, "18:30"), now, staff)).toBeNull();
+    expect(checkSlotTiming(at(FRIDAY, "18:00"), now, staff)).toBe("in_past");
+    // the grace never shortens the notice guests must give
+    expect(checkSlotTiming(at(FRIDAY, "20:30"), now, { ...staff, minLeadMinutes: 60 })).toBe(
+      "outside_lead_time",
+    );
+  });
 });

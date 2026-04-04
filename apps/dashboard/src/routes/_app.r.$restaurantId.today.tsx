@@ -1,10 +1,17 @@
 import type { BookingAction } from "@sitli/core";
-import type { AreaDto, BookingDto, UpsertAreaInput } from "@sitli/shared";
+import type {
+  AreaDto,
+  BookingDto,
+  ScheduleExceptionDto,
+  UpsertAreaInput,
+  UpsertScheduleExceptionInput,
+} from "@sitli/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Armchair,
   CalendarDays,
+  CalendarOff,
   CalendarX,
   ChevronLeft,
   ChevronRight,
@@ -15,10 +22,11 @@ import {
   List,
   Pencil,
   Plus,
+  Printer,
   StickyNote,
   UserX,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
@@ -30,9 +38,11 @@ import {
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
+import { defaultExceptionInput, ExceptionForm } from "@/components/schedule-forms";
 import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
 import {
+  Alert,
   Button,
   Dialog,
   EmptyState,
@@ -49,10 +59,19 @@ import {
 } from "@/components/ui";
 import { WaitlistPanel } from "@/components/waitlist-panel";
 import { api } from "@/lib/api";
-import { areasQuery, bookingsQuery, meQuery, restaurantQuery, tablesQuery } from "@/lib/queries";
+import {
+  areasQuery,
+  bookingsQuery,
+  exceptionsQuery,
+  meQuery,
+  restaurantQuery,
+  servicesQuery,
+  tablesQuery,
+} from "@/lib/queries";
 import {
   addDays,
   cn,
+  coversDate,
   dateRange,
   formatDate,
   formatTime,
@@ -87,11 +106,23 @@ function TodayPage() {
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
   const [view, setView] = useState<"list" | "floor">("list");
   const [roomsOpen, setRoomsOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const tables = useQuery(tablesQuery(restaurantId));
   const areas = useQuery(areasQuery(restaurantId));
+  const exceptions = useQuery(exceptionsQuery(restaurantId));
   const hasFloor = (tables.data?.length ?? 0) > 0;
   const rooms = areas.data ?? [];
   const closedRooms = rooms.filter((r) => !r.active);
+  // closures and special hours that touch this day (the one that starts last wins, like the engine)
+  const dayExceptions = (exceptions.data ?? [])
+    .filter((e) => coversDate(e, date))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const closedAll = dayExceptions.find((e) => e.serviceId === null && e.closed) ?? null;
+  const closedDays = new Set(
+    dateRange(startOfWeek(date), 7).filter((d) =>
+      (exceptions.data ?? []).some((e) => e.serviceId === null && e.closed && coversDate(e, d)),
+    ),
+  );
 
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
@@ -179,7 +210,15 @@ function TodayPage() {
             ))}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <IconButton label={t("today.print")} size="sm" onClick={() => window.print()}>
+            <Printer />
+          </IconButton>
+          {role !== "staff" && !closedAll ? (
+            <IconButton label={t("today.closeDay")} size="sm" onClick={() => setClosing(true)}>
+              <CalendarOff />
+            </IconButton>
+          ) : null}
           {rooms.length > 0 ? (
             <Button
               variant="outline"
@@ -208,11 +247,19 @@ function TodayPage() {
         </div>
       </div>
 
-      <DayStrip date={date} today={today} onChange={setDate} />
+      <DayStrip date={date} today={today} closedDays={closedDays} onChange={setDate} />
 
-      <div className="mt-4">
+      <div className="mt-4 print:hidden">
         <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
       </div>
+
+      {dayExceptions.length > 0 ? (
+        <ClosureNotice
+          restaurantId={restaurantId}
+          exceptions={dayExceptions}
+          closedAll={closedAll}
+        />
+      ) : null}
 
       {view === "floor" && tables.data ? (
         <FloorView
@@ -292,7 +339,9 @@ function TodayPage() {
         </div>
       )}
 
-      <WaitlistPanel restaurant={restaurant} date={date} canOverride={role !== "staff"} />
+      <div className="print:hidden">
+        <WaitlistPanel restaurant={restaurant} date={date} canOverride={role !== "staff"} />
+      </div>
 
       <BookingSheet
         restaurant={restaurant}
@@ -311,6 +360,9 @@ function TodayPage() {
         open={roomsOpen}
         onClose={() => setRoomsOpen(false)}
       />
+      {closing ? (
+        <CloseDayDialog restaurantId={restaurantId} date={date} onClose={() => setClosing(false)} />
+      ) : null}
       <BookingFormDialog
         restaurant={restaurant}
         date={date}
@@ -373,6 +425,115 @@ function TodayPage() {
   );
 }
 
+/** Banner for a day with a closure or special hours, so nobody takes a booking by hand on it. */
+function ClosureNotice({
+  restaurantId,
+  exceptions,
+  closedAll,
+}: {
+  restaurantId: string;
+  exceptions: ScheduleExceptionDto[];
+  closedAll: ScheduleExceptionDto | null;
+}) {
+  const { t } = useTranslation();
+  const services = useQuery(servicesQuery(restaurantId));
+  const name = (id: string | null) =>
+    id ? (services.data?.find((s) => s.id === id)?.name ?? "") : t("closures.allServices");
+  const edit = (
+    <Link
+      to="/r/$restaurantId/settings/closures"
+      params={{ restaurantId }}
+      className="font-semibold underline underline-offset-2"
+    >
+      {t("today.closureEdit")}
+    </Link>
+  );
+  if (closedAll)
+    return (
+      <Alert tone="warning" className="mt-4 print:hidden">
+        <span className="font-semibold">{t("today.closedDay")}</span>
+        {closedAll.reason ? ` · ${closedAll.reason}` : ""}
+        {" · "}
+        {edit}
+      </Alert>
+    );
+  return (
+    <Alert tone="info" className="mt-4 print:hidden">
+      <span className="font-semibold">{t("today.specialDay")}</span>
+      {": "}
+      {exceptions
+        .map((e) =>
+          e.closed
+            ? `${name(e.serviceId)} ${t("closures.closed").toLowerCase()}`
+            : `${name(e.serviceId)} ${(e.windows ?? []).map((w) => `${w.start}–${w.end}`).join(", ")}`,
+        )
+        .join(" · ")}
+      {exceptions[0]?.reason ? ` · ${exceptions[0].reason}` : ""}
+      {" · "}
+      {edit}
+    </Alert>
+  );
+}
+
+/** "Close this day" from Today: the closure form with the date filled in. */
+function CloseDayDialog({
+  restaurantId,
+  date,
+  onClose,
+}: {
+  restaurantId: string;
+  date: string;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const formId = useId();
+  const services = useQuery(servicesQuery(restaurantId));
+  const save = useMutation({
+    mutationFn: (v: UpsertScheduleExceptionInput) =>
+      api.post(`/api/v1/restaurants/${restaurantId}/schedule-exceptions`, v),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["restaurant", restaurantId, "schedule-exceptions"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["availability"] }),
+      ]);
+      toast.success(t("app.saved"));
+      onClose();
+    },
+    onError: () => toast.error(t("app.error")),
+  });
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={t("today.closeDay")}
+      description={t("today.closeDayHint")}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t("app.cancel")}
+          </Button>
+          <Button type="submit" form={formId} loading={save.isPending}>
+            {t("app.save")}
+          </Button>
+        </>
+      }
+    >
+      <ExceptionForm
+        id={formId}
+        initial={defaultExceptionInput(date)}
+        services={services.data ?? []}
+        onSubmit={(v) => save.mutate(v)}
+        busy={save.isPending}
+        restaurantId={restaurantId}
+      />
+    </Dialog>
+  );
+}
+
 const Sep = () => (
   <span aria-hidden="true" className="text-stone-300">
     ·
@@ -387,10 +548,13 @@ const ROW_COLS_FLOOR = "md:grid-cols-[4.25rem_minmax(0,1fr)_5.5rem_8rem_8.5rem_1
 function DayStrip({
   date,
   today,
+  closedDays,
   onChange,
 }: {
   date: string;
   today: string;
+  /** Days of the week with a restaurant-wide closure: shown struck through. */
+  closedDays: Set<string>;
   onChange: (d: string) => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -404,7 +568,7 @@ function DayStrip({
     else el.click();
   };
   return (
-    <div className="mt-4 flex items-center gap-1 border-b border-stone-200">
+    <div className="mt-4 flex items-center gap-1 border-b border-stone-200 print:hidden">
       <IconButton
         label={t("today.prevWeek")}
         size="sm"
@@ -425,6 +589,7 @@ function DayStrip({
         {days.map((d) => {
           const isSelected = d === date;
           const isToday = d === today;
+          const isClosed = closedDays.has(d);
           const [, , dd] = d.split("-");
           return (
             <button
@@ -432,6 +597,7 @@ function DayStrip({
               type="button"
               aria-pressed={isSelected}
               aria-current={isToday ? "date" : undefined}
+              title={isClosed ? t("today.closedDay") : undefined}
               onClick={() => onChange(d)}
               className={cn(
                 "flex h-12 flex-col items-center justify-center border-b-2 px-1 transition-colors",
@@ -447,6 +613,7 @@ function DayStrip({
                 className={cn(
                   "text-[17px] leading-tight font-semibold tabular-nums",
                   isToday && "text-brand-700",
+                  isClosed && "text-stone-400 line-through decoration-stone-400",
                 )}
               >
                 {Number(dd)}
@@ -624,7 +791,7 @@ function BookingRow({
           </span>
         ) : null}
         <StatusMark status={b.status} muted={!isActive} className="[grid-area:status]" />
-        <div className="mt-2 flex items-center gap-1.5 [grid-area:actions] md:mt-0 md:justify-end">
+        <div className="mt-2 flex items-center gap-1.5 [grid-area:actions] md:mt-0 md:justify-end print:hidden">
           {primary ? (
             <Button
               size="sm"

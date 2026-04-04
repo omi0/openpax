@@ -17,7 +17,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { availabilityQuery } from "@/lib/queries";
+import { staffAvailabilityQuery } from "@/lib/queries";
 
 export function BookingFormDialog({
   restaurant,
@@ -40,8 +40,9 @@ export function BookingFormDialog({
   const [day, setDay] = useState(date);
   const [slot, setSlot] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // staff see every slot with room, without the online-only rules (notice, horizon, party size)
   const availability = useQuery({
-    ...availabilityQuery(restaurant.slug, day, partySize),
+    ...staffAvailabilityQuery(restaurant.id, day, partySize),
     enabled: open,
   });
 
@@ -76,7 +77,7 @@ export function BookingFormDialog({
       source: String(f.get("source")) as CreateStaffBookingInput["source"],
       seatNow: f.get("seatNow") === "on",
       ignoreCapacity: f.get("ignoreCapacity") === "on",
-      notifyGuest: true,
+      notifyGuest: f.get("notifyGuest") === "on",
     });
   };
 
@@ -156,6 +157,12 @@ export function BookingFormDialog({
           <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
         </Field>
         <div className="space-y-3 sm:col-span-2">
+          <Checkbox
+            name="notifyGuest"
+            defaultChecked
+            label={t("today.form.notifyGuest")}
+            description={t("today.form.notifyGuestHint")}
+          />
           <Checkbox name="seatNow" label={t("today.form.seatNow")} />
           {canOverride ? (
             <Checkbox

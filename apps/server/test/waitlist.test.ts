@@ -170,8 +170,14 @@ describe("waitlist", () => {
     const after = await api<PublicEntry>(t, "GET", `/api/public/v1/waitlist/${token}`);
     expect(after.body.status).toBe("booked");
     expect(after.body.bookingManageUrl).toContain("/manage/");
-    const again = await api<{ code: string }>(t, "POST", `/api/public/v1/waitlist/${token}/accept`);
-    expect(again.status).toBe(409);
+    // tapping "confirm" again answers with the same booking instead of an error
+    const again = await api<{ confirmationCode: string }>(
+      t,
+      "POST",
+      `/api/public/v1/waitlist/${token}/accept`,
+    );
+    expect(again.status).toBe(201);
+    expect(again.body.confirmationCode).toBe(accepted.body.confirmationCode);
 
     // the booking exists as a widget booking for the same guest
     const bookings = await api<{ items: Array<{ source: string; customer: { name: string } }> }>(

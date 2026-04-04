@@ -16,6 +16,7 @@ import {
 import {
   addDays,
   cn,
+  coversDate,
   dateRange,
   formatDate,
   formatDateRange,
@@ -73,7 +74,10 @@ function CalendarPage() {
       items,
       bookings: active.length,
       covers: active.reduce((n, b) => n + b.partySize, 0),
-      exceptions: (exceptions.data ?? []).filter((e) => e.date === date),
+      // the exception that starts last wins, like the engine
+      exceptions: (exceptions.data ?? [])
+        .filter((e) => coversDate(e, date))
+        .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
       loading: !!results[i]?.isLoading,
     };
   });

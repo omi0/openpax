@@ -146,7 +146,11 @@
       "slotUnavailable": "Quell'orario non è disponibile: {{reason}}.",
       "noChanges": "Nessuna modifica.",
       "notesPlaceholder": "Allergie, seggiolone, compleanno…",
-      "ignoreCapacityHint": "Prenota anche se l'orario risulta pieno."
+      "ignoreCapacityHint": "Prenota anche se l'orario risulta pieno.",
+      "notifyGuest": "Invia la conferma all'ospite",
+      "notifyGuestHint": "Via email o SMS, come impostato in Notifiche.",
+      "notifyChange": "Avvisa l'ospite della modifica",
+      "notifyChangeHint": "Via email o SMS, come impostato in Notifiche."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -198,7 +202,16 @@
     },
     "rooms": "Sale",
     "roomsHint": "Chiudi una sala per togliere i suoi posti e tavoli dalle prenotazioni.",
-    "roomClosed": "{{name}} chiusa"
+    "roomClosed": "{{name}} chiusa",
+    "print": "Stampa",
+    "closeDay": "Chiudi questo giorno",
+    "closeDayHint": "Chiuso tutto il giorno o orario speciale. Le prenotazioni già prese restano e vanno avvisate.",
+    "closedDay": "Chiuso in questo giorno",
+    "specialDay": "Orario speciale",
+    "closureEdit": "Gestisci le chiusure",
+    "resend": "Reinvia all'ospite",
+    "resent": "Messaggio in invio all'ospite",
+    "resendNothing": "Niente da inviare: nessun canale attivo per questo stato, o l'ospite non ha contatti."
   },
   "services": {
     "title": "Servizi",
@@ -206,8 +219,8 @@
     "add": "Aggiungi servizio",
     "edit": "Modifica servizio",
     "name": "Nome",
-    "slotInterval": "Intervallo tra orari (min)",
-    "duration": "Durata tavolo (min)",
+    "slotInterval": "Intervallo tra orari",
+    "duration": "Durata tavolo",
     "maxCovers": "Max coperti per orario",
     "maxBookings": "Max tavoli per orario",
     "minParty": "Persone minime",
@@ -221,8 +234,8 @@
     "coversHint": "Ospiti che possono arrivare in un intervallo. Vuoto = nessun limite.",
     "lastSeating": "Gli orari sono il primo e l'ultimo arrivo prenotabile.",
     "list": "I tuoi servizi",
-    "every": "Arrivi ogni {{count}} min",
-    "turn": "{{count}} min per tavolo",
+    "every": "Arrivi ogni {{value}}",
+    "turn": "{{value}} per tavolo",
     "maxCoversShort": "max {{count}} coperti per orario",
     "timing": "Orari e ritmo",
     "capacity": "Capienza",
@@ -231,7 +244,8 @@
     "partyHint": "Lascia vuoto per usare le regole generali di prenotazione.",
     "addHours": "Aggiungi orario",
     "activeHint": "I servizi non attivi non sono visibili agli ospiti.",
-    "confirmDelete": "Gli ospiti non potranno più prenotarlo."
+    "confirmDelete": "Gli ospiti non potranno più prenotarlo.",
+    "copyToAll": "Copia questi orari su tutti i giorni"
   },
   "notifications": {
     "title": "Notifiche",
@@ -303,22 +317,27 @@
     "terms": "URL termini",
     "privacy": "URL privacy",
     "policy": "Regole di prenotazione",
-    "minLead": "Preavviso minimo (minuti)",
+    "minLead": "Preavviso minimo",
     "maxAdvance": "Prenotabile fino a (giorni)",
     "minParty": "Persone minime",
     "maxParty": "Persone massime",
     "autoConfirm": "Conferma automatica",
-    "cutoff": "Annullamento online fino a (minuti prima)",
+    "cutoff": "Annullamento online fino a",
     "largeParty": "Richiedi approvazione da (persone)",
     "largePartyHint": "Vuoto = conferma automatica per tutti.",
     "waitlist": "Lista d'attesa",
     "waitlistHint": "Quando una data è piena gli ospiti possono lasciare i loro dati dal widget. I tavoli che si liberano possono essere offerti automaticamente in ordine di arrivo; un'offerta non accettata in tempo passa all'ospite successivo.",
     "waitlistEnabled": "Consenti la lista d'attesa",
     "waitlistAutoOffer": "Offri automaticamente i tavoli liberati",
-    "waitlistOfferMinutes": "Validità dell'offerta (minuti)",
+    "waitlistOfferMinutes": "Validità dell'offerta",
     "copyCode": "Copia codice",
     "appearanceHint": "Come appare il modulo di prenotazione sul tuo sito.",
-    "rulesHint": "Cosa possono e non possono fare gli ospiti quando prenotano online."
+    "rulesHint": "Cosa possono e non possono fare gli ospiti quando prenotano online. Le prenotazioni prese dallo staff rispettano solo la capienza.",
+    "minLeadHint": "Con quanto anticipo gli ospiti devono prenotare online.",
+    "noNotice": "Nessun preavviso",
+    "maxAdvanceHint": "Quanti giorni in anticipo gli ospiti possono prenotare.",
+    "cutoffHint": "Prima dell'arrivo. Dopo, gli ospiti devono chiamare.",
+    "noCutoff": "Fino all'ultimo"
   },
   "weekday": {
     "mon": "Lun",
@@ -421,9 +440,9 @@
   "closures": {
     "title": "Chiusure e capienza",
     "exceptions": "Chiusure e orari speciali",
-    "exceptionsHint": "Sovrascrivi gli orari settimanali in date specifiche: festività, eventi privati, orari prolungati.",
-    "add": "Aggiungi data",
-    "edit": "Modifica data",
+    "exceptionsHint": "Chiudi per un giorno o per un intero periodo, o cambia gli orari in date precise: festività, eventi privati, orari prolungati.",
+    "add": "Aggiungi chiusura",
+    "edit": "Modifica chiusura",
     "empty": "Nessuna chiusura o orario speciale in programma.",
     "date": "Data",
     "scope": "Si applica a",
@@ -471,7 +490,17 @@
     "activeHint": "Disattiva per conservare la regola senza applicarla.",
     "confirmDelete": "Rimuovere questa data?",
     "confirmDeleteRule": "Eliminare questa regola?",
-    "confirmDeleteArea": "Eliminare questa zona?"
+    "confirmDeleteArea": "Eliminare questa zona?",
+    "fromDate": "Dal",
+    "toDate": "Al",
+    "toDateHint": "Lascia vuoto per un solo giorno.",
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni",
+    "affected_one": "{{count}} prenotazione già presa in questi giorni ({{covers}} coperti)",
+    "affected_other": "{{count}} prenotazioni già prese in questi giorni ({{covers}} coperti)",
+    "affectedHint": "Restano come sono: chiama gli ospiti o spostale prima di chiudere.",
+    "onDates": "In date precise",
+    "reasonPlaceholder": "Ferie estive, evento privato…"
   },
   "role": {
     "owner": "Titolare",
@@ -999,5 +1028,9 @@
       "embedHint": "Incolla questo codice dove deve comparire il modulo di prenotazione.",
       "test": "Provala: fai una prenotazione dalla pagina, poi trovala in Oggi e cancellala."
     }
+  },
+  "duration": {
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni"
   }
 }

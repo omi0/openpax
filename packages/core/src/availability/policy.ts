@@ -41,7 +41,7 @@ export function checkSlotTiming(
   policy: BookingPolicyDef,
 ): UnavailableReason | null {
   const lead = startsAt.getTime() - now.getTime();
-  if (lead <= 0) return "in_past";
-  if (lead < policy.minLeadMinutes * 60_000) return "outside_lead_time";
+  if (lead <= -(policy.pastGraceMinutes ?? 0) * 60_000) return "in_past";
+  if (lead > 0 && lead < policy.minLeadMinutes * 60_000) return "outside_lead_time";
   return null;
 }

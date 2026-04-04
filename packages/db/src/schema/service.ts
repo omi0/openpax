@@ -34,7 +34,10 @@ export const scheduleException = pgTable(
       .notNull()
       .references(() => restaurant.id, { onDelete: "cascade" }),
     serviceId: uuid().references(() => service.id, { onDelete: "cascade" }),
+    /** First day of the closure or special hours. */
     date: date().notNull(),
+    /** Last day (inclusive); equals `date` for a single day. */
+    endDate: date().notNull(),
     closed: boolean().notNull().default(true),
     windows: jsonb().$type<TimeWindow[]>(),
     reason: text(),
@@ -55,7 +58,10 @@ export const capacityRule = pgTable(
     serviceId: uuid().references(() => service.id, { onDelete: "cascade" }),
     areaId: uuid().references(() => area.id, { onDelete: "cascade" }),
     weekday: text(),
+    /** First day the rule applies to (null = any day, or the weekday). */
     date: date(),
+    /** Last day (inclusive) when the rule covers a range; null = the single `date`. */
+    endDate: date(),
     startTime: text(),
     endTime: text(),
     maxCovers: integer(),

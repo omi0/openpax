@@ -280,6 +280,55 @@ describe("staff bookings", () => {
     expect(done.body.status).toBe("completed");
   });
 
+  it("lets staff take bookings the online rules would refuse", async () => {
+    const fx = await createFixture(t);
+    // a regular calls in September for a table of 12 in mid-August: beyond the
+    // 60-day horizon and above the online maximum party size
+    const far = "2026-08-14";
+    const online = await api<{ code: string; reason: string }>(
+      t,
+      "POST",
+      publicBookings(fx),
+      guestBooking(fx, { startsAt: romeInstant(far, "20:00"), partySize: 12 }),
+    );
+    expect(online.status).toBe(409);
+    expect(online.body.code).toBe("slot_unavailable");
+
+    const staff = await api<{ status: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(far, "20:00"),
+        partySize: 12,
+        customer: { name: "Famiglia Verdi", phone: "+39 340 0000001" },
+        source: "phone",
+      },
+      fx.session,
+    );
+    expect(staff.status).toBe(201);
+    expect(staff.body.status).toBe("confirmed");
+
+    // a day that has already passed stays off limits for staff too
+    const yesterday = await api<{ reason: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant("2026-06-09", "20:00"),
+        partySize: 2,
+        customer: { name: "Ieri" },
+        source: "walk_in",
+        seatNow: true,
+      },
+      fx.session,
+    );
+    expect(yesterday.status).toBe(409);
+    expect(yesterday.body.reason).toBe("in_past");
+  });
+
   it("can override capacity and modify bookings", async () => {
     const fx = await createFixture(t, { maxCoversPerSlot: 2 });
     await api(t, "POST", publicBookings(fx), guestBooking(fx));
