@@ -10,5 +10,5 @@ export const feedbackModule = defineModule({
   eventHandlers: feedbackEventHandlers,
 });
 
-/** Public API: analytics folds the star summary into its report. */
-export { feedbackSummary } from "./service.js";
+/** Public API: analytics folds the star summary into its report; assistants read the latest answers. */
+export { feedbackSummary, listFeedback } from "./service.js";

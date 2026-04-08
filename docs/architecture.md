@@ -263,6 +263,68 @@ created from Settings → API keys; the secret is returned once. Send it in the
 `X-Api-Key` header; `requireRestaurant` resolves the key to the organization
 and refuses keys from another one.
 
+## Assistants (MCP)
+
+Owners connect the assistant they already pay for (Claude, ChatGPT, Claude
+Code, any MCP client) and ask it about tonight, book a table for a caller, or
+close a few days. Sitli is the **MCP server** and its own **OAuth 2.1
+authorization server**; it never holds an AI key.
+
+**Auth.** `createAuth` adds three Better Auth plugins when `PUBLIC_URL` is
+HTTPS or a loopback host (the MCP plugin refuses anything else, so on plain
+HTTP the feature is off and Settings → Assistants says why): `jwt()` signs the
+access tokens and serves `/api/auth/jwks`; `mcp()` is the OAuth provider
+configured for MCP (resource `PUBLIC_URL/mcp`, login page `/login`, consent
+page `/connect`, dynamic client registration open so Claude and ChatGPT can
+register themselves, refresh tokens for 90 days); `cimd()` accepts Client ID
+Metadata Documents, which MCP 2026-07-28 pins. A tiny plugin
+(`assistantRefreshTokens`) appends `offline_access` to every authorization
+request: the protected-resource metadata deliberately leaves it out, and
+without it no refresh token would be issued and the owner would log in again
+every hour. Discovery documents live at the origin root, so the `mcp` module
+forwards `/.well-known/*` to the Better Auth handler.
+
+**Browser flow.** The assistant sends the browser to
+`/api/auth/oauth2/authorize`. Without a session Better Auth redirects to
+`/login` with a signed copy of the query; the dashboard's `oauthProviderClient`
+plugin attaches it to the sign-in call and the answer is a redirect the auth
+client follows by itself (`continueOAuth` in `lib/auth-search.ts` just stops
+the page's own navigation). With a session the
+browser lands on `/connect`: the consent page shows who is asking (the public
+client record), the restaurants the user can reach, and a checkbox "allow it to
+make changes" that drops the `write` scope when unticked. `POST
+/api/auth/oauth2/consent` answers with the assistant's callback URL carrying
+the code; the assistant swaps it for tokens at `/api/auth/oauth2/token`.
+
+**Tokens.** Access tokens are JWTs (1 hour) bound to the audience
+`PUBLIC_URL/mcp`; `modules/mcp/auth.ts` verifies them locally with the
+instance's own JWKS (no network call to itself) and then checks that the
+consent row still exists. Disconnecting from the settings page deletes that
+row and revokes the refresh tokens, so the assistant is cut off at once
+instead of at expiry.
+
+**The server.** `POST /mcp` is Streamable HTTP in stateless JSON mode: every
+request builds a fresh `McpServer` (`modules/mcp/server.ts`) whose tool list
+reflects the caller. Write tools are registered only when the token has the
+`write` scope; every tool declares the permission it needs and is hidden from
+roles without it, then checked again per restaurant on each call. The
+`instructions` sent on initialise name the restaurants, their time zones,
+today's date and the caller's role, so the model rarely needs
+`list_restaurants`. Tools take a `restaurantId` only when the account has
+several restaurants. Times in and out are the restaurant's wall clock
+(`format.ts`); bookings created this way carry `source: "assistant"` and the
+actor `{ type: "user", via: "assistant" }`, which `writeAudit` records as
+`data.via`. `close_days` returns the bookings already taken and refuses to
+proceed until called with `confirm: true`. Tools call the other modules'
+public APIs only (`bookings`, `customers`, `availability`, `waitlist`,
+`restaurants`, `analytics`, `feedback` export what they need).
+
+**Testing.** `test/mcp.test.ts` runs the whole thing in process: dynamic
+registration, authorize → consent → token with PKCE, then the official MCP
+client with `fetch` pointed at `app.request`. Loopback redirect URIs need
+`application_type: "native"`. The Playwright spec `assistants.spec.ts` drives
+the consent page in a browser.
+
 ## Notification providers
 
 Email and SMS are provider-agnostic. A provider is one file:
@@ -290,7 +352,8 @@ audience (`notification_setting`), edited under Settings → Notifications → R
 
 ## Data model (main tables)
 
-`organization`, `member`, `user`, `session`, `apikey` (Better Auth) ·
+`organization`, `member`, `user`, `session`, `apikey`, `jwks`, `oauth_client`,
+`oauth_consent`, `oauth_access_token`, `oauth_refresh_token` (Better Auth) ·
 `restaurant` · `area` · `service` · `schedule_exception` · `capacity_rule` ·
 `booking_policy` · `widget_config` · `customer` · `booking` · `waitlist_entry` · `dining_table` · `booking_table` · `payment_config` · `booking_payment` · `booking_feedback` ·
 `notification_provider_config` · `notification_setting` · `notification_log` ·

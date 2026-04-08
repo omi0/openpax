@@ -31,7 +31,8 @@ export interface AppContext {
 }
 
 export type Actor =
-  | { type: "user"; id: string; role: RoleName }
+  /** `via` marks actions a signed-in user took through a connected assistant (MCP). */
+  | { type: "user"; id: string; role: RoleName; via?: "assistant" }
   | { type: "api_key"; id: string; organizationId: string; role: RoleName }
   | { type: "guest"; id: null }
   | { type: "system"; id: null };

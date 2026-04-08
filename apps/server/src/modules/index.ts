@@ -5,6 +5,7 @@ import { bookingsModule } from "./bookings/index.js";
 import { csvModule } from "./csv/index.js";
 import { customersModule } from "./customers/index.js";
 import { feedbackModule } from "./feedback/index.js";
+import { mcpModule } from "./mcp/index.js";
 import type { SitliModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
 import { paymentsModule } from "./payments/index.js";
@@ -33,4 +34,5 @@ export const modules: SitliModule[] = [
   apiKeysModule,
   analyticsModule,
   setupModule,
+  mcpModule,
 ];

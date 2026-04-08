@@ -7,6 +7,7 @@ capacity, bookings, guests and notifications.
 - **Widget** — one `<script>` tag on any site (WordPress, Wix, Squarespace, custom). Guests pick party size, date and time, and get a confirmation email. Italian and English out of the box.
 - **Dashboard** — today's bookings at a glance, a week calendar, walk-ins and phone bookings, seat / no-show / cancel / edit with one click, a guest book with notes, tags, visit / no-show / cancellation counts and a merge for duplicate entries, services and weekly hours, closures and special hours for a day or a whole period, capacity rules, booking rules, team roles and invitations.
 - **Notifications** — email and SMS through the provider *you* choose (SMTP, Resend, SendGrid, Postmark, Amazon SES, Twilio, Vonage), configured from the dashboard and stored encrypted. Reminders, confirmations, cancellations, staff alerts, each toggled per channel.
+- **Assistants** — connect Claude or ChatGPT (any MCP client) with your own login and ask what tonight looks like, book a table for a caller, or close a few days; every change is recorded under your name.
 - **API first** — every screen talks to a documented REST API (`/api/openapi.json`); organization API keys, created from the dashboard, let you integrate a POS or a website of your own.
 - **Boring to run** — one Docker image, one Postgres database. No Redis, no queues to babysit.
 

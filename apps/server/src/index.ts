@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
-import { runMigrations } from "@sitli/db";
+import { createDb, runMigrations } from "@sitli/db";
 import { createApp } from "./app.js";
 import { buildContext } from "./bootstrap.js";
 import { loadEnv } from "./env.js";
@@ -20,11 +20,15 @@ function firstExisting(...candidates: string[]): string | undefined {
   return candidates.find((c) => existsSync(c));
 }
 
+// Migrate before anything touches the database: Better Auth initialises as
+// soon as it is built and the OAuth provider seeds its resources then.
+const migrator = createDb(env.DATABASE_URL, { max: 1 });
+await runMigrations(migrator.db, process.env.MIGRATIONS_DIR);
+await migrator.pool.end();
+logger.info("database migrated");
+
 const boss = await createBoss(env.DATABASE_URL, logger);
 const ctx = buildContext({ env, logger, modules, jobs: new PgBossQueue(boss) });
-
-await runMigrations(ctx.db, process.env.MIGRATIONS_DIR);
-logger.info("database migrated");
 
 if (env.APP_ENCRYPTION_KEY_PREVIOUS.length > 0) {
   const { rotated, failed } = await rotateStoredSecrets(ctx);

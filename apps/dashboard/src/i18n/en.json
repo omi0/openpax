@@ -103,7 +103,8 @@
       "manual": "Manual",
       "phone": "Phone",
       "walk_in": "Walk-in",
-      "api": "API"
+      "api": "API",
+      "assistant": "Assistant"
     },
     "notes": "Notes",
     "code": "Code",
@@ -908,7 +909,8 @@
       "payments": "Deposits and card holds to protect against no-shows.",
       "widget": "The booking page for your website and the rules guests must follow.",
       "team": "Who can log in and what they can do.",
-      "apiKeys": "For developers: connect other software."
+      "apiKeys": "For developers: connect other software.",
+      "assistants": "Connect Claude or ChatGPT and ask about your bookings, or take one, from your phone."
     }
   },
   "rooms": {
@@ -1032,5 +1034,53 @@
   "duration": {
     "days_one": "{{count}} day",
     "days_other": "{{count}} days"
+  },
+  "assistants": {
+    "title": "Assistants",
+    "intro": "Connect the assistant you already use: Claude, ChatGPT or any app that speaks MCP. Then ask it what tonight looks like, who cancelled this week, or to book a table for a guest on the phone. It acts with your own permissions and every change is recorded under your name.",
+    "disabled": "Assistants need this Sitli to be reachable over HTTPS. Set PUBLIC_URL to an https address that the assistant can reach from the internet.",
+    "urlTitle": "Address to give the assistant",
+    "urlHint": "Paste it where the assistant asks for a connector or MCP server. It will send you back here to log in and approve.",
+    "howTitle": "How to connect",
+    "how": {
+      "claude": "Settings → Connectors → Add custom connector. Paste the address, click Add, then allow it when a chat asks.",
+      "chatgpt": "Settings → Connectors → Create (turn on Developer mode under Advanced first). Paste the address and follow the login.",
+      "other": "Add a remote MCP server of type HTTP with this address; the login opens in your browser."
+    },
+    "otherApps": "Claude Code, Cursor and other apps",
+    "askTitle": "Things to ask",
+    "ask": [
+      "What does tonight look like?",
+      "Book a table for 4 on Saturday at 8pm for Rossi, phone 333 1234567",
+      "Who cancelled this week?",
+      "Is there room for 6 on Friday?",
+      "Close the 25th and 26th, we're on holiday",
+      "How did last month go compared to the one before?"
+    ],
+    "connectionsTitle": "Connected assistants",
+    "connectionsHint": "Assistants connected to your account. Disconnecting stops them at once.",
+    "empty": "No assistant is connected yet.",
+    "readOnly": "Read-only",
+    "canWrite": "Can make changes",
+    "connectedOn": "connected {{date}}",
+    "disconnect": "Disconnect",
+    "confirmDisconnect": "Disconnect this assistant? You will have to connect it again to use Sitli from it.",
+    "unknownClient": "Assistant"
+  },
+  "connect": {
+    "title": "Connect an assistant",
+    "subtitle": "{{client}} wants to use Sitli as {{email}}.",
+    "unknownClient": "An assistant",
+    "loading": "Checking the request…",
+    "invalid": "This request is not valid any more. Start again from the assistant.",
+    "canRead": "It will be able to see bookings, guests, the waitlist, hours and figures of:",
+    "writeLabel": "Allow it to make changes",
+    "writeHint": "Book, change and cancel bookings, add guest notes, close days, offer waitlist spots. Your role still applies.",
+    "noRestaurant": "This account has no restaurant yet.",
+    "allow": "Allow",
+    "deny": "Deny",
+    "notYou": "Not you?",
+    "switchAccount": "Log in with another account",
+    "failed": "Could not complete the connection. Try again from the assistant."
   }
 }

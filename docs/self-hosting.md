@@ -58,6 +58,15 @@ with seats, a working email channel, team members), so the reminder on
 **Today** goes away as things get done and the guide can be reopened from
 **Settings → Setup guide** at any time, also for a second restaurant.
 
+## Assistants (Claude, ChatGPT)
+
+Nothing to configure: with `PUBLIC_URL` on HTTPS, Settings → Assistants shows
+the address to paste into Claude or ChatGPT (`PUBLIC_URL/mcp`), and the
+assistant logs in through your own login page. The instance must be reachable
+from the internet, because the assistant's servers call it, not your phone.
+On plain HTTP the page explains that assistants are off (MCP requires HTTPS).
+Every connection can be revoked from the same page.
+
 ## Backups
 
 Everything lives in Postgres. `pg_dump` the database on a schedule; also back

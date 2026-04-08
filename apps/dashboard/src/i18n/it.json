@@ -103,7 +103,8 @@
       "manual": "Manuale",
       "phone": "Telefono",
       "walk_in": "Walk-in",
-      "api": "API"
+      "api": "API",
+      "assistant": "Assistente"
     },
     "notes": "Note",
     "code": "Codice",
@@ -908,7 +909,8 @@
       "payments": "Caparre e carte a garanzia contro i no-show.",
       "widget": "La pagina di prenotazione per il tuo sito e le regole per gli ospiti.",
       "team": "Chi può accedere e cosa può fare.",
-      "apiKeys": "Per sviluppatori: collega altri programmi."
+      "apiKeys": "Per sviluppatori: collega altri programmi.",
+      "assistants": "Collega Claude o ChatGPT e chiedi delle prenotazioni, o prendine una, dal telefono."
     }
   },
   "rooms": {
@@ -1032,5 +1034,53 @@
   "duration": {
     "days_one": "{{count}} giorno",
     "days_other": "{{count}} giorni"
+  },
+  "assistants": {
+    "title": "Assistenti",
+    "intro": "Collega l'assistente che già usi: Claude, ChatGPT o qualsiasi app che parli MCP. Poi chiedigli com'è messa la serata, chi ha annullato questa settimana, o di prenotare un tavolo per un cliente al telefono. Agisce con i tuoi permessi e ogni modifica viene registrata a tuo nome.",
+    "disabled": "Gli assistenti richiedono che questo Sitli sia raggiungibile in HTTPS. Imposta PUBLIC_URL su un indirizzo https raggiungibile da internet.",
+    "urlTitle": "Indirizzo da dare all'assistente",
+    "urlHint": "Incollalo dove l'assistente chiede un connettore o un server MCP. Ti riporterà qui per accedere e approvare.",
+    "howTitle": "Come collegarlo",
+    "how": {
+      "claude": "Impostazioni → Connettori → Aggiungi connettore personalizzato. Incolla l'indirizzo, premi Aggiungi, poi consenti quando una chat lo chiede.",
+      "chatgpt": "Impostazioni → Connettori → Crea (prima attiva la Modalità sviluppatore in Avanzate). Incolla l'indirizzo e segui l'accesso.",
+      "other": "Aggiungi un server MCP remoto di tipo HTTP con questo indirizzo; l'accesso si apre nel browser."
+    },
+    "otherApps": "Claude Code, Cursor e altre app",
+    "askTitle": "Cosa puoi chiedere",
+    "ask": [
+      "Com'è messa stasera?",
+      "Prenota un tavolo per 4 sabato alle 20 a nome Rossi, telefono 333 1234567",
+      "Chi ha annullato questa settimana?",
+      "C'è posto per 6 venerdì?",
+      "Chiudi il 25 e il 26, siamo in ferie",
+      "Com'è andato il mese scorso rispetto a quello prima?"
+    ],
+    "connectionsTitle": "Assistenti collegati",
+    "connectionsHint": "Gli assistenti collegati al tuo account. Scollegarli li ferma subito.",
+    "empty": "Nessun assistente collegato.",
+    "readOnly": "Sola lettura",
+    "canWrite": "Può fare modifiche",
+    "connectedOn": "collegato il {{date}}",
+    "disconnect": "Scollega",
+    "confirmDisconnect": "Scollegare questo assistente? Dovrai ricollegarlo per usare Sitli da lì.",
+    "unknownClient": "Assistente"
+  },
+  "connect": {
+    "title": "Collega un assistente",
+    "subtitle": "{{client}} vuole usare Sitli come {{email}}.",
+    "unknownClient": "Un assistente",
+    "loading": "Controllo la richiesta…",
+    "invalid": "Questa richiesta non è più valida. Ricomincia dall'assistente.",
+    "canRead": "Potrà vedere prenotazioni, clienti, lista d'attesa, orari e numeri di:",
+    "writeLabel": "Permetti di fare modifiche",
+    "writeHint": "Prenotare, modificare e annullare prenotazioni, aggiungere note ai clienti, chiudere giorni, offrire posti dalla lista d'attesa. Il tuo ruolo vale comunque.",
+    "noRestaurant": "Questo account non ha ancora un ristorante.",
+    "allow": "Consenti",
+    "deny": "Rifiuta",
+    "notYou": "Non sei tu?",
+    "switchAccount": "Accedi con un altro account",
+    "failed": "Non è stato possibile completare il collegamento. Riprova dall'assistente."
   }
 }

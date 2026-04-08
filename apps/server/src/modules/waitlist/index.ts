@@ -9,3 +9,6 @@ export const waitlistModule = defineModule({
   jobs: [expireOfferJob],
   eventHandlers: waitlistEventHandlers,
 });
+
+/** Public API for features that show or offer waitlist spots on staff's behalf (assistants). */
+export { cancelEntry, listEntries, offerEntry, toEntryDto } from "./service.js";

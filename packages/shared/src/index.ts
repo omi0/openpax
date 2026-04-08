@@ -1,6 +1,7 @@
 export * from "./schemas/analytics.js";
 export * from "./schemas/api-error.js";
 export * from "./schemas/api-key.js";
+export * from "./schemas/assistants.js";
 export * from "./schemas/availability.js";
 export * from "./schemas/booking.js";
 export * from "./schemas/common.js";

@@ -11,6 +11,16 @@ const { db } = createDb(process.env.DATABASE_URL ?? "postgres://sitli:sitli@loca
   max: 1,
 });
 
+// The OAuth provider seeds its resources table when the instance initialises.
+// While this generation is the one adding that table, the background seed
+// fails; the CLI only reads `auth.options`, so the failure must not abort it.
+process.on("unhandledRejection", (error) => {
+  console.warn(
+    "[auth:generate] ignoring init error:",
+    error instanceof Error ? error.message : error,
+  );
+});
+
 export const auth = createAuth({
   db,
   baseURL: process.env.PUBLIC_URL ?? "http://localhost:3000",

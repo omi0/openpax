@@ -2,6 +2,7 @@ import type {
   AnalyticsDto,
   ApiKeyDto,
   AreaDto,
+  AssistantsStatusDto,
   AvailabilityResponse,
   BookingDto,
   BookingPolicyDto,
@@ -260,6 +261,12 @@ export const teamQuery = (id: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "team"],
     queryFn: () => api.get<TeamDto>(`/api/v1/restaurants/${id}/team`),
+  });
+
+export const assistantsQuery = () =>
+  queryOptions({
+    queryKey: ["assistants"],
+    queryFn: () => api.get<AssistantsStatusDto>("/api/v1/assistants"),
   });
 
 export const apiKeysQuery = (id: string) =>

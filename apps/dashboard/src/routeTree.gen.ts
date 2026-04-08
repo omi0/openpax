@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from "./routes/__root";
 import { Route as IndexRouteImport } from "./routes/index";
 import { Route as AppRouteImport } from "./routes/_app";
+import { Route as ConnectRouteImport } from "./routes/connect";
 import { Route as ForgotPasswordRouteImport } from "./routes/forgot-password";
 import { Route as LoginRouteImport } from "./routes/login";
 import { Route as ResetPasswordRouteImport } from "./routes/reset-password";
@@ -30,6 +31,7 @@ import { Route as AppRRestaurantIdCustomersIndexRouteImport } from "./routes/_ap
 import { Route as AppRRestaurantIdCustomersCustomerIdRouteImport } from "./routes/_app.r.$restaurantId.customers.$customerId";
 import { Route as AppRRestaurantIdSettingsIndexRouteImport } from "./routes/_app.r.$restaurantId.settings.index";
 import { Route as AppRRestaurantIdSettingsApiKeysRouteImport } from "./routes/_app.r.$restaurantId.settings.api-keys";
+import { Route as AppRRestaurantIdSettingsAssistantsRouteImport } from "./routes/_app.r.$restaurantId.settings.assistants";
 import { Route as AppRRestaurantIdSettingsClosuresRouteImport } from "./routes/_app.r.$restaurantId.settings.closures";
 import { Route as AppRRestaurantIdSettingsNotificationsRouteImport } from "./routes/_app.r.$restaurantId.settings.notifications";
 import { Route as AppRRestaurantIdSettingsPaymentsRouteImport } from "./routes/_app.r.$restaurantId.settings.payments";
@@ -46,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any);
 const AppRoute = AppRouteImport.update({
   id: "/_app",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ConnectRoute = ConnectRouteImport.update({
+  id: "/connect",
+  path: "/connect",
   getParentRoute: () => rootRouteImport,
 } as any);
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -152,6 +159,12 @@ const AppRRestaurantIdSettingsApiKeysRoute =
     path: "/api-keys",
     getParentRoute: () => AppRRestaurantIdSettingsRoute,
   } as any);
+const AppRRestaurantIdSettingsAssistantsRoute =
+  AppRRestaurantIdSettingsAssistantsRouteImport.update({
+    id: "/assistants",
+    path: "/assistants",
+    getParentRoute: () => AppRRestaurantIdSettingsRoute,
+  } as any);
 const AppRRestaurantIdSettingsClosuresRoute =
   AppRRestaurantIdSettingsClosuresRouteImport.update({
     id: "/closures",
@@ -203,6 +216,7 @@ const AppRRestaurantIdSettingsWidgetRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute;
+  "/connect": typeof ConnectRoute;
   "/forgot-password": typeof ForgotPasswordRoute;
   "/login": typeof LoginRoute;
   "/reset-password": typeof ResetPasswordRoute;
@@ -220,6 +234,7 @@ export interface FileRoutesByFullPath {
   "/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
   "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
+  "/r/$restaurantId/settings/assistants": typeof AppRRestaurantIdSettingsAssistantsRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
@@ -233,6 +248,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute;
+  "/connect": typeof ConnectRoute;
   "/forgot-password": typeof ForgotPasswordRoute;
   "/login": typeof LoginRoute;
   "/reset-password": typeof ResetPasswordRoute;
@@ -248,6 +264,7 @@ export interface FileRoutesByTo {
   "/r/$restaurantId": typeof AppRRestaurantIdIndexRoute;
   "/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
   "/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
+  "/r/$restaurantId/settings/assistants": typeof AppRRestaurantIdSettingsAssistantsRoute;
   "/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
@@ -263,6 +280,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof IndexRoute;
   "/_app": typeof AppRouteWithChildren;
+  "/connect": typeof ConnectRoute;
   "/forgot-password": typeof ForgotPasswordRoute;
   "/login": typeof LoginRoute;
   "/reset-password": typeof ResetPasswordRoute;
@@ -280,6 +298,7 @@ export interface FileRoutesById {
   "/_app/r/$restaurantId/": typeof AppRRestaurantIdIndexRoute;
   "/_app/r/$restaurantId/customers/$customerId": typeof AppRRestaurantIdCustomersCustomerIdRoute;
   "/_app/r/$restaurantId/settings/api-keys": typeof AppRRestaurantIdSettingsApiKeysRoute;
+  "/_app/r/$restaurantId/settings/assistants": typeof AppRRestaurantIdSettingsAssistantsRoute;
   "/_app/r/$restaurantId/settings/closures": typeof AppRRestaurantIdSettingsClosuresRoute;
   "/_app/r/$restaurantId/settings/notifications": typeof AppRRestaurantIdSettingsNotificationsRoute;
   "/_app/r/$restaurantId/settings/payments": typeof AppRRestaurantIdSettingsPaymentsRoute;
@@ -295,6 +314,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
+    | "/connect"
     | "/forgot-password"
     | "/login"
     | "/reset-password"
@@ -312,6 +332,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId/"
     | "/r/$restaurantId/customers/$customerId"
     | "/r/$restaurantId/settings/api-keys"
+    | "/r/$restaurantId/settings/assistants"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/payments"
@@ -325,6 +346,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
+    | "/connect"
     | "/forgot-password"
     | "/login"
     | "/reset-password"
@@ -340,6 +362,7 @@ export interface FileRouteTypes {
     | "/r/$restaurantId"
     | "/r/$restaurantId/customers/$customerId"
     | "/r/$restaurantId/settings/api-keys"
+    | "/r/$restaurantId/settings/assistants"
     | "/r/$restaurantId/settings/closures"
     | "/r/$restaurantId/settings/notifications"
     | "/r/$restaurantId/settings/payments"
@@ -354,6 +377,7 @@ export interface FileRouteTypes {
     | "__root__"
     | "/"
     | "/_app"
+    | "/connect"
     | "/forgot-password"
     | "/login"
     | "/reset-password"
@@ -371,6 +395,7 @@ export interface FileRouteTypes {
     | "/_app/r/$restaurantId/"
     | "/_app/r/$restaurantId/customers/$customerId"
     | "/_app/r/$restaurantId/settings/api-keys"
+    | "/_app/r/$restaurantId/settings/assistants"
     | "/_app/r/$restaurantId/settings/closures"
     | "/_app/r/$restaurantId/settings/notifications"
     | "/_app/r/$restaurantId/settings/payments"
@@ -386,6 +411,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AppRoute: typeof AppRouteWithChildren;
+  ConnectRoute: typeof ConnectRoute;
   ForgotPasswordRoute: typeof ForgotPasswordRoute;
   LoginRoute: typeof LoginRoute;
   ResetPasswordRoute: typeof ResetPasswordRoute;
@@ -407,6 +433,13 @@ declare module "@tanstack/react-router" {
       path: "";
       fullPath: "/";
       preLoaderRoute: typeof AppRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/connect": {
+      id: "/connect";
+      path: "/connect";
+      fullPath: "/connect";
+      preLoaderRoute: typeof ConnectRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/forgot-password": {
@@ -542,6 +575,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppRRestaurantIdSettingsApiKeysRouteImport;
       parentRoute: typeof AppRRestaurantIdSettingsRoute;
     };
+    "/_app/r/$restaurantId/settings/assistants": {
+      id: "/_app/r/$restaurantId/settings/assistants";
+      path: "/assistants";
+      fullPath: "/r/$restaurantId/settings/assistants";
+      preLoaderRoute: typeof AppRRestaurantIdSettingsAssistantsRouteImport;
+      parentRoute: typeof AppRRestaurantIdSettingsRoute;
+    };
     "/_app/r/$restaurantId/settings/closures": {
       id: "/_app/r/$restaurantId/settings/closures";
       path: "/closures";
@@ -603,6 +643,7 @@ declare module "@tanstack/react-router" {
 
 interface AppRRestaurantIdSettingsRouteChildren {
   AppRRestaurantIdSettingsApiKeysRoute: typeof AppRRestaurantIdSettingsApiKeysRoute;
+  AppRRestaurantIdSettingsAssistantsRoute: typeof AppRRestaurantIdSettingsAssistantsRoute;
   AppRRestaurantIdSettingsClosuresRoute: typeof AppRRestaurantIdSettingsClosuresRoute;
   AppRRestaurantIdSettingsNotificationsRoute: typeof AppRRestaurantIdSettingsNotificationsRoute;
   AppRRestaurantIdSettingsPaymentsRoute: typeof AppRRestaurantIdSettingsPaymentsRoute;
@@ -617,6 +658,8 @@ interface AppRRestaurantIdSettingsRouteChildren {
 const AppRRestaurantIdSettingsRouteChildren: AppRRestaurantIdSettingsRouteChildren =
   {
     AppRRestaurantIdSettingsApiKeysRoute: AppRRestaurantIdSettingsApiKeysRoute,
+    AppRRestaurantIdSettingsAssistantsRoute:
+      AppRRestaurantIdSettingsAssistantsRoute,
     AppRRestaurantIdSettingsClosuresRoute:
       AppRRestaurantIdSettingsClosuresRoute,
     AppRRestaurantIdSettingsNotificationsRoute:
@@ -683,6 +726,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren);
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ConnectRoute: ConnectRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,

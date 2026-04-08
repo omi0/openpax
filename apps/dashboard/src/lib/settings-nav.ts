@@ -7,6 +7,7 @@ import {
   KeyRound,
   LayoutGrid,
   type LucideIcon,
+  Sparkles,
   Store,
   Users,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export interface SettingsSection {
     | "/r/$restaurantId/settings/payments"
     | "/r/$restaurantId/settings/widget"
     | "/r/$restaurantId/settings/team"
+    | "/r/$restaurantId/settings/assistants"
     | "/r/$restaurantId/settings/api-keys";
   /** i18n key of the section title. */
   titleKey: string;
@@ -81,6 +83,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     titleKey: "team.title",
     descKey: "settings.desc.team",
     Icon: Users,
+  },
+  {
+    to: "/r/$restaurantId/settings/assistants",
+    titleKey: "assistants.title",
+    descKey: "settings.desc.assistants",
+    Icon: Sparkles,
   },
   {
     to: "/r/$restaurantId/settings/api-keys",

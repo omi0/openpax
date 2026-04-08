@@ -13,6 +13,8 @@ export interface AuditEntry {
 }
 
 export async function writeAudit(tx: DbOrTx, entry: AuditEntry) {
+  const via = entry.actor.type === "user" ? entry.actor.via : undefined;
+  const data = via ? { ...(entry.data ?? {}), via } : entry.data;
   await tx.insert(auditLog).values({
     restaurantId: entry.restaurantId,
     organizationId: entry.organizationId ?? null,
@@ -21,6 +23,6 @@ export async function writeAudit(tx: DbOrTx, entry: AuditEntry) {
     action: entry.action,
     entityType: entry.entityType,
     entityId: entry.entityId ?? null,
-    data: entry.data ?? null,
+    data: data ?? null,
   });
 }

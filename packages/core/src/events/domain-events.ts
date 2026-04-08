@@ -1,7 +1,14 @@
 import type { BookingStatus } from "../booking/state-machine.js";
 import type { WaitlistStatus } from "../waitlist/waitlist.js";
 
-export const BOOKING_SOURCES = ["widget", "manual", "phone", "walk_in", "api"] as const;
+export const BOOKING_SOURCES = [
+  "widget",
+  "manual",
+  "phone",
+  "walk_in",
+  "api",
+  "assistant",
+] as const;
 export type BookingSource = (typeof BOOKING_SOURCES)[number];
 
 /**

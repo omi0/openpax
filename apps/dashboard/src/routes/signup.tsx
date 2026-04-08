@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { AuthLayout } from "@/components/auth-layout";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
-import { authSearch } from "@/lib/auth-search";
+import { authSearch, continueOAuth } from "@/lib/auth-search";
 import { authConfigQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/signup")({
@@ -38,6 +38,7 @@ function SignupPage() {
       setError(res.error.message ?? t("app.error"));
       return;
     }
+    if (continueOAuth(res.data)) return;
     await navigate({ to: redirect ?? "/onboarding" });
   };
 

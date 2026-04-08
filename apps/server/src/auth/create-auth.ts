@@ -1,10 +1,14 @@
 import { apiKey } from "@better-auth/api-key";
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { mcp } from "@better-auth/mcp";
 import type { Db } from "@sitli/db";
 import * as schema from "@sitli/db/schema";
-import { APIError } from "better-auth/api";
+import type { BetterAuthPlugin } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
-import { organization } from "better-auth/plugins";
+import { jwt, organization } from "better-auth/plugins";
 import { ac, roles } from "./access.js";
 import { type SignupMode, signupAllowed } from "./signup.js";
 
@@ -43,7 +47,85 @@ export interface CreateAuthOptions {
 /** How long a password reset link stays valid. */
 export const RESET_PASSWORD_TTL_SECONDS = 60 * 60;
 
+/**
+ * Scopes an assistant (Claude, ChatGPT, any MCP client) can be granted.
+ * `read` and `write` are Sitli's; the OIDC ones let clients ask for identity
+ * and a refresh token. The consent page turns `write` off for a read-only
+ * connection.
+ */
+export const ASSISTANT_SCOPES = ["openid", "profile", "email", "offline_access", "read", "write"];
+export const ASSISTANT_LOGIN_PAGE = "/login";
+export const ASSISTANT_CONSENT_PAGE = "/connect";
+/** Refresh tokens keep a phone connected without logging in again. */
+export const ASSISTANT_REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
+
+/** The MCP endpoint assistants talk to; also the audience of the tokens issued for it. */
+export const assistantResourceUrl = (baseURL: string) => `${baseURL}/mcp`;
+
+/**
+ * MCP tokens must be bound to an HTTPS resource; the plugin accepts plain
+ * HTTP only on a loopback host (development, tests). Anything else boots
+ * without the assistants feature instead of failing.
+ */
+export function assistantsSupported(baseURL: string): boolean {
+  try {
+    const url = new URL(baseURL);
+    if (url.protocol === "https:") return true;
+    return (
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" ||
+        url.hostname === "[::1]" ||
+        /^127\.\d+\.\d+\.\d+$/.test(url.hostname))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * MCP clients request the scopes the protected-resource metadata advertises,
+ * and that document deliberately leaves out `offline_access`. Without it no
+ * refresh token is issued and the owner would have to log in again every
+ * hour, so every authorization request gets it added.
+ */
+const assistantRefreshTokens: BetterAuthPlugin = {
+  id: "sitli-assistant-refresh-tokens",
+  hooks: {
+    before: [
+      {
+        matcher: (ctx) => ctx.path === "/oauth2/authorize",
+        handler: createAuthMiddleware(async (ctx) => {
+          const scope = ctx.query?.scope;
+          if (typeof scope !== "string" || !scope) return;
+          const scopes = scope.split(" ").filter(Boolean);
+          if (scopes.includes("offline_access")) return;
+          return {
+            context: { query: { ...ctx.query, scope: [...scopes, "offline_access"].join(" ") } },
+          };
+        }),
+      },
+    ],
+  },
+};
+
 export function createAuth(options: CreateAuthOptions) {
+  const assistantPlugins = assistantsSupported(options.baseURL)
+    ? [
+        mcp({
+          resource: assistantResourceUrl(options.baseURL),
+          loginPage: ASSISTANT_LOGIN_PAGE,
+          consentPage: ASSISTANT_CONSENT_PAGE,
+          scopes: ASSISTANT_SCOPES,
+          // Claude, ChatGPT and friends register themselves (RFC 7591) or
+          // present a Client ID Metadata Document; nobody types client ids.
+          allowDynamicClientRegistration: true,
+          allowUnauthenticatedClientRegistration: true,
+          refreshTokenExpiresIn: ASSISTANT_REFRESH_TOKEN_TTL_SECONDS,
+        }),
+        cimd({ fetchClientMetadataResource, metadataProfile: "mcp-2026-07-28" }),
+        assistantRefreshTokens,
+      ]
+    : [];
   return betterAuth({
     appName: "Sitli",
     baseURL: options.baseURL,
@@ -109,6 +191,9 @@ export function createAuth(options: CreateAuthOptions) {
         enableMetadata: true,
         rateLimit: { enabled: false },
       }),
+      // signs the access tokens assistants present and serves /api/auth/jwks
+      jwt(),
+      ...assistantPlugins,
     ],
   });
 }
