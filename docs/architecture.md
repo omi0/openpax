@@ -282,7 +282,9 @@ Metadata Documents, which MCP 2026-07-28 pins. A tiny plugin
 request: the protected-resource metadata deliberately leaves it out, and
 without it no refresh token would be issued and the owner would log in again
 every hour. Discovery documents live at the origin root, so the `mcp` module
-forwards `/.well-known/*` to the Better Auth handler.
+forwards `/.well-known/*` to the Better Auth handler (which serves the
+issuer-path forms) and answers the bare `/.well-known/oauth-authorization-server`
+and `/.well-known/openid-configuration` itself for clients that only try those.
 
 **Browser flow.** The assistant sends the browser to
 `/api/auth/oauth2/authorize`. Without a session Better Auth redirects to
@@ -291,7 +293,9 @@ plugin attaches it to the sign-in call and the answer is a redirect the auth
 client follows by itself (`continueOAuth` in `lib/auth-search.ts` just stops
 the page's own navigation). With a session the
 browser lands on `/connect`: the consent page shows who is asking (the public
-client record), the restaurants the user can reach, and a checkbox "allow it to
+client record), the address the browser will be sent back to (anyone can
+register a client called "Claude"; the callback host is what an impostor
+cannot fake), the restaurants the user can reach, and a checkbox "allow it to
 make changes" that drops the `write` scope when unticked. `POST
 /api/auth/oauth2/consent` answers with the assistant's callback URL carrying
 the code; the assistant swaps it for tokens at `/api/auth/oauth2/token`.
@@ -314,8 +318,11 @@ today's date and the caller's role, so the model rarely needs
 several restaurants. Times in and out are the restaurant's wall clock
 (`format.ts`); bookings created this way carry `source: "assistant"` and the
 actor `{ type: "user", via: "assistant" }`, which `writeAudit` records as
-`data.via`. `close_days` returns the bookings already taken and refuses to
-proceed until called with `confirm: true`. Tools call the other modules'
+`data.via`. `create_booking` derives an idempotency key from the request
+(client, restaurant, date, time, party, guest), so a retried call returns the
+booking already made instead of seating the party twice. `close_days` returns
+the bookings already taken and refuses to proceed until called with
+`confirm: true`. Tools call the other modules'
 public APIs only (`bookings`, `customers`, `availability`, `waitlist`,
 `restaurants`, `analytics`, `feedback` export what they need).
 

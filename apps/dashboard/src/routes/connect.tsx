@@ -19,6 +19,7 @@ export const Route = createFileRoute("/connect")({
   validateSearch: (search: Record<string, unknown>) => ({
     client_id: typeof search.client_id === "string" ? search.client_id : undefined,
     scope: typeof search.scope === "string" ? search.scope : undefined,
+    redirect_uri: typeof search.redirect_uri === "string" ? search.redirect_uri : undefined,
   }),
   beforeLoad: async ({ context, location }) => {
     const session = await authClient.getSession();
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/connect")({
 
 function ConnectPage() {
   const { t } = useTranslation();
-  const { client_id: clientId, scope } = Route.useSearch();
+  const { client_id: clientId, scope, redirect_uri: redirectUri } = Route.useSearch();
   const { data: me } = useSuspenseQuery(meQuery());
   // captured once: the answer must carry exactly the query the server signed
   const [oauthQuery] = useState(() => window.location.search.slice(1));
@@ -81,6 +82,15 @@ function ConnectPage() {
     );
 
   const clientName = client.data?.client_name || t("connect.unknownClient");
+  // anyone can register a client called "Claude": the address the browser
+  // goes back to is the part an impostor cannot fake
+  const backTo = (() => {
+    try {
+      return redirectUri ? new URL(redirectUri).host : null;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <AuthLayout
@@ -112,6 +122,9 @@ function ConnectPage() {
           <p className="text-[15px] font-semibold text-stone-900">{clientName}</p>
           {client.data?.client_uri ? (
             <p className="truncate text-sm text-stone-500">{client.data.client_uri}</p>
+          ) : null}
+          {backTo ? (
+            <p className="mt-0.5 text-sm text-stone-500">{t("connect.backTo", { host: backTo })}</p>
           ) : null}
         </div>
       </div>

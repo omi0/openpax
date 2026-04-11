@@ -11,4 +11,4 @@ export const waitlistModule = defineModule({
 });
 
 /** Public API for features that show or offer waitlist spots on staff's behalf (assistants). */
-export { cancelEntry, listEntries, offerEntry, toEntryDto } from "./service.js";
+export { cancelEntry, getEntry, listEntries, offerEntry, toEntryDto } from "./service.js";

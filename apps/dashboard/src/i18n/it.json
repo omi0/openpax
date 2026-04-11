@@ -1081,6 +1081,7 @@
     "deny": "Rifiuta",
     "notYou": "Non sei tu?",
     "switchAccount": "Accedi con un altro account",
-    "failed": "Non è stato possibile completare il collegamento. Riprova dall'assistente."
+    "failed": "Non è stato possibile completare il collegamento. Riprova dall'assistente.",
+    "backTo": "Dopo l'approvazione tornerai su {{host}}."
   }
 }

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import {
   addDaysToLocalDate,
@@ -30,7 +31,7 @@ import {
   listExceptions,
   listServices,
 } from "../restaurants/index.js";
-import { cancelEntry, listEntries, offerEntry, toEntryDto } from "../waitlist/index.js";
+import { cancelEntry, getEntry, listEntries, offerEntry, toEntryDto } from "../waitlist/index.js";
 import {
   bookingBrief,
   clock,
@@ -97,7 +98,12 @@ const guestArg = z.object({
   email: z.email().optional(),
 });
 
-/** Pick the service that takes bookings at that time, so the model need not know service ids. */
+/**
+ * Pick the service that takes bookings at that time, so the model need not
+ * know service ids. When nothing starts at that exact time (20:10 with
+ * half-hour slots) the error names the bookable times around it instead of
+ * letting the engine answer "not a slot".
+ */
 async function serviceAt(
   tc: ToolContext,
   row: Parameters<typeof getAvailability>[1],
@@ -112,15 +118,42 @@ async function serviceAt(
   const iso = startsAt.toISOString();
   const slot = availability.slots.find((s) => s.startsAt === iso);
   if (slot) return slot.serviceId;
-  if (availability.services.length === 1) return (availability.services[0] as { id: string }).id;
-  const times = availability.slots
+  const wanted = startsAt.getTime();
+  const nearby = availability.slots
+    .filter((s) => s.available && Math.abs(new Date(s.startsAt).getTime() - wanted) <= 90 * 60_000)
+    .map((s) => clock(s.startsAt, row.timezone));
+  const anyFree = availability.slots
     .filter((s) => s.available)
     .map((s) => clock(s.startsAt, row.timezone));
+  const times = nearby.length ? nearby : anyFree;
   throw new ToolError(
     times.length
-      ? `No service takes bookings at ${clock(startsAt, row.timezone)} on ${date}. Bookable times: ${times.join(", ")}.`
+      ? `No booking starts at ${clock(startsAt, row.timezone)} on ${date}. Bookable times nearby: ${times.join(", ")}.`
       : `Nothing is bookable on ${date}${availability.reasons.length ? ` (${availability.reasons.join(", ")})` : ""}.`,
   );
+}
+
+/**
+ * A retry of the same request (the assistant timed out, the owner repeated
+ * themselves) must not seat the same party twice: the key is derived from
+ * what the booking is, so `createBooking` answers with the booking it already
+ * made.
+ */
+function bookingKey(clientId: string, parts: Array<string | number | null | undefined>) {
+  const digest = createHash("sha256")
+    .update(
+      [
+        clientId,
+        ...parts.map((p) =>
+          String(p ?? "")
+            .trim()
+            .toLowerCase(),
+        ),
+      ].join("|"),
+    )
+    .digest("hex")
+    .slice(0, 40);
+  return `assistant:${digest}`;
 }
 
 const ACTIVE_STATUSES = ["pending", "confirmed", "seated"] as const;
@@ -201,6 +234,9 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           covers: live.reduce((n, b) => n + b.partySize, 0),
           byStatus,
           largestParty: live.reduce((n, b) => Math.max(n, b.partySize), 0) || undefined,
+          ...(bookings.total > bookings.items.length
+            ? { note: `showing ${bookings.items.length} of ${bookings.total} bookings` }
+            : {}),
         },
         bookings: bookings.items.map((b) => bookingBrief(b, row.timezone)),
         waitlist: waitlist.items.map((e) => waitlistBrief(e, row.timezone)),
@@ -517,6 +553,15 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           locale: row.locale,
         },
         notes: notes ?? null,
+        idempotencyKey: bookingKey(tc.principal.clientId, [
+          row.id,
+          date,
+          time,
+          partySize,
+          guest.name,
+          guest.phone?.replace(/\D/g, ""),
+          guest.email,
+        ]),
         source: "assistant",
         actor,
         notifyGuest,
@@ -749,13 +794,11 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     annotations: WRITE,
     run: async ({ restaurantId, entryId, time, serviceId }, tc) => {
       const { row, actor } = await tc.restaurant(restaurantId, { booking: ["create"] });
-      const entries = await listEntries(tc.ctx, row, {
-        page: 1,
-        pageSize: 200,
-        status: ["waiting", "offered"],
-      });
-      const entry = entries.items.find((e) => e.id === entryId);
-      if (!entry) throw new ToolError("No open waitlist entry with that id.");
+      const entry = toEntryDto(await getEntry(tc.ctx.db, row.id, entryId));
+      if (entry.status !== "waiting" && entry.status !== "offered")
+        throw new ToolError(
+          `That waitlist entry is ${entry.status}; only waiting or offered guests can get a spot.`,
+        );
       const startsAt = instantOf(entry.serviceDate, time, row.timezone);
       const service = await serviceAt(
         tc,

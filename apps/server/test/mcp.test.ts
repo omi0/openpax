@@ -158,6 +158,33 @@ describe("discovery", () => {
     expect(server.registration_endpoint).toBe(`${PUBLIC_URL}/api/auth/oauth2/register`);
     expect(server.token_endpoint).toBe(`${PUBLIC_URL}/api/auth/oauth2/token`);
     expect(server.code_challenge_methods_supported).toEqual(["S256"]);
+
+    // clients that only try the bare root paths get the same documents
+    const root = await t.app.request("/.well-known/oauth-authorization-server");
+    expect(root.status).toBe(200);
+    expect(((await root.json()) as { issuer: string }).issuer).toBe(`${PUBLIC_URL}/api/auth`);
+    const oidc = await t.app.request("/.well-known/openid-configuration");
+    expect(oidc.status).toBe(200);
+  });
+
+  it("rejects a dashboard session JWT: only tokens issued for the MCP resource pass", async () => {
+    const issued = await t.app.request("/api/auth/token", {
+      headers: { cookie: fx.session.cookie },
+    });
+    expect(issued.status).toBe(200);
+    const { token } = (await issued.json()) as { token: string };
+    expect(token).toBeTruthy();
+    const res = await t.app.request("/mcp", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+    expect(res.status).toBe(401);
+    expect(res.headers.get("www-authenticate")).toContain('error="invalid_token"');
   });
 
   it("challenges anonymous MCP requests with a pointer to the metadata", async () => {
@@ -285,6 +312,32 @@ describe("tools", () => {
       data: expect.objectContaining({ via: "assistant" }),
     });
 
+    // the same request again (a retry after a timeout) returns the booking already made
+    const again = parse<{ booking: { id: string } }>(
+      await client.callTool({
+        name: "create_booking",
+        arguments: {
+          date: FRIDAY,
+          time: "20:00",
+          partySize: 4,
+          guest: { name: "Lucia Bianchi", phone: "+39 333 7654321" },
+          notes: "compleanno",
+        },
+      }),
+    );
+    expect(again.data.booking.id).toBe(created.data.booking.id);
+
+    // a time that is not a slot gets the nearby bookable times, not a bare reason code
+    const odd = parse(
+      await client.callTool({
+        name: "create_booking",
+        arguments: { date: FRIDAY, time: "20:10", partySize: 2, guest: { name: "Anna" } },
+      }),
+    );
+    expect(odd.isError).toBe(true);
+    expect(odd.text).toMatch(/No booking starts at 20:10/);
+    expect(odd.text).toMatch(/20:30/);
+
     const day = parse<{ totals: { bookings: number; covers: number }; bookings: unknown[] }>(
       await client.callTool({ name: "get_day", arguments: { date: FRIDAY } }),
     );
@@ -390,6 +443,17 @@ describe("settings", () => {
     });
     expect(raw.status, await raw.clone().text()).toBe(401);
     expect(raw.headers.get("www-authenticate")).toContain('error="invalid_token"');
+    // the refresh token was revoked too: the assistant cannot quietly come back
+    const refresh = await t.app.request("/api/auth/oauth2/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: tokens.refresh_token ?? "",
+        client_id: tokens.clientId,
+      }).toString(),
+    });
+    expect(refresh.status).toBeGreaterThanOrEqual(400);
     const after = await api<{ connections: unknown[] }>(
       t,
       "GET",

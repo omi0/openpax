@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from "@better-auth/oauth-provider";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
@@ -16,8 +20,16 @@ const tags = ["Assistants"];
 
 export function mcpRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
   if (assistantsSupported(ctx.env.PUBLIC_URL)) {
-    // OAuth discovery documents (RFC 8414, RFC 9728) live at the origin root;
-    // Better Auth answers them from the raw request, outside its base path.
+    // OAuth discovery documents (RFC 8414, RFC 9728) live at the origin root.
+    // Better Auth serves the issuer-path forms (…/oauth-authorization-server/api/auth)
+    // from the raw request; clients that only try the bare root paths get the
+    // same documents from these two routes.
+    const serverMetadata = oauthProviderAuthServerMetadata(ctx.auth);
+    const openIdConfig = oauthProviderOpenIdConfigMetadata(ctx.auth);
+    app.on(["GET", "HEAD"], "/.well-known/oauth-authorization-server", (c) =>
+      serverMetadata(c.req.raw),
+    );
+    app.on(["GET", "HEAD"], "/.well-known/openid-configuration", (c) => openIdConfig(c.req.raw));
     app.on(["GET", "HEAD"], "/.well-known/*", (c) => ctx.auth.handler(c.req.raw));
 
     const limits = { enabled: ctx.env.RATE_LIMIT === "on", trustProxy: ctx.env.TRUST_PROXY };

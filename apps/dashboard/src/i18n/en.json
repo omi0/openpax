@@ -1081,6 +1081,7 @@
     "deny": "Deny",
     "notYou": "Not you?",
     "switchAccount": "Log in with another account",
-    "failed": "Could not complete the connection. Try again from the assistant."
+    "failed": "Could not complete the connection. Try again from the assistant.",
+    "backTo": "After approving you will be sent back to {{host}}."
   }
 }

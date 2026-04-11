@@ -64,7 +64,7 @@ function instructions(
               `${r.name} (id ${r.id}, time zone ${r.timezone}, your role: ${r.role}, today there is ${todayIn(r.timezone, ctx.now())})`,
           )
           .join("; ")}.`,
-    "Dates are YYYY-MM-DD and times HH:MM in the restaurant's time zone. Party size means number of guests (covers).",
+    "Dates are YYYY-MM-DD and times HH:MM on the 24-hour clock in the restaurant's time zone (8pm is 20:00). Party size means number of guests (covers).",
     canWrite
       ? "You may create and change bookings, add guest notes, close days and offer waitlist spots. Before cancelling a booking, marking a no-show or closing days, make sure the user really asked for it. Bookings you create are recorded as made by the assistant; the guest gets the usual confirmation unless notifyGuest is false."
       : "This connection is read-only: you can look things up but not change them. To allow changes, the owner reconnects the assistant from Settings → Assistants and keeps 'allow changes' on.",
