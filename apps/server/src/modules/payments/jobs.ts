@@ -1,4 +1,4 @@
-import { bookingPayment } from "@sitli/db";
+import { bookingPayment } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import { defineJob } from "../../jobs/queue.js";
 import { expirePayment, syncPayment } from "./service.js";

@@ -1,4 +1,4 @@
-import type { RestaurantDto, UpdateRestaurantInput } from "@sitli/shared";
+import type { RestaurantDto, UpdateRestaurantInput } from "@openpax/shared";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Button, Field, Input, Select } from "@/components/ui";

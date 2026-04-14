@@ -5,7 +5,7 @@ import it from "./it.json";
 
 const stored = (() => {
   try {
-    return localStorage.getItem("sitli.lang");
+    return localStorage.getItem("openpax.lang");
   } catch {
     return null;
   }
@@ -22,7 +22,7 @@ void i18next.use(initReactI18next).init({
 export function setLanguage(lang: "it" | "en") {
   void i18next.changeLanguage(lang);
   try {
-    localStorage.setItem("sitli.lang", lang);
+    localStorage.setItem("openpax.lang", lang);
   } catch {}
 }
 

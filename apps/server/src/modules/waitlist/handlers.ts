@@ -1,4 +1,4 @@
-import { booking, waitlistEntry } from "@sitli/db";
+import { booking, waitlistEntry } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import { defineEventHandler } from "../../events/dispatch.js";
 import { findRestaurantById } from "../../lib/restaurant-lookup.js";

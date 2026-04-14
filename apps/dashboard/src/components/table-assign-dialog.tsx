@@ -1,4 +1,4 @@
-import type { BookingDto, TableDto } from "@sitli/shared";
+import type { BookingDto, TableDto } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { useState } from "react";

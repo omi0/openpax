@@ -1,5 +1,5 @@
+import type { PublicFeedbackDto } from "@openpax/shared";
 import { useSignal } from "@preact/signals";
-import type { PublicFeedbackDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
 import { formatInstant } from "../dates.js";
@@ -90,9 +90,9 @@ export function FeedbackPage({ token }: { token: string }) {
             ))}
           </fieldset>
           <div class="field">
-            <label for="sitli-fb-comment">{t("feedback.comment")}</label>
+            <label for="openpax-fb-comment">{t("feedback.comment")}</label>
             <textarea
-              id="sitli-fb-comment"
+              id="openpax-fb-comment"
               maxLength={2000}
               value={comment.value}
               onInput={(e) => {

@@ -30,7 +30,7 @@ import type {
   TeamDto,
   WaitlistEntryDto,
   WidgetConfigDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "./api.js";
 

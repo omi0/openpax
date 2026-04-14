@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { DomainEvent, DomainEventPayloads, DomainEventType } from "@sitli/core";
-import type { DbOrTx } from "@sitli/db";
-import { outboxEvent } from "@sitli/db";
+import type { DomainEvent, DomainEventPayloads, DomainEventType } from "@openpax/core";
+import type { DbOrTx } from "@openpax/db";
+import { outboxEvent } from "@openpax/db";
 
 export interface EmitOptions<T extends DomainEventType> {
   type: T;

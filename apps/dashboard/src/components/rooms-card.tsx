@@ -1,4 +1,4 @@
-import type { AreaDto, TableDto, UpsertAreaInput } from "@sitli/shared";
+import type { AreaDto, TableDto, UpsertAreaInput } from "@openpax/shared";
 import { DoorOpen, Pencil, Plus, Trash } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";

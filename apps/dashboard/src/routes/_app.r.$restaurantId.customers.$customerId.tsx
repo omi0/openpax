@@ -1,4 +1,4 @@
-import type { CustomerDto, CustomerDuplicateDto, UpdateCustomerInput } from "@sitli/shared";
+import type { CustomerDto, CustomerDuplicateDto, UpdateCustomerInput } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {

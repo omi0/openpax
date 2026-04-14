@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
-import { bookingPolicy } from "@sitli/db";
+import { bookingPolicy } from "@openpax/db";
 import {
   bookingDtoSchema,
   bookWaitlistInputSchema,
@@ -12,7 +12,7 @@ import {
   publicBookingDtoSchema,
   publicWaitlistEntryDtoSchema,
   waitlistEntryDtoSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { eq } from "drizzle-orm";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv, RestaurantRow } from "../../context.js";

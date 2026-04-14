@@ -1,11 +1,11 @@
-import type { BookingAction } from "@sitli/core";
+import type { BookingAction } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
   ScheduleExceptionDto,
   UpsertAreaInput,
   UpsertScheduleExceptionInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {

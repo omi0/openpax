@@ -1,11 +1,11 @@
-import { ACTIVE_BOOKING_STATUSES } from "@sitli/core";
-import { area, booking, bookingTable, diningTable } from "@sitli/db";
+import { ACTIVE_BOOKING_STATUSES } from "@openpax/core";
+import { area, booking, bookingTable, diningTable } from "@openpax/db";
 import type {
   AssignTablesInput,
   TableDto,
   UpdateTablePositionsInput,
   UpsertTableInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";

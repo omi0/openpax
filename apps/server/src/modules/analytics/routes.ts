@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
-import { analyticsDtoSchema, analyticsQuerySchema } from "@sitli/shared";
+import { analyticsDtoSchema, analyticsQuerySchema } from "@openpax/shared";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonResponse, restaurantIdParam } from "../../lib/openapi.js";

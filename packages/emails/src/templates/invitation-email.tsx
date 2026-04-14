@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource react */
-import type { Locale } from "@sitli/shared";
+import type { Locale } from "@openpax/shared";
 import { Button, Layout } from "../components/layout.js";
 
 export interface InvitationEmailProps {
@@ -24,7 +24,7 @@ export function invitationCopy(p: InvitationEmailProps) {
   const role = roleLabels[p.locale]?.[p.role] ?? p.role;
   if (p.locale === "it") {
     return {
-      subject: `${p.inviterName} ti ha invitato a gestire ${p.organizationName} su Sitli`,
+      subject: `${p.inviterName} ti ha invitato a gestire ${p.organizationName} su OpenPax`,
       heading: "Sei stato invitato",
       intro: `${p.inviterName} ti ha invitato a unirti al team di ${p.organizationName} come ${role}. Accetta l'invito per vedere le prenotazioni e gestire il ristorante.`,
       button: "Accetta l'invito",
@@ -33,7 +33,7 @@ export function invitationCopy(p: InvitationEmailProps) {
     };
   }
   return {
-    subject: `${p.inviterName} invited you to manage ${p.organizationName} on Sitli`,
+    subject: `${p.inviterName} invited you to manage ${p.organizationName} on OpenPax`,
     heading: "You have been invited",
     intro: `${p.inviterName} invited you to join the team of ${p.organizationName} as ${role}. Accept the invitation to see bookings and manage the restaurant.`,
     button: "Accept invitation",

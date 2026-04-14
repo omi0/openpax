@@ -12,14 +12,14 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: sitli
-          POSTGRES_PASSWORD: sitli
-          POSTGRES_DB: sitli
+          POSTGRES_USER: openpax
+          POSTGRES_PASSWORD: openpax
+          POSTGRES_DB: openpax
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U sitli" --health-interval 5s --health-timeout 3s --health-retries 20
+          --health-cmd "pg_isready -U openpax" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
-      TEST_DATABASE_URL: postgres://sitli:sitli@localhost:5432/sitli
+      TEST_DATABASE_URL: postgres://openpax:openpax@localhost:5432/openpax
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -47,9 +47,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @sitli/dashboard build && pnpm --filter @sitli/widget build
-      - run: pnpm --filter @sitli/e2e exec playwright install --with-deps chromium
-      - run: pnpm --filter @sitli/e2e test:e2e
+      - run: pnpm --filter @openpax/dashboard build && pnpm --filter @openpax/widget build
+      - run: pnpm --filter @openpax/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @openpax/e2e test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -66,6 +66,6 @@ jobs:
         with:
           context: .
           push: false
-          tags: sitli:ci
+          tags: openpax:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

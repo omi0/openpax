@@ -4,7 +4,7 @@ import { onboardOwner } from "./helpers";
 
 /**
  * An assistant connects through the browser: it registers itself, sends the
- * owner to Sitli, the owner approves on the consent page and lands back on
+ * owner to OpenPax, the owner approves on the consent page and lands back on
  * the assistant's callback with a code. The settings page lists the
  * connection and disconnects it.
  */
@@ -48,7 +48,7 @@ test("an assistant connects with OAuth and can be disconnected from Settings", a
   // the browser is signed in already, so the consent page comes straight away
   await page.goto(authorize.toString());
   await expect(page.getByRole("heading", { name: "Connect an assistant" })).toBeVisible();
-  await expect(page.getByText("Claude wants to use Sitli as")).toBeVisible();
+  await expect(page.getByText("Claude wants to use OpenPax as")).toBeVisible();
   await expect(page.getByText("Osteria Assistente")).toBeVisible();
   await expect(page.getByLabel("Allow it to make changes")).toBeChecked();
 

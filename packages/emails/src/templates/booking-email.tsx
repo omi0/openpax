@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource react */
-import type { NotificationAudience } from "@sitli/shared";
+import type { NotificationAudience } from "@openpax/shared";
 import { Button, Details, Layout } from "../components/layout.js";
 import type { CopyVars, EmailCopy } from "../i18n/copy.js";
 
@@ -54,7 +54,7 @@ export function BookingEmail(p: BookingEmailProps) {
   if (p.notes) rows.push([p.copy.labels.notes, p.notes]);
 
   const href = p.audience === "guest" ? p.manageUrl : p.dashboardUrl;
-  const label = p.audience === "guest" ? p.copy.button : "Sitli";
+  const label = p.audience === "guest" ? p.copy.button : "OpenPax";
 
   return (
     <Layout

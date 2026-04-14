@@ -3,7 +3,7 @@ import type {
   ScheduleExceptionDto,
   UpsertCapacityRuleInput,
   UpsertScheduleExceptionInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarOff, Pencil, Plus, SlidersHorizontal, Trash } from "lucide-react";

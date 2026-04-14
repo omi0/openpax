@@ -201,7 +201,7 @@ describe("api keys", () => {
       fx.session,
     );
     expect(created.status).toBe(201);
-    expect(created.body.key).toMatch(/^sitli_/);
+    expect(created.body.key).toMatch(/^openpax_/);
 
     const list = await api<Array<Record<string, unknown>>>(
       t,

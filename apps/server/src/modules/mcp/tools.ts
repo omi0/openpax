@@ -7,8 +7,13 @@ import {
   todayIn,
   WEEKDAYS,
   weekdayOf,
-} from "@sitli/core";
-import { type BookingDto, localDateSchema, localTimeSchema, partySizeSchema } from "@sitli/shared";
+} from "@openpax/core";
+import {
+  type BookingDto,
+  localDateSchema,
+  localTimeSchema,
+  partySizeSchema,
+} from "@openpax/shared";
 import { z } from "zod";
 import type { Permissions } from "../../auth/access.js";
 import { writeAudit } from "../../lib/audit.js";

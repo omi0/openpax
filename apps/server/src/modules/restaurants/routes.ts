@@ -17,7 +17,7 @@ import {
   upsertScheduleExceptionInputSchema,
   upsertServiceInputSchema,
   widgetConfigDtoSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
 import { isSignupOpen } from "../../auth/signup.js";
 import type { AppContext, AppEnv } from "../../context.js";

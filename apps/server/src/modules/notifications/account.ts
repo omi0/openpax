@@ -1,5 +1,5 @@
-import { member, notificationLog, restaurant, widgetConfig } from "@sitli/db";
-import { renderPasswordResetEmail } from "@sitli/emails";
+import { member, notificationLog, restaurant, widgetConfig } from "@openpax/db";
+import { renderPasswordResetEmail } from "@openpax/emails";
 import { asc, eq, sql } from "drizzle-orm";
 import { RESET_PASSWORD_TTL_SECONDS } from "../../auth/create-auth.js";
 import { defineJob } from "../../jobs/queue.js";
@@ -83,7 +83,7 @@ export const passwordResetJob = defineJob<{
       name,
       resetUrl: url,
       expiresMinutes: RESET_PASSWORD_TTL_SECONDS / 60,
-      brandName: home?.restaurant.name ?? "Sitli",
+      brandName: home?.restaurant.name ?? "OpenPax",
       primaryColor: home?.widget?.primaryColor ?? "#1f6f5f",
       logoUrl: home?.widget?.logoUrl ?? null,
     });

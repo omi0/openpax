@@ -24,7 +24,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 }
 
 async function createFromAdminUrl(adminUrl: string): Promise<TestDatabase> {
-  const name = `sitli_test_${randomBytes(6).toString("hex")}`;
+  const name = `openpax_test_${randomBytes(6).toString("hex")}`;
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   await admin.query(`create database ${name}`);

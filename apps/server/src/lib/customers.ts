@@ -1,5 +1,5 @@
-import type { DbOrTx } from "@sitli/db";
-import { customer } from "@sitli/db";
+import type { DbOrTx } from "@openpax/db";
+import { customer } from "@openpax/db";
 import { and, eq } from "drizzle-orm";
 import { lockGuestIdentities } from "./locks.js";
 

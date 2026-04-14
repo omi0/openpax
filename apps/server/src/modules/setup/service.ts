@@ -1,11 +1,11 @@
-import { WEEKDAYS } from "@sitli/core";
-import { restaurant } from "@sitli/db";
+import { WEEKDAYS } from "@openpax/core";
+import { restaurant } from "@openpax/db";
 import {
   SETUP_STEPS,
   type SetupStatusDto,
   type SetupStep,
   type UpdateSetupInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { eq } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";

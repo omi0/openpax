@@ -1,4 +1,4 @@
-import { auditLog } from "@sitli/db";
+import { auditLog } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -214,7 +214,7 @@ describe("setup guide with the instance SMTP fallback", () => {
     smtpApp = await createTestApp({
       env: {
         SMTP_URL: "smtp://user:pass@mail.example.com:587",
-        SMTP_FROM: "Sitli <no@example.com>",
+        SMTP_FROM: "OpenPax <no@example.com>",
       },
     });
   });

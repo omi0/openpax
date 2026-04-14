@@ -5,7 +5,7 @@ import {
 import { StreamableHTTPTransport } from "@hono/mcp";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
-import { assistantsStatusDtoSchema } from "@sitli/shared";
+import { assistantsStatusDtoSchema } from "@openpax/shared";
 import { bodyLimit } from "hono/body-limit";
 import { assistantsSupported } from "../../auth/create-auth.js";
 import { requireSession } from "../../auth/middleware.js";

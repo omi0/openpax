@@ -1,5 +1,5 @@
-import type { BookingAction } from "@sitli/core";
-import type { BookingDto, RestaurantDto } from "@sitli/shared";
+import type { BookingAction } from "@openpax/core";
+import type { BookingDto, RestaurantDto } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {

@@ -277,10 +277,10 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
-      '@sitli/core':
+      '@openpax/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@sitli/shared':
+      '@openpax/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tanstack/react-query':
@@ -380,16 +380,16 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.30.0(zod@4.5.4)
-      '@sitli/core':
+      '@openpax/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@sitli/db':
+      '@openpax/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@sitli/emails':
+      '@openpax/emails':
         specifier: workspace:*
         version: link:../../packages/emails
-      '@sitli/shared':
+      '@openpax/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       better-auth:
@@ -456,12 +456,12 @@ importers:
 
   apps/widget:
     dependencies:
+      '@openpax/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@preact/signals':
         specifier: 'catalog:'
         version: 2.11.2(preact@10.29.8)
-      '@sitli/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       preact:
         specifier: 'catalog:'
         version: 10.29.8
@@ -521,7 +521,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@sitli/core':
+      '@openpax/core':
         specifier: workspace:*
         version: link:../core
       drizzle-orm:
@@ -564,7 +564,7 @@ importers:
       '@date-fns/tz':
         specifier: 'catalog:'
         version: 1.5.0
-      '@sitli/shared':
+      '@openpax/shared':
         specifier: workspace:*
         version: link:../shared
       date-fns:
@@ -595,7 +595,7 @@ importers:
 
   packages/shared:
     dependencies:
-      '@sitli/core':
+      '@openpax/core':
         specifier: workspace:*
         version: link:../core
       zod:

@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute } from "@hono/zod-openapi";
-import { setupStatusDtoSchema, updateSetupInputSchema } from "@sitli/shared";
+import { setupStatusDtoSchema, updateSetupInputSchema } from "@openpax/shared";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";

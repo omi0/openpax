@@ -1,5 +1,5 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
-import type { ApiError as ApiErrorDto } from "@sitli/shared";
+import type { ApiError as ApiErrorDto } from "@openpax/shared";
 import type { Context } from "hono";
 import type { AppEnv } from "../context.js";
 

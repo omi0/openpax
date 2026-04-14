@@ -1,4 +1,4 @@
-import type { RestaurantDto } from "@sitli/shared";
+import type { RestaurantDto } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";

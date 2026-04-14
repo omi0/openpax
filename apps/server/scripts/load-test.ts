@@ -9,7 +9,7 @@
  * events or jobs, and no 5xx responses.
  *
  *   LOAD_BASE_URL=http://127.0.0.1:3100 LOAD_DATABASE_URL=postgres://... \
- *     pnpm --filter @sitli/server exec tsx scripts/load-test.ts \
+ *     pnpm --filter @openpax/server exec tsx scripts/load-test.ts \
  *     [--scenario all|rush|idem|same-guest|reopen|tables|waitlist|mixed] \
  *     [--concurrency 50] [--duration 30] [--requests 200]
  *
@@ -23,7 +23,7 @@ import { Pool } from "pg";
 
 const BASE = (process.env.LOAD_BASE_URL ?? "http://127.0.0.1:3100").replace(/\/+$/, "");
 const DATABASE_URL =
-  process.env.LOAD_DATABASE_URL ?? "postgres://sitli:sitli@localhost:5432/sitli_load";
+  process.env.LOAD_DATABASE_URL ?? "postgres://openpax:openpax@localhost:5432/openpax_load";
 
 function arg(name: string, fallback: string): string {
   const i = process.argv.indexOf(`--${name}`);

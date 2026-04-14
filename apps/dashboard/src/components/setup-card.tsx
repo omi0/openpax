@@ -1,4 +1,4 @@
-import type { SetupStatusDto } from "@sitli/shared";
+import type { SetupStatusDto } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CircleCheck, Rocket } from "lucide-react";

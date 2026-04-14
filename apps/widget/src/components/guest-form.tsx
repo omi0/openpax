@@ -89,9 +89,9 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
 
       <h2>{t("yourDetails")}</h2>
       <div class="field">
-        <label for="sitli-name">{t("name")}</label>
+        <label for="openpax-name">{t("name")}</label>
         <input
-          id="sitli-name"
+          id="openpax-name"
           type="text"
           required
           autocomplete="name"
@@ -100,9 +100,9 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-email">{t("email")}</label>
+        <label for="openpax-email">{t("email")}</label>
         <input
-          id="sitli-email"
+          id="openpax-email"
           type="email"
           required
           autocomplete="email"
@@ -112,12 +112,12 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-phone">
+        <label for="openpax-phone">
           {t("phone")}
           {!cfg.widget.requirePhone ? ` (${t("optional")})` : ""}
         </label>
         <input
-          id="sitli-phone"
+          id="openpax-phone"
           type="tel"
           required={cfg.widget.requirePhone}
           autocomplete="tel"
@@ -127,9 +127,9 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-notes">{t("notes")}</label>
+        <label for="openpax-notes">{t("notes")}</label>
         <textarea
-          id="sitli-notes"
+          id="openpax-notes"
           maxLength={1000}
           value={g.notes}
           onInput={(e) => update({ notes: (e.target as HTMLTextAreaElement).value })}

@@ -1,4 +1,4 @@
-import { WAITLIST_STATUSES } from "@sitli/core";
+import { WAITLIST_STATUSES } from "@openpax/core";
 import { z } from "zod";
 import { bookingCustomerDtoSchema, bookingSourceSchema, guestInputSchema } from "./booking.js";
 import {

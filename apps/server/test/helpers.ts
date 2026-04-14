@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { member, restaurant } from "@sitli/db";
-import { createTestDatabase, type TestDatabase } from "@sitli/db/testing";
+import { member, restaurant } from "@openpax/db";
+import { createTestDatabase, type TestDatabase } from "@openpax/db/testing";
 import { eq } from "drizzle-orm";
 import { createApp } from "../src/app.js";
 import { buildContext } from "../src/bootstrap.js";

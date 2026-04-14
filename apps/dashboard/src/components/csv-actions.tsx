@@ -140,7 +140,7 @@ function ImportDialog({
         <p className="text-sm leading-relaxed text-stone-600">{t(`csv.hint.${kind}`)}</p>
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATES[kind])}`}
-          download={`sitli-${kind}-template.csv`}
+          download={`openpax-${kind}-template.csv`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
         >
           <Download className="size-4" /> {t("csv.template")}

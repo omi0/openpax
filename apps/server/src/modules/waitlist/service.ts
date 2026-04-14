@@ -6,10 +6,10 @@ import {
   OPEN_WAITLIST_STATUSES,
   pickOfferSlot,
   type WaitlistStatus,
-} from "@sitli/core";
-import type { DbOrTx } from "@sitli/db";
-import { bookingPolicy, customer, service, waitlistEntry } from "@sitli/db";
-import type { ListWaitlistQuery, PublicWaitlistEntryDto, WaitlistEntryDto } from "@sitli/shared";
+} from "@openpax/core";
+import type { DbOrTx } from "@openpax/db";
+import { bookingPolicy, customer, service, waitlistEntry } from "@openpax/db";
+import type { ListWaitlistQuery, PublicWaitlistEntryDto, WaitlistEntryDto } from "@openpax/shared";
 import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";

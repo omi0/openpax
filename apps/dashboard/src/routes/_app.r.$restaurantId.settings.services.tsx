@@ -1,5 +1,5 @@
-import { WEEKDAYS } from "@sitli/core";
-import type { ServiceDto, UpsertServiceInput } from "@sitli/shared";
+import { WEEKDAYS } from "@openpax/core";
+import type { ServiceDto, UpsertServiceInput } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Clock, Pencil, Plus, Trash } from "lucide-react";

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
-import { createDb, runMigrations } from "@sitli/db";
+import { createDb, runMigrations } from "@openpax/db";
 import { createApp } from "./app.js";
 import { buildContext } from "./bootstrap.js";
 import { loadEnv } from "./env.js";
@@ -66,7 +66,7 @@ if (env.ROLE !== "worker") {
     },
   });
   server = serve({ fetch: app.fetch, port: env.PORT, hostname: env.HOST }, (info) => {
-    logger.info({ port: info.port, url: env.PUBLIC_URL }, "sitli listening");
+    logger.info({ port: info.port, url: env.PUBLIC_URL }, "openpax listening");
   });
 }
 

@@ -8,15 +8,15 @@ import {
   isLocalTime,
   localToInstant,
   parseLocalTime,
-} from "@sitli/core";
-import { booking, customer, service } from "@sitli/db";
+} from "@openpax/core";
+import { booking, customer, service } from "@openpax/db";
 import {
   BOOKING_CSV_COLUMNS,
   CUSTOMER_CSV_COLUMNS,
   type ExportBookingsQuery,
   type ExportCustomersQuery,
   type ImportResultDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";

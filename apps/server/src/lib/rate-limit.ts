@@ -4,7 +4,7 @@ import type { AppEnv } from "../context.js";
 
 /**
  * Fixed-window counters in process memory. Good enough for a single
- * instance (the deployment Sitli targets); a second replica would keep its
+ * instance (the deployment OpenPax targets); a second replica would keep its
  * own counters, so limits become "per replica" rather than global.
  */
 export class RateLimiter {

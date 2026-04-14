@@ -1,7 +1,7 @@
 /**
- * Sitli embed loader. Usage on any website:
- *   <div id="sitli-booking"></div>
- *   <script src="https://bookings.example.com/embed.js" data-restaurant="my-slug" data-target="#sitli-booking" async></script>
+ * OpenPax embed loader. Usage on any website:
+ *   <div id="openpax-booking"></div>
+ *   <script src="https://bookings.example.com/embed.js" data-restaurant="my-slug" data-target="#openpax-booking" async></script>
  * Optional: data-lang="en", data-min-height="520".
  */
 (() => {
@@ -9,11 +9,11 @@
   if (!script) return;
   const restaurant = script.dataset.restaurant;
   if (!restaurant) {
-    console.error("[sitli] data-restaurant is required");
+    console.error("[openpax] data-restaurant is required");
     return;
   }
   const origin = new URL(script.src).origin;
-  const id = `sitli-${Math.random().toString(36).slice(2, 10)}`;
+  const id = `openpax-${Math.random().toString(36).slice(2, 10)}`;
   const target =
     (script.dataset.target && document.querySelector(script.dataset.target)) ||
     script.parentElement ||
@@ -36,10 +36,10 @@
     if (event.origin !== origin || event.source !== iframe.contentWindow) return;
     const data = event.data as { type?: string; id?: string; height?: number };
     if (data?.id !== id) return;
-    if (data.type === "sitli:resize" && typeof data.height === "number") {
+    if (data.type === "openpax:resize" && typeof data.height === "number") {
       iframe.style.height = `${Math.max(data.height, 120)}px`;
       iframe.style.minHeight = "0";
-    } else if (data.type === "sitli:scroll-top") {
+    } else if (data.type === "openpax:scroll-top") {
       const top = iframe.getBoundingClientRect().top + window.scrollY - 16;
       if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
     }

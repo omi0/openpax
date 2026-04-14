@@ -1,29 +1,30 @@
 /*
  * Guest widget styles. Theming API (set by the host page or the dashboard):
- * --sitli-primary, --sitli-primary-contrast, --sitli-bg, --sitli-fg,
- * --sitli-muted, --sitli-border, --sitli-soft, --sitli-danger,
- * --sitli-radius, --sitli-font. Everything else derives from those.
+ * --openpax-primary, --openpax-primary-contrast, --openpax-bg, --openpax-fg,
+ * --openpax-muted, --openpax-border, --openpax-soft, --openpax-danger,
+ * --openpax-radius, --openpax-font. Everything else derives from those.
  */
 :root {
-  --sitli-primary: #1f6f5f;
-  --sitli-primary-contrast: #ffffff;
-  --sitli-bg: #ffffff;
-  --sitli-fg: #1c1917;
-  --sitli-muted: #78716c;
-  --sitli-border: #e7e5e4;
-  --sitli-soft: #f5f5f4;
-  --sitli-danger: #b91c1c;
-  --sitli-radius: 14px;
-  --sitli-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --openpax-primary: #1f6f5f;
+  --openpax-primary-contrast: #ffffff;
+  --openpax-bg: #ffffff;
+  --openpax-fg: #1c1917;
+  --openpax-muted: #78716c;
+  --openpax-border: #e7e5e4;
+  --openpax-soft: #f5f5f4;
+  --openpax-danger: #b91c1c;
+  --openpax-radius: 14px;
+  --openpax-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* derived */
-  --sitli-primary-soft: color-mix(in srgb, var(--sitli-primary) 10%, var(--sitli-bg));
-  --sitli-primary-ring: color-mix(in srgb, var(--sitli-primary) 25%, transparent);
-  --sitli-primary-dark: color-mix(in srgb, var(--sitli-primary) 85%, black);
-  --sitli-danger-soft: color-mix(in srgb, var(--sitli-danger) 8%, var(--sitli-bg));
-  --sitli-radius-sm: calc(var(--sitli-radius) - 4px);
-  --sitli-shadow: 0 1px 2px rgb(28 25 23 / 0.04), 0 10px 30px -12px rgb(28 25 23 / 0.18);
-  --sitli-tap: 44px;
+  --openpax-primary-soft: color-mix(in srgb, var(--openpax-primary) 10%, var(--openpax-bg));
+  --openpax-primary-ring: color-mix(in srgb, var(--openpax-primary) 25%, transparent);
+  --openpax-primary-dark: color-mix(in srgb, var(--openpax-primary) 85%, black);
+  --openpax-danger-soft: color-mix(in srgb, var(--openpax-danger) 8%, var(--openpax-bg));
+  --openpax-radius-sm: calc(var(--openpax-radius) - 4px);
+  --openpax-shadow: 0 1px 2px rgb(28 25 23 / 0.04), 0 10px 30px -12px rgb(28 25 23 / 0.18);
+  --openpax-tap: 44px;
 }
 * {
   box-sizing: border-box;
@@ -35,8 +36,8 @@ body {
   background: transparent;
 }
 body {
-  font-family: var(--sitli-font);
-  color: var(--sitli-fg);
+  font-family: var(--openpax-font);
+  color: var(--openpax-fg);
   font-size: 16px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -50,7 +51,7 @@ body:not(.embedded) {
   min-height: 100vh;
 }
 :where(button, a, input, select, textarea):focus-visible {
-  outline: 3px solid var(--sitli-primary-ring);
+  outline: 3px solid var(--openpax-primary-ring);
   outline-offset: 2px;
 }
 button,
@@ -69,23 +70,23 @@ button:disabled {
 }
 
 /* ----------------------------------------------------------------- frame */
-.sitli {
+.openpax {
   position: relative;
   max-width: 520px;
   margin: 0 auto;
   padding: 16px;
-  background: var(--sitli-bg);
+  background: var(--openpax-bg);
 }
-.sitli.hosted {
+.openpax.hosted {
   margin: 24px auto;
   padding: 28px 24px;
-  border: 1px solid var(--sitli-border);
-  border-radius: calc(var(--sitli-radius) + 6px);
-  box-shadow: var(--sitli-shadow);
+  border: 1px solid var(--openpax-border);
+  border-radius: calc(var(--openpax-radius) + 6px);
+  box-shadow: var(--openpax-shadow);
   min-height: auto;
 }
 @media (max-width: 560px) {
-  .sitli.hosted {
+  .openpax.hosted {
     margin: 0;
     padding: 20px 16px 28px;
     border: 0;
@@ -103,29 +104,29 @@ button:disabled {
   gap: 12px;
   margin-bottom: 14px;
 }
-.sitli h1 {
+.openpax h1 {
   font-size: 22px;
   line-height: 1.2;
   letter-spacing: -0.01em;
   margin: 0;
   font-weight: 700;
 }
-.sitli h2 {
+.openpax h2 {
   font-size: 18px;
   margin: 22px 0 8px;
   font-weight: 700;
 }
-.sitli .sub {
-  color: var(--sitli-muted);
+.openpax .sub {
+  color: var(--openpax-muted);
   margin: 0 0 16px;
   font-size: 15px;
 }
-.sitli .head .sub {
+.openpax .head .sub {
   margin: 4px 0 0;
 }
-.sitli .welcome {
-  background: var(--sitli-primary-soft);
-  border-radius: var(--sitli-radius);
+.openpax .welcome {
+  background: var(--openpax-primary-soft);
+  border-radius: var(--openpax-radius);
   padding: 12px 14px;
   margin: 0 0 16px;
   font-size: 15px;
@@ -134,9 +135,9 @@ button:disabled {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--sitli-border);
+  border: 1px solid var(--openpax-border);
   border-radius: 999px;
-  background: var(--sitli-soft);
+  background: var(--openpax-soft);
   flex-shrink: 0;
 }
 .lang button {
@@ -149,11 +150,11 @@ button:disabled {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
 }
 .lang button[aria-pressed="true"] {
-  background: var(--sitli-bg);
-  color: var(--sitli-fg);
+  background: var(--openpax-bg);
+  color: var(--openpax-fg);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
@@ -171,7 +172,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   font-size: 13px;
   font-weight: 600;
 }
@@ -182,8 +183,8 @@ button:disabled {
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: var(--sitli-soft);
-  border: 1px solid var(--sitli-border);
+  background: var(--openpax-soft);
+  border: 1px solid var(--openpax-border);
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -194,18 +195,18 @@ button:disabled {
   text-overflow: ellipsis;
 }
 .steps li.active {
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
 }
 .steps li.active .n {
-  background: var(--sitli-primary);
-  border-color: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
-  box-shadow: 0 0 0 4px var(--sitli-primary-ring);
+  background: var(--openpax-primary);
+  border-color: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
+  box-shadow: 0 0 0 4px var(--openpax-primary-ring);
 }
 .steps li.done .n {
-  background: var(--sitli-primary);
-  border-color: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
+  background: var(--openpax-primary);
+  border-color: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
 }
 .steps li.done .n svg {
   width: 14px;
@@ -215,11 +216,11 @@ button:disabled {
   flex: 1 1 8px;
   height: 2px;
   min-width: 8px;
-  background: var(--sitli-border);
+  background: var(--openpax-border);
   border-radius: 2px;
 }
 .steps .line.done {
-  background: var(--sitli-primary);
+  background: var(--openpax-primary);
 }
 @media (max-width: 400px) {
   .steps li:not(.active) .t {
@@ -228,44 +229,44 @@ button:disabled {
 }
 
 /* ----------------------------------------------------------------- labels */
-.sitli .label {
+.openpax .label {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   margin: 18px 0 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.sitli .label .value {
+.openpax .label .value {
   text-transform: none;
   letter-spacing: 0;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
   font-weight: 600;
 }
-.sitli .group-label {
+.openpax .group-label {
   font-size: 14px;
   font-weight: 700;
   margin: 14px 0 8px;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
 }
 
 /* ------------------------------------------------------------------ chips */
-.sitli .row {
+.openpax .row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.sitli .chip {
-  min-width: var(--sitli-tap);
-  height: var(--sitli-tap);
+.openpax .chip {
+  min-width: var(--openpax-tap);
+  height: var(--openpax-tap);
   padding: 0 14px;
-  border: 1px solid var(--sitli-border);
-  background: var(--sitli-bg);
-  color: var(--sitli-fg);
+  border: 1px solid var(--openpax-border);
+  background: var(--openpax-bg);
+  color: var(--openpax-fg);
   border-radius: 999px;
   font-size: 16px;
   font-weight: 600;
@@ -274,251 +275,251 @@ button:disabled {
     border-color 120ms ease,
     transform 120ms ease;
 }
-.sitli .chip:hover:not(:disabled):not([aria-pressed="true"]) {
-  border-color: var(--sitli-primary);
-  background: var(--sitli-primary-soft);
+.openpax .chip:hover:not(:disabled):not([aria-pressed="true"]) {
+  border-color: var(--openpax-primary);
+  background: var(--openpax-primary-soft);
 }
-.sitli .chip[aria-pressed="true"] {
-  background: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
-  border-color: var(--sitli-primary);
+.openpax .chip[aria-pressed="true"] {
+  background: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
+  border-color: var(--openpax-primary);
 }
-.sitli .chip:disabled {
+.openpax .chip:disabled {
   opacity: 0.4;
   text-decoration: line-through;
 }
 
 /* --------------------------------------------------------------- calendar */
-.sitli .cal-head {
+.openpax .cal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
 }
-.sitli .cal-head strong {
+.openpax .cal-head strong {
   text-transform: capitalize;
   font-size: 16px;
 }
-.sitli .cal-nav {
+.openpax .cal-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--sitli-border);
-  background: var(--sitli-bg);
+  border: 1px solid var(--openpax-border);
+  background: var(--openpax-bg);
   border-radius: 999px;
   width: 40px;
   height: 40px;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
 }
-.sitli .cal-nav svg {
+.openpax .cal-nav svg {
   width: 18px;
   height: 18px;
 }
-.sitli .cal-nav:hover:not(:disabled) {
-  background: var(--sitli-soft);
+.openpax .cal-nav:hover:not(:disabled) {
+  background: var(--openpax-soft);
 }
-.sitli .cal-nav:disabled {
+.openpax .cal-nav:disabled {
   opacity: 0.35;
 }
-.sitli .cal {
+.openpax .cal {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
-.sitli .cal .wd {
+.openpax .cal .wd {
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   padding: 4px 0 6px;
 }
-.sitli .cal button {
+.openpax .cal button {
   aspect-ratio: 1;
-  min-height: var(--sitli-tap);
+  min-height: var(--openpax-tap);
   width: 100%;
   border: 1px solid transparent;
   background: transparent;
-  border-radius: var(--sitli-radius-sm);
+  border-radius: var(--openpax-radius-sm);
   font-size: 16px;
   font-weight: 500;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   transition:
     background 120ms ease,
     border-color 120ms ease;
 }
-.sitli .cal button.open {
-  background: var(--sitli-primary-soft);
-  color: var(--sitli-fg);
+.openpax .cal button.open {
+  background: var(--openpax-primary-soft);
+  color: var(--openpax-fg);
   font-weight: 600;
 }
-.sitli .cal button.open:hover:not(:disabled):not(.selected) {
-  border-color: var(--sitli-primary);
+.openpax .cal button.open:hover:not(:disabled):not(.selected) {
+  border-color: var(--openpax-primary);
 }
-.sitli .cal button.today {
-  border-color: var(--sitli-border);
+.openpax .cal button.today {
+  border-color: var(--openpax-border);
   font-weight: 700;
 }
-.sitli .cal button.today:not(.open) {
-  color: var(--sitli-fg);
+.openpax .cal button.today:not(.open) {
+  color: var(--openpax-fg);
 }
-.sitli .cal button.selected {
-  background: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
-  border-color: var(--sitli-primary);
+.openpax .cal button.selected {
+  background: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
+  border-color: var(--openpax-primary);
   font-weight: 700;
 }
-.sitli .cal button:disabled {
+.openpax .cal button:disabled {
   color: #c9c5c1;
   background: transparent;
   font-weight: 400;
 }
-.sitli .cal button:disabled.today {
-  color: var(--sitli-muted);
+.openpax .cal button:disabled.today {
+  color: var(--openpax-muted);
 }
 
 /* ------------------------------------------------------------------ slots */
-.sitli .slots {
+.openpax .slots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: 8px;
 }
-.sitli .slot {
+.openpax .slot {
   min-height: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--sitli-border);
-  background: var(--sitli-bg);
-  border-radius: var(--sitli-radius-sm);
+  border: 1px solid var(--openpax-border);
+  background: var(--openpax-bg);
+  border-radius: var(--openpax-radius-sm);
   padding: 6px 4px;
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
   transition:
     background 120ms ease,
     border-color 120ms ease;
 }
-.sitli .slot:hover:not(:disabled):not(.selected) {
-  border-color: var(--sitli-primary);
-  background: var(--sitli-primary-soft);
+.openpax .slot:hover:not(:disabled):not(.selected) {
+  border-color: var(--openpax-primary);
+  background: var(--openpax-primary-soft);
 }
-.sitli .slot.selected {
-  background: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
-  border-color: var(--sitli-primary);
+.openpax .slot.selected {
+  background: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
+  border-color: var(--openpax-primary);
 }
-.sitli .slot:disabled {
+.openpax .slot:disabled {
   color: #c9c5c1;
-  background: var(--sitli-soft);
+  background: var(--openpax-soft);
   border-color: transparent;
   font-weight: 500;
 }
-.sitli .slot small {
+.openpax .slot small {
   display: block;
   font-size: 11px;
   font-weight: 500;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   line-height: 1.2;
   margin-top: 2px;
 }
-.sitli .empty {
-  color: var(--sitli-muted);
+.openpax .empty {
+  color: var(--openpax-muted);
   padding: 14px;
   text-align: center;
-  border: 1px dashed var(--sitli-border);
-  border-radius: var(--sitli-radius);
+  border: 1px dashed var(--openpax-border);
+  border-radius: var(--openpax-radius);
   margin: 0;
 }
-.sitli .loading {
+.openpax .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   padding: 24px;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
 }
-.sitli .spinner {
+.openpax .spinner {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  border: 3px solid var(--sitli-border);
-  border-top-color: var(--sitli-primary);
-  animation: sitli-spin 800ms linear infinite;
+  border: 3px solid var(--openpax-border);
+  border-top-color: var(--openpax-primary);
+  animation: openpax-spin 800ms linear infinite;
 }
-@keyframes sitli-spin {
+@keyframes openpax-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
 /* ------------------------------------------------------------ summary bar */
-.sitli .summary-bar {
+.openpax .summary-bar {
   position: sticky;
   bottom: 0;
   z-index: 2;
   margin: 20px -16px -16px;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  background: var(--sitli-bg);
-  border-top: 1px solid var(--sitli-border);
+  background: var(--openpax-bg);
+  border-top: 1px solid var(--openpax-border);
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.sitli.hosted .summary-bar {
+.openpax.hosted .summary-bar {
   margin: 20px -24px -28px;
   padding-left: 24px;
   padding-right: 24px;
-  border-radius: 0 0 calc(var(--sitli-radius) + 6px) calc(var(--sitli-radius) + 6px);
+  border-radius: 0 0 calc(var(--openpax-radius) + 6px) calc(var(--openpax-radius) + 6px);
 }
 @media (max-width: 560px) {
-  .sitli.hosted .summary-bar {
+  .openpax.hosted .summary-bar {
     margin: 20px -16px -28px;
     padding-left: 16px;
     padding-right: 16px;
     border-radius: 0;
   }
 }
-.sitli .summary-bar .summary-text {
+.openpax .summary-bar .summary-text {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
   line-height: 1.3;
 }
-.sitli .summary-bar .summary-text strong {
+.openpax .summary-bar .summary-text strong {
   font-size: 15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sitli .summary-bar .summary-text span {
+.openpax .summary-bar .summary-text span {
   font-size: 13px;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
 }
-.sitli .summary-bar .btn {
+.openpax .summary-bar .btn {
   flex: 0 0 auto;
   min-width: 132px;
 }
 @media (max-width: 400px) {
-  .sitli .summary-bar {
+  .openpax .summary-bar {
     flex-wrap: wrap;
   }
-  .sitli .summary-bar .btn {
+  .openpax .summary-bar .btn {
     flex: 1 1 100%;
   }
 }
 
 /* --------------------------------------------------------------- summary */
-.sitli .summary {
-  background: var(--sitli-soft);
-  border-radius: var(--sitli-radius);
+.openpax .summary {
+  background: var(--openpax-soft);
+  border-radius: var(--openpax-radius);
   padding: 12px 16px;
   margin: 8px 0 18px;
   text-align: left;
 }
-.sitli .summary > div {
+.openpax .summary > div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -526,27 +527,27 @@ button:disabled {
   padding: 5px 0;
   font-size: 15px;
 }
-.sitli .summary > div + div {
-  border-top: 1px solid color-mix(in srgb, var(--sitli-border) 60%, transparent);
+.openpax .summary > div + div {
+  border-top: 1px solid color-mix(in srgb, var(--openpax-border) 60%, transparent);
 }
-.sitli .summary span:first-child {
-  color: var(--sitli-muted);
+.openpax .summary span:first-child {
+  color: var(--openpax-muted);
   flex-shrink: 0;
 }
-.sitli .summary strong {
+.openpax .summary strong {
   text-align: right;
 }
-.sitli .summary .change {
+.openpax .summary .change {
   border: 0;
   background: transparent;
-  color: var(--sitli-primary);
+  color: var(--openpax-primary);
   font-weight: 600;
   padding: 4px 0;
   font-size: 14px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.sitli .summary > .summary-head {
+.openpax .summary > .summary-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -554,59 +555,59 @@ button:disabled {
   padding: 0 0 4px;
   border-top: 0;
 }
-.sitli .summary-head strong {
+.openpax .summary-head strong {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 12px;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
 }
 
 /* ------------------------------------------------------------------ forms */
-.sitli .field {
+.openpax .field {
   margin: 0 0 14px;
 }
-.sitli .field label {
+.openpax .field label {
   display: block;
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 6px;
 }
-.sitli input[type="text"],
-.sitli input[type="email"],
-.sitli input[type="tel"],
-.sitli select,
-.sitli textarea {
+.openpax input[type="text"],
+.openpax input[type="email"],
+.openpax input[type="tel"],
+.openpax select,
+.openpax textarea {
   width: 100%;
   min-height: 48px;
-  border: 1px solid var(--sitli-border);
-  border-radius: var(--sitli-radius-sm);
+  border: 1px solid var(--openpax-border);
+  border-radius: var(--openpax-radius-sm);
   padding: 12px 14px;
   font-size: 16px;
-  background: var(--sitli-bg);
-  color: var(--sitli-fg);
+  background: var(--openpax-bg);
+  color: var(--openpax-fg);
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease;
 }
-.sitli input:focus,
-.sitli select:focus,
-.sitli textarea:focus {
+.openpax input:focus,
+.openpax select:focus,
+.openpax textarea:focus {
   outline: none;
-  border-color: var(--sitli-primary);
-  box-shadow: 0 0 0 4px var(--sitli-primary-ring);
+  border-color: var(--openpax-primary);
+  box-shadow: 0 0 0 4px var(--openpax-primary-ring);
 }
-.sitli select {
+.openpax select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 40px;
 }
-.sitli textarea {
+.openpax textarea {
   min-height: 88px;
   resize: vertical;
 }
-.sitli .check {
+.openpax .check {
   display: flex;
   gap: 10px;
   align-items: flex-start;
@@ -614,33 +615,33 @@ button:disabled {
   padding: 4px 0;
   cursor: pointer;
 }
-.sitli .check input {
+.openpax .check input {
   width: 20px;
   height: 20px;
   margin: 2px 0 0;
-  accent-color: var(--sitli-primary);
+  accent-color: var(--openpax-primary);
   flex-shrink: 0;
 }
-.sitli .fine {
+.openpax .fine {
   font-size: 13px;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   margin: 12px 0 0;
 }
-.sitli .fine a {
+.openpax .fine a {
   color: inherit;
 }
-.sitli .fine.larger {
+.openpax .fine.larger {
   margin: 6px 0 0;
   font-size: 12px;
 }
 
 /* ---------------------------------------------------------------- buttons */
-.sitli .actions {
+.openpax .actions {
   display: flex;
   gap: 10px;
   margin-top: 20px;
 }
-.sitli .btn {
+.openpax .btn {
   flex: 1;
   display: inline-flex;
   align-items: center;
@@ -648,133 +649,133 @@ button:disabled {
   gap: 8px;
   min-height: 50px;
   border: 0;
-  border-radius: var(--sitli-radius);
+  border-radius: var(--openpax-radius);
   padding: 12px 18px;
   font-size: 16px;
   font-weight: 700;
-  background: var(--sitli-primary);
-  color: var(--sitli-primary-contrast);
+  background: var(--openpax-primary);
+  color: var(--openpax-primary-contrast);
   text-decoration: none;
   text-align: center;
   transition:
     background 120ms ease,
     transform 80ms ease;
 }
-.sitli .btn:hover:not(:disabled) {
-  background: var(--sitli-primary-dark);
+.openpax .btn:hover:not(:disabled) {
+  background: var(--openpax-primary-dark);
 }
-.sitli .btn:active:not(:disabled) {
+.openpax .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
-.sitli .btn.secondary {
-  background: var(--sitli-soft);
-  color: var(--sitli-fg);
+.openpax .btn.secondary {
+  background: var(--openpax-soft);
+  color: var(--openpax-fg);
   flex: 0 0 auto;
 }
-.sitli .btn.secondary:hover:not(:disabled) {
-  background: var(--sitli-border);
+.openpax .btn.secondary:hover:not(:disabled) {
+  background: var(--openpax-border);
 }
-.sitli .btn.danger {
-  background: var(--sitli-danger);
+.openpax .btn.danger {
+  background: var(--openpax-danger);
 }
-.sitli .btn.danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--sitli-danger) 85%, black);
+.openpax .btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--openpax-danger) 85%, black);
 }
-.sitli .btn:disabled {
+.openpax .btn:disabled {
   opacity: 0.45;
 }
-.sitli .btn svg {
+.openpax .btn svg {
   width: 18px;
   height: 18px;
 }
 
 /* --------------------------------------------------------------- feedback */
-.sitli .error {
+.openpax .error {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  color: var(--sitli-danger);
-  background: var(--sitli-danger-soft);
-  border: 1px solid color-mix(in srgb, var(--sitli-danger) 25%, transparent);
-  border-radius: var(--sitli-radius-sm);
+  color: var(--openpax-danger);
+  background: var(--openpax-danger-soft);
+  border: 1px solid color-mix(in srgb, var(--openpax-danger) 25%, transparent);
+  border-radius: var(--openpax-radius-sm);
   padding: 12px 14px;
   margin: 14px 0;
   font-size: 15px;
 }
-.sitli .error svg {
+.openpax .error svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
   margin-top: 2px;
 }
-.sitli .done {
+.openpax .done {
   text-align: center;
   padding: 8px 0 0;
 }
-.sitli .done .icon {
+.openpax .done .icon {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--sitli-primary-soft);
-  color: var(--sitli-primary);
+  background: var(--openpax-primary-soft);
+  color: var(--openpax-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
 }
-.sitli .done .icon svg {
+.openpax .done .icon svg {
   width: 36px;
   height: 36px;
 }
-.sitli .done .icon.wait {
+.openpax .done .icon.wait {
   background: #fef3c7;
   color: #b45309;
 }
-.sitli .done h1 {
+.openpax .done h1 {
   font-size: 24px;
 }
-.sitli .done .sub {
+.openpax .done .sub {
   margin-top: 6px;
 }
-.sitli .code-box {
+.openpax .code-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   margin: 4px 0 18px;
   padding: 14px 16px;
-  border: 1px dashed var(--sitli-primary);
-  border-radius: var(--sitli-radius);
-  background: var(--sitli-primary-soft);
+  border: 1px dashed var(--openpax-primary);
+  border-radius: var(--openpax-radius);
+  background: var(--openpax-primary-soft);
 }
-.sitli .code-box .code-label {
+.openpax .code-box .code-label {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
 }
-.sitli .code {
+.openpax .code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
 }
-.sitli .summary .code {
+.openpax .summary .code {
   font-size: 17px;
   letter-spacing: 0.1em;
 }
-.sitli .powered {
+.openpax .powered {
   text-align: center;
-  color: var(--sitli-muted);
+  color: var(--openpax-muted);
   font-size: 12px;
   margin: 24px 0 0;
 }
-.sitli .powered a {
+.openpax .powered a {
   color: inherit;
 }
-.sitli .status {
+.openpax .status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -782,79 +783,79 @@ button:disabled {
   padding: 4px 12px;
   font-size: 13px;
   font-weight: 600;
-  background: var(--sitli-soft);
-  color: var(--sitli-fg);
+  background: var(--openpax-soft);
+  color: var(--openpax-fg);
 }
-.sitli .status.confirmed,
-.sitli .status.seated,
-.sitli .status.completed {
+.openpax .status.confirmed,
+.openpax .status.seated,
+.openpax .status.completed {
   background: #d1fae5;
   color: #065f46;
 }
-.sitli .status.pending {
+.openpax .status.pending {
   background: #fef3c7;
   color: #92400e;
 }
-.sitli .status.cancelled,
-.sitli .status.no_show {
+.openpax .status.cancelled,
+.openpax .status.no_show {
   background: #fee2e2;
   color: #991b1b;
 }
-.sitli .note {
-  border-radius: var(--sitli-radius-sm);
-  background: var(--sitli-soft);
+.openpax .note {
+  border-radius: var(--openpax-radius-sm);
+  background: var(--openpax-soft);
   padding: 12px 14px;
   font-size: 15px;
   margin: 12px 0;
 }
 
 /* --------------------------------------------------------------- waitlist */
-.sitli .waitlist-cta {
+.openpax .waitlist-cta {
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px dashed var(--sitli-primary);
-  background: var(--sitli-primary-soft);
-  border-radius: var(--sitli-radius);
+  border: 1px dashed var(--openpax-primary);
+  background: var(--openpax-primary-soft);
+  border-radius: var(--openpax-radius);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   justify-content: space-between;
 }
-.sitli .waitlist-cta p {
+.openpax .waitlist-cta p {
   margin: 0;
-  color: var(--sitli-fg);
+  color: var(--openpax-fg);
   font-size: 15px;
   flex: 1 1 200px;
 }
-.sitli .waitlist-cta .btn {
+.openpax .waitlist-cta .btn {
   flex: 0 0 auto;
   min-height: 44px;
 }
 
 /* ---------------------------------------------------------------- payment */
-.sitli .pay {
+.openpax .pay {
   margin: 14px 0 6px;
   padding: 16px;
-  border-radius: var(--sitli-radius);
+  border-radius: var(--openpax-radius);
   background: #fffbeb;
   border: 1px solid #fde68a;
   text-align: left;
 }
-.sitli .pay p {
+.openpax .pay p {
   margin: 0 0 8px;
   font-size: 15px;
 }
-.sitli .pay .sub {
+.openpax .pay .sub {
   margin-bottom: 10px;
 }
-.sitli .pay .btn {
+.openpax .pay .btn {
   display: flex;
   width: 100%;
 }
 
 /* ------------------------------------------------------------------ stars */
-.sitli .stars {
+.openpax .stars {
   display: flex;
   justify-content: center;
   gap: 6px;
@@ -862,7 +863,7 @@ button:disabled {
   padding: 0;
   border: 0;
 }
-.sitli .star {
+.openpax .star {
   width: 52px;
   height: 52px;
   display: inline-flex;
@@ -876,19 +877,19 @@ button:disabled {
     color 100ms ease,
     transform 100ms ease;
 }
-.sitli .star svg {
+.openpax .star svg {
   width: 38px;
   height: 38px;
 }
-.sitli .star:hover {
+.openpax .star:hover {
   transform: scale(1.08);
 }
-.sitli .star.on {
+.openpax .star.on {
   color: #f59e0b;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :where(.sitli *, .sitli *::before, .sitli *::after) {
+  :where(.openpax *, .openpax *::before, .openpax *::after) {
     transition-duration: 0.01ms;
     animation-duration: 0.01ms;
   }

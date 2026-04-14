@@ -7,7 +7,7 @@ import {
   paginatedSchema,
   publicFeedbackDtoSchema,
   submitFeedbackInputSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, restaurantIdParam } from "../../lib/openapi.js";

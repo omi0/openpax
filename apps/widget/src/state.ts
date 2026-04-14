@@ -1,11 +1,11 @@
-import { computed, signal } from "@preact/signals";
 import type {
   AvailabilityResponse,
   AvailabilitySlotDto,
   PublicBookingDto,
   PublicWaitlistEntryDto,
   PublicWidgetConfigDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
+import { computed, signal } from "@preact/signals";
 import { ApiRequestError, api } from "./api.js";
 import { addDays, addMonths, monthOf, todayLocal } from "./dates.js";
 import { setLocale } from "./i18n.js";

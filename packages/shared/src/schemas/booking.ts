@@ -1,4 +1,4 @@
-import { BOOKING_ACTIONS, BOOKING_SOURCES, BOOKING_STATUSES } from "@sitli/core";
+import { BOOKING_ACTIONS, BOOKING_SOURCES, BOOKING_STATUSES } from "@openpax/core";
 import { z } from "zod";
 import {
   emailSchema,

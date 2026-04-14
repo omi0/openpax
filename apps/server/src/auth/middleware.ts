@@ -1,4 +1,4 @@
-import { member, restaurant } from "@sitli/db";
+import { member, restaurant } from "@openpax/db";
 import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import type { AppContext, AppEnv } from "../context.js";

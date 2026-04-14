@@ -1,4 +1,4 @@
-import { booking, notificationLog } from "@sitli/db";
+import { booking, notificationLog } from "@openpax/db";
 import { eq, sql } from "drizzle-orm";
 import { defineJob } from "../../jobs/queue.js";
 import type { NotificationProvider } from "../../notifications/provider.js";

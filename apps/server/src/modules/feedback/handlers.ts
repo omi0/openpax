@@ -1,4 +1,4 @@
-import { booking, notificationSetting } from "@sitli/db";
+import { booking, notificationSetting } from "@openpax/db";
 import { and, eq } from "drizzle-orm";
 import type { AppContext } from "../../context.js";
 import { defineEventHandler } from "../../events/dispatch.js";

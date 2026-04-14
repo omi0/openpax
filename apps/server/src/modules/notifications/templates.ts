@@ -1,5 +1,5 @@
-import { notificationTemplate, widgetConfig } from "@sitli/db";
-import { formatWhen, renderBookingEmail } from "@sitli/emails";
+import { notificationTemplate, widgetConfig } from "@openpax/db";
+import { formatWhen, renderBookingEmail } from "@openpax/emails";
 import {
   defaultTemplates,
   type EmailTemplate,
@@ -15,8 +15,8 @@ import {
   templateEvents,
   type UpsertNotificationTemplateInput,
   unknownPlaceholders,
-} from "@sitli/shared";
-import { renderSms } from "@sitli/shared/sms";
+} from "@openpax/shared";
+import { renderSms } from "@openpax/shared/sms";
 import { and, eq } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";

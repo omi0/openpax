@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource react */
-import type { Locale } from "@sitli/shared";
+import type { Locale } from "@openpax/shared";
 import { Button, Layout } from "../components/layout.js";
 
 export interface PasswordResetEmailProps {

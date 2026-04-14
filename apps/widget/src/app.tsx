@@ -41,11 +41,12 @@ export function App({ route }: { route: Route }) {
 
   useEffect(() => {
     const cfg = config.value;
-    if (cfg) document.documentElement.style.setProperty("--sitli-primary", cfg.widget.primaryColor);
+    if (cfg)
+      document.documentElement.style.setProperty("--openpax-primary", cfg.widget.primaryColor);
   }, [config.value]);
 
   const cfg = config.value;
-  const cls = `sitli ${route.embedded ? "" : "hosted"}`;
+  const cls = `openpax ${route.embedded ? "" : "hosted"}`;
 
   if (route.token) {
     return (
@@ -147,8 +148,8 @@ function Footer() {
   return (
     <p class="powered">
       {t("poweredBy")}{" "}
-      <a href="https://github.com/omi0/sitli" target="_blank" rel="noreferrer">
-        Sitli
+      <a href="https://github.com/omi0/openpax" target="_blank" rel="noreferrer">
+        OpenPax
       </a>
     </p>
   );

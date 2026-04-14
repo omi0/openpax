@@ -1,4 +1,4 @@
-import type { AnalyticsDto, AnalyticsTotalsDto } from "@sitli/shared";
+import type { AnalyticsDto, AnalyticsTotalsDto } from "@openpax/shared";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {

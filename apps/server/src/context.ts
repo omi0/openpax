@@ -1,4 +1,4 @@
-import type { Db, restaurant } from "@sitli/db";
+import type { Db, restaurant } from "@openpax/db";
 import type pg from "pg";
 import type { RoleName } from "./auth/access.js";
 import type { Auth, AuthSession } from "./auth/create-auth.js";

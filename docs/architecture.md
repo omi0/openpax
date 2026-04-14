@@ -1,6 +1,6 @@
 # Architecture
 
-Sitli is a TypeScript monorepo (pnpm + Turborepo). One Node process serves the
+OpenPax is a TypeScript monorepo (pnpm + Turborepo). One Node process serves the
 API, runs background jobs and serves the built dashboard and widget.
 
 ```
@@ -267,7 +267,7 @@ and refuses keys from another one.
 
 Owners connect the assistant they already pay for (Claude, ChatGPT, Claude
 Code, any MCP client) and ask it about tonight, book a table for a caller, or
-close a few days. Sitli is the **MCP server** and its own **OAuth 2.1
+close a few days. OpenPax is the **MCP server** and its own **OAuth 2.1
 authorization server**; it never holds an AI key.
 
 **Auth.** `createAuth` adds three Better Auth plugins when `PUBLIC_URL` is
@@ -407,7 +407,7 @@ queue is deep (`burstWhenBatchFull`), settling each job on its own
 (`perJobResults`); one job per second, the previous setting, left a rush of
 confirmations waiting for minutes.
 
-`pnpm --filter @sitli/server load:test` is the load test. Point it at a
+`pnpm --filter @openpax/server load:test` is the load test. Point it at a
 server started with `RATE_LIMIT=off` and `SIGNUP_MODE=open`
 (`LOAD_BASE_URL`, `LOAD_DATABASE_URL`); it seeds three restaurants through
 the API (tables + rooms, pacing only, and one where staff override) and runs

@@ -1,4 +1,4 @@
-import type { AvailabilitySlotDto } from "@sitli/shared";
+import type { AvailabilitySlotDto } from "@openpax/shared";
 import { t } from "../i18n.js";
 import { availability, canJoinWaitlist, loadingSlots, selectedSlot, step } from "../state.js";
 import { Loading } from "./chrome.js";

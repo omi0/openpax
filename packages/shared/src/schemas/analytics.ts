@@ -1,4 +1,4 @@
-import { BOOKING_SOURCES } from "@sitli/core";
+import { BOOKING_SOURCES } from "@openpax/core";
 import { z } from "zod";
 import { idSchema, localDateSchema } from "./common.js";
 import { weekdaySchema } from "./weekly-hours.js";

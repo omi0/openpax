@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { DomainError, SlotUnavailableError } from "@sitli/core";
-import type { ApiError as ApiErrorDto } from "@sitli/shared";
+import { DomainError, SlotUnavailableError } from "@openpax/core";
+import type { ApiError as ApiErrorDto } from "@openpax/shared";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
@@ -11,7 +11,7 @@ import { ApiError } from "./lib/errors.js";
 import { createOpenAPIApp } from "./lib/openapi.js";
 import { rateLimit } from "./lib/rate-limit.js";
 import { registerStatic, type StaticDirs } from "./lib/static.js";
-import type { SitliModule } from "./modules/module.js";
+import type { OpenPaxModule } from "./modules/module.js";
 
 export interface CreateAppOptions {
   static?: StaticDirs;
@@ -19,7 +19,7 @@ export interface CreateAppOptions {
 
 export function createApp(
   ctx: AppContext,
-  modules: SitliModule[],
+  modules: OpenPaxModule[],
   options: CreateAppOptions = {},
 ): OpenAPIHono<AppEnv> {
   const app = createOpenAPIApp();
@@ -106,7 +106,7 @@ export function createApp(
   app.doc("/api/openapi.json", {
     openapi: "3.0.0",
     info: {
-      title: "Sitli API",
+      title: "OpenPax API",
       version: "1",
       description: "Restaurant bookings: public widget endpoints and the staff API.",
     },

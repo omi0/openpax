@@ -7,8 +7,8 @@ import pg from "pg";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
-const admin = process.env.TEST_DATABASE_URL ?? "postgres://sitli:sitli@localhost:5432/sitli";
-const name = `sitli_e2e_${randomBytes(4).toString("hex")}`;
+const admin = process.env.TEST_DATABASE_URL ?? "postgres://openpax:openpax@localhost:5432/openpax";
+const name = `openpax_e2e_${randomBytes(4).toString("hex")}`;
 
 const client = new pg.Client({ connectionString: admin });
 await client.connect();
@@ -18,7 +18,7 @@ const url = new URL(admin);
 url.pathname = `/${name}`;
 
 const port = process.env.E2E_PORT ?? "3100";
-const child = spawn("pnpm", ["--filter", "@sitli/server", "exec", "tsx", "src/index.ts"], {
+const child = spawn("pnpm", ["--filter", "@openpax/server", "exec", "tsx", "src/index.ts"], {
   cwd: root,
   stdio: "inherit",
   env: {
@@ -33,7 +33,7 @@ const child = spawn("pnpm", ["--filter", "@sitli/server", "exec", "tsx", "src/in
     // specs sign up several owners against one server
     SIGNUP_MODE: process.env.SIGNUP_MODE ?? "open",
     SMTP_URL: process.env.MAILPIT_SMTP ?? "",
-    SMTP_FROM: "Sitli E2E <e2e@example.com>",
+    SMTP_FROM: "OpenPax E2E <e2e@example.com>",
   },
 });
 

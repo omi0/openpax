@@ -1,4 +1,4 @@
-import { SETUP_STEPS, type SetupStatusDto, type SetupStep } from "@sitli/shared";
+import { SETUP_STEPS, type SetupStatusDto, type SetupStep } from "@openpax/shared";
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";

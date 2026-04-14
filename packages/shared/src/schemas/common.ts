@@ -1,4 +1,4 @@
-import { isValidTimeZone } from "@sitli/core";
+import { isValidTimeZone } from "@openpax/core";
 import { z } from "zod";
 
 export const SUPPORTED_LOCALES = ["it", "en"] as const;

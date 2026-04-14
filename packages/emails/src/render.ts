@@ -1,5 +1,10 @@
 import { TZDate } from "@date-fns/tz";
-import type { EmailTemplate, Locale, NotificationAudience, NotificationEvent } from "@sitli/shared";
+import type {
+  EmailTemplate,
+  Locale,
+  NotificationAudience,
+  NotificationEvent,
+} from "@openpax/shared";
 import { format } from "date-fns";
 import { enGB, it } from "date-fns/locale";
 import { createElement } from "react";
@@ -133,8 +138,8 @@ export function renderTestEmail(input: TestEmailInput): RenderedEmail {
     ? `Email di prova da ${input.restaurantName}`
     : `Test email from ${input.restaurantName}`;
   const body = isIt
-    ? `Questa è un'email di prova inviata da Sitli tramite ${input.providerLabel}. Se la stai leggendo, la configurazione funziona.`
-    : `This is a test email sent by Sitli through ${input.providerLabel}. If you can read this, your configuration works.`;
+    ? `Questa è un'email di prova inviata da OpenPax tramite ${input.providerLabel}. Se la stai leggendo, la configurazione funziona.`
+    : `This is a test email sent by OpenPax through ${input.providerLabel}. If you can read this, your configuration works.`;
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px"><h2 style="color:${input.primaryColor}">${subject}</h2><p>${body}</p></body></html>`;
   return { subject, html, text: `${subject}\n\n${body}` };
 }

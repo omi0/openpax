@@ -31,7 +31,7 @@ export function AuthLayout({
         />
         <div className="flex items-center gap-3">
           <BrandMark size={40} className="ring-1 ring-white/20" />
-          <span className="text-xl font-bold tracking-tight">Sitli</span>
+          <span className="text-xl font-bold tracking-tight">OpenPax</span>
         </div>
         <div className="relative">
           <h2 className="max-w-md text-3xl font-bold leading-tight tracking-tight">
@@ -39,7 +39,7 @@ export function AuthLayout({
           </h2>
           <p className="mt-4 max-w-md text-base text-white/75">{t("auth.taglineHint")}</p>
         </div>
-        <p className="text-sm text-white/50">© {new Date().getFullYear()} Sitli</p>
+        <p className="text-sm text-white/50">© {new Date().getFullYear()} OpenPax</p>
       </aside>
       <main className="flex flex-1 items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm">

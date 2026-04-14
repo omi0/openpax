@@ -1,7 +1,8 @@
 {
-  "name": "sitli",
+  "name": "openpax",
   "private": true,
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "description": "Self-hostable restaurant booking platform: embeddable widget + staff dashboard",
   "packageManager": "pnpm@12.3.4",
   "engines": {
@@ -14,9 +15,9 @@
     "typecheck": "turbo run typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "db:generate": "pnpm --filter @sitli/db generate",
-    "db:migrate": "pnpm --filter @sitli/db migrate",
-    "auth:generate": "pnpm --filter @sitli/server auth:generate"
+    "db:generate": "pnpm --filter @openpax/db generate",
+    "db:migrate": "pnpm --filter @openpax/db migrate",
+    "auth:generate": "pnpm --filter @openpax/server auth:generate"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

@@ -1,4 +1,4 @@
-import type { BookingDto, CreateStaffBookingInput, RestaurantDto } from "@sitli/shared";
+import type { BookingDto, CreateStaffBookingInput, RestaurantDto } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";

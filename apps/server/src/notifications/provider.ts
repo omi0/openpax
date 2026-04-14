@@ -1,4 +1,4 @@
-import type { NotificationChannel, ProviderDescriptorDto, ProviderFieldDto } from "@sitli/shared";
+import type { NotificationChannel, ProviderDescriptorDto, ProviderFieldDto } from "@openpax/shared";
 import { z } from "zod";
 
 export interface EmailMessage {

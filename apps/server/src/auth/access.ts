@@ -2,7 +2,7 @@ import { createAccessControl } from "better-auth/plugins/access";
 import { defaultStatements, ownerAc } from "better-auth/plugins/organization/access";
 
 /**
- * Permission statements for Sitli. Resources map to what staff can do in a
+ * Permission statements for OpenPax. Resources map to what staff can do in a
  * restaurant; the Better Auth defaults (organization, member, invitation,
  * team, ac) are kept so the organization plugin keeps working.
  */

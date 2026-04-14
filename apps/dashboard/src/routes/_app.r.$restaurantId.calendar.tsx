@@ -1,4 +1,4 @@
-import type { BookingDto, ScheduleExceptionDto } from "@sitli/shared";
+import type { BookingDto, ScheduleExceptionDto } from "@openpax/shared";
 import { useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";

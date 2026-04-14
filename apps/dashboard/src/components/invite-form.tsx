@@ -1,4 +1,4 @@
-import type { InvitationDto, MemberRole } from "@sitli/shared";
+import type { InvitationDto, MemberRole } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";

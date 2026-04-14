@@ -98,7 +98,9 @@ function AppLayout() {
           <MenuIcon className="size-5" />
         </button>
         <BrandMark size={30} />
-        <span className="min-w-0 truncate text-base font-semibold">{current?.name ?? "Sitli"}</span>
+        <span className="min-w-0 truncate text-base font-semibold">
+          {current?.name ?? "OpenPax"}
+        </span>
       </header>
 
       {/* phone: drawer with everything */}

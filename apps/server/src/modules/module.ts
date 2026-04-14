@@ -9,7 +9,7 @@ import type { NotificationProvider } from "../notifications/provider.js";
  * jobs, reacts to domain events and can contribute notification providers.
  * Modules never import each other's internals; they talk through events.
  */
-export interface SitliModule {
+export interface OpenPaxModule {
   name: string;
   routes?: (app: OpenAPIHono<AppEnv>, ctx: AppContext) => void;
   jobs?: AnyJobDef[];
@@ -17,4 +17,4 @@ export interface SitliModule {
   providers?: NotificationProvider[];
 }
 
-export const defineModule = (module: SitliModule): SitliModule => module;
+export const defineModule = (module: OpenPaxModule): OpenPaxModule => module;

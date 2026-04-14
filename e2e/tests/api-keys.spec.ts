@@ -10,7 +10,7 @@ test("API keys authenticate the staff API until revoked", async ({ page, request
   await page.getByRole("button", { name: "Create key" }).click();
   await expect(page.getByText("Copy your new key now")).toBeVisible();
   const key = (await page.locator("code").first().textContent())?.trim() ?? "";
-  expect(key).toMatch(/^sitli_/);
+  expect(key).toMatch(/^openpax_/);
 
   // `request` has no session cookie: the key alone must authenticate
   const url = `/api/v1/restaurants/${owner.restaurantId}/bookings?date=${date}`;

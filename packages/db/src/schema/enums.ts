@@ -1,4 +1,4 @@
-import { BOOKING_SOURCES, BOOKING_STATUSES, WAITLIST_STATUSES } from "@sitli/core";
+import { BOOKING_SOURCES, BOOKING_STATUSES, WAITLIST_STATUSES } from "@openpax/core";
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const bookingStatusEnum = pgEnum("booking_status", BOOKING_STATUSES);

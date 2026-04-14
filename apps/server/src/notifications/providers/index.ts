@@ -8,7 +8,7 @@ import { smtpProvider } from "./smtp.js";
 import { twilioProvider } from "./twilio.js";
 import { vonageProvider } from "./vonage.js";
 
-/** Providers shipped with Sitli. Modules may add more via `providers` in defineModule. */
+/** Providers shipped with OpenPax. Modules may add more via `providers` in defineModule. */
 export const builtinProviders: NotificationProvider[] = [
   smtpProvider,
   resendProvider,

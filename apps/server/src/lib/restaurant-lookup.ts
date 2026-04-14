@@ -1,4 +1,4 @@
-import { restaurant } from "@sitli/db";
+import { restaurant } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../context.js";
 import { ApiError } from "./errors.js";

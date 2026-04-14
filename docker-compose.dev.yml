@@ -5,9 +5,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: sitli
-      POSTGRES_PASSWORD: sitli
-      POSTGRES_DB: sitli
+      POSTGRES_USER: openpax
+      POSTGRES_PASSWORD: openpax
+      POSTGRES_DB: openpax
     volumes:
       - pgdata-dev:/var/lib/postgresql/data
 

@@ -1,6 +1,7 @@
 {
-  "name": "@sitli/emails",
+  "name": "@openpax/emails",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,7 +13,7 @@
   },
   "dependencies": {
     "@date-fns/tz": "catalog:",
-    "@sitli/shared": "workspace:*",
+    "@openpax/shared": "workspace:*",
     "date-fns": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

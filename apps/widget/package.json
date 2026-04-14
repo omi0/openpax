@@ -1,6 +1,7 @@
 {
-  "name": "@sitli/widget",
+  "name": "@openpax/widget",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +12,7 @@
   },
   "dependencies": {
     "@preact/signals": "catalog:",
-    "@sitli/shared": "workspace:*",
+    "@openpax/shared": "workspace:*",
     "preact": "catalog:"
   },
   "devDependencies": {

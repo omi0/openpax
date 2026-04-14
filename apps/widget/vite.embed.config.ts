@@ -7,7 +7,7 @@ export default defineConfig({
     emptyOutDir: false,
     lib: {
       entry: "src/embed/embed.ts",
-      name: "SitliEmbed",
+      name: "OpenPaxEmbed",
       formats: ["iife"],
       fileName: () => "embed.js",
     },

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createDb } from "@sitli/db";
+import { createDb } from "@openpax/db";
 import { createAuth } from "./auth/create-auth.js";
 import type { AppContext } from "./context.js";
 import type { Env } from "./env.js";
@@ -8,7 +8,7 @@ import type { JobQueue } from "./jobs/queue.js";
 import { createSecretBox } from "./lib/crypto.js";
 import { RateLimiter } from "./lib/rate-limit.js";
 import type { Logger } from "./logger.js";
-import type { SitliModule } from "./modules/module.js";
+import type { OpenPaxModule } from "./modules/module.js";
 import { ProviderRegistry } from "./notifications/provider.js";
 import type { PaymentGateway } from "./payments/gateway.js";
 import { stripeGateway } from "./payments/stripe.js";
@@ -16,7 +16,7 @@ import { stripeGateway } from "./payments/stripe.js";
 export interface BuildContextOptions {
   env: Env;
   logger: Logger;
-  modules: SitliModule[];
+  modules: OpenPaxModule[];
   jobs: JobQueue;
   now?: () => Date;
   paymentGateway?: PaymentGateway;

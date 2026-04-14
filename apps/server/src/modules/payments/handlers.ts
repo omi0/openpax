@@ -1,4 +1,4 @@
-import { paymentConfig } from "@sitli/db";
+import { paymentConfig } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import { defineEventHandler } from "../../events/dispatch.js";
 import { findRestaurantById } from "../../lib/restaurant-lookup.js";

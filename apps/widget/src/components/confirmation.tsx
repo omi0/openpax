@@ -1,4 +1,4 @@
-import type { PublicBookingDto } from "@sitli/shared";
+import type { PublicBookingDto } from "@openpax/shared";
 import { formatInstant, formatMoney } from "../dates.js";
 import { locale, t } from "../i18n.js";
 import { reset } from "../state.js";

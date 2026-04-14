@@ -1,4 +1,4 @@
-import type { TimeWindow, WeeklyHours } from "@sitli/core";
+import type { TimeWindow, WeeklyHours } from "@openpax/core";
 import { boolean, date, index, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "./columns.js";
 import { area, restaurant } from "./restaurant.js";

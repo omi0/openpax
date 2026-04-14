@@ -13,4 +13,4 @@ services:
         condition: service_started
     environment:
       SMTP_URL: smtp://mailpit:1025
-      SMTP_FROM: ${SMTP_FROM:-Sitli <no-reply@sitli.local>}
+      SMTP_FROM: ${SMTP_FROM:-OpenPax <no-reply@openpax.local>}

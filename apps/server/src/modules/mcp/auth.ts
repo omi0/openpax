@@ -1,4 +1,4 @@
-import { oauthConsent } from "@sitli/db";
+import { oauthConsent } from "@openpax/db";
 import { verifyJwsAccessToken } from "better-auth/oauth2";
 import { and, eq } from "drizzle-orm";
 import { ASSISTANT_SCOPES, assistantResourceUrl } from "../../auth/create-auth.js";

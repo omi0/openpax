@@ -1,4 +1,4 @@
-import type { BookingPolicyDto, UpdateWidgetConfigInput, WidgetConfigDto } from "@sitli/shared";
+import type { BookingPolicyDto, UpdateWidgetConfigInput, WidgetConfigDto } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Code, Copy, ExternalLink, Palette, SlidersHorizontal } from "lucide-react";

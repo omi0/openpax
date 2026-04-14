@@ -1,4 +1,4 @@
-import { BOOKING_STATUSES } from "@sitli/core";
+import { BOOKING_STATUSES } from "@openpax/core";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CalendarDays, ClipboardList, Phone, StickyNote } from "lucide-react";

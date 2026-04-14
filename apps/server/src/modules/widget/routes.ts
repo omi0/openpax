@@ -1,11 +1,11 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute } from "@hono/zod-openapi";
-import { area, bookingPolicy, service, widgetConfig } from "@sitli/db";
+import { area, bookingPolicy, service, widgetConfig } from "@openpax/db";
 import {
   type PublicWidgetConfigDto,
   publicWidgetConfigDtoSchema,
   SUPPORTED_LOCALES,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { AppContext, AppEnv } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";

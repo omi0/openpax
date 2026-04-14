@@ -13,7 +13,7 @@ export const consoleEmailProvider = defineProvider({
       type: "email",
       required: false,
       secret: false,
-      placeholder: "Sitli <no-reply@localhost>",
+      placeholder: "OpenPax <no-reply@localhost>",
     },
   ],
   async send(message) {

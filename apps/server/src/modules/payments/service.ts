@@ -1,11 +1,11 @@
-import { booking, bookingPayment, paymentConfig } from "@sitli/db";
+import { booking, bookingPayment, paymentConfig } from "@openpax/db";
 import type {
   BookingPaymentDto,
   PaymentConfigDto,
   PaymentKind,
   PublicPaymentDto,
   UpdatePaymentConfigInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, eq } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";

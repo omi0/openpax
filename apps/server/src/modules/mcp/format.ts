@@ -4,14 +4,14 @@ import {
   localToInstant,
   parseLocalTime,
   weekdayOf,
-} from "@sitli/core";
+} from "@openpax/core";
 import type {
   BookingDto,
   CustomerDto,
   FeedbackDto,
   ScheduleExceptionDto,
   WaitlistEntryDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 
 /**
  * What the tools hand back to the model: the dashboard DTOs trimmed to what a

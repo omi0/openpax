@@ -9,5 +9,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   // Bundle workspace packages; keep npm dependencies external (installed in the image).
-  deps: { neverBundle: true, alwaysBundle: [/^@sitli\//] },
+  deps: { neverBundle: true, alwaysBundle: [/^@openpax\//] },
 });

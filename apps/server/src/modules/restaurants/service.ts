@@ -8,7 +8,7 @@ import {
   scheduleException,
   service,
   widgetConfig,
-} from "@sitli/db";
+} from "@openpax/db";
 import type {
   AreaDto,
   BookingPolicyDto,
@@ -26,7 +26,7 @@ import type {
   UpsertScheduleExceptionInput,
   UpsertServiceInput,
   WidgetConfigDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { RoleName } from "../../auth/access.js";
 import { roles } from "../../auth/access.js";
@@ -90,7 +90,7 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
 }
 
 export function embedSnippet(publicUrl: string, slug: string): string {
-  return `<div id="sitli-booking"></div>\n<script src="${publicUrl}/embed.js" data-restaurant="${slug}" data-target="#sitli-booking" async></script>`;
+  return `<div id="openpax-booking"></div>\n<script src="${publicUrl}/embed.js" data-restaurant="${slug}" data-target="#openpax-booking" async></script>`;
 }
 
 export function toWidgetConfigDto(

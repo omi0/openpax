@@ -1,5 +1,5 @@
-import { oauthAccessToken, oauthClient, oauthConsent, oauthRefreshToken } from "@sitli/db";
-import type { AssistantConnectionDto, AssistantsStatusDto } from "@sitli/shared";
+import { oauthAccessToken, oauthClient, oauthConsent, oauthRefreshToken } from "@openpax/db";
+import type { AssistantConnectionDto, AssistantsStatusDto } from "@openpax/shared";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { assistantResourceUrl, assistantsSupported } from "../../auth/create-auth.js";
 import type { AppContext } from "../../context.js";

@@ -1,4 +1,4 @@
-import { invitation, member, organization, user } from "@sitli/db";
+import { invitation, member, organization, user } from "@openpax/db";
 import type {
   InvitationDto,
   InviteMemberInput,
@@ -6,7 +6,7 @@ import type {
   PublicInvitationDto,
   TeamDto,
   TeamMemberDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { roles } from "../../auth/access.js";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";

@@ -1,10 +1,10 @@
-import type { Locale, NotificationAudience, NotificationEvent } from "@sitli/shared";
+import type { Locale, NotificationAudience, NotificationEvent } from "@openpax/shared";
 import {
   defaultTemplates,
   type EmailTemplate,
   fillTemplate,
   type TemplateVars,
-} from "@sitli/shared";
+} from "@openpax/shared";
 
 export interface EmailCopy {
   subject: (v: CopyVars) => string;
@@ -58,8 +58,9 @@ const footerIt = (v: CopyVars) =>
   `Hai ricevuto questa email perché hai prenotato da ${v.restaurantName}.`;
 const footerEn = (v: CopyVars) =>
   `You received this email because you booked at ${v.restaurantName}.`;
-const staffFooterIt = (v: CopyVars) => `Notifica automatica di Sitli per ${v.restaurantName}.`;
-const staffFooterEn = (v: CopyVars) => `Automatic notification from Sitli for ${v.restaurantName}.`;
+const staffFooterIt = (v: CopyVars) => `Notifica automatica di OpenPax per ${v.restaurantName}.`;
+const staffFooterEn = (v: CopyVars) =>
+  `Automatic notification from OpenPax for ${v.restaurantName}.`;
 
 const buttonLabels: Record<Locale, Partial<Record<NotificationEvent, string>>> = {
   it: {

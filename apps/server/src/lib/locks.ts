@@ -1,5 +1,5 @@
-import { localDateParts } from "@sitli/core";
-import type { DbOrTx } from "@sitli/db";
+import { localDateParts } from "@openpax/core";
+import type { DbOrTx } from "@openpax/db";
 import { sql } from "drizzle-orm";
 
 /**

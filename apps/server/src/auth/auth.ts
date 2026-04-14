@@ -4,12 +4,15 @@
  * needs to expose an `auth` object with the same plugins and adapter so the
  * CLI can derive the Drizzle schema. The pool never connects here.
  */
-import { createDb } from "@sitli/db";
+import { createDb } from "@openpax/db";
 import { createAuth } from "./create-auth.js";
 
-const { db } = createDb(process.env.DATABASE_URL ?? "postgres://sitli:sitli@localhost:5432/sitli", {
-  max: 1,
-});
+const { db } = createDb(
+  process.env.DATABASE_URL ?? "postgres://openpax:openpax@localhost:5432/openpax",
+  {
+    max: 1,
+  },
+);
 
 // The OAuth provider seeds its resources table when the instance initialises.
 // While this generation is the one adding that table, the background seed

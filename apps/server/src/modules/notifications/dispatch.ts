@@ -9,8 +9,8 @@ import {
   service,
   waitlistEntry,
   widgetConfig,
-} from "@sitli/db";
-import type { NotificationAudience, NotificationChannel, NotificationEvent } from "@sitli/shared";
+} from "@openpax/db";
+import type { NotificationAudience, NotificationChannel, NotificationEvent } from "@openpax/shared";
 import { and, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { AppContext } from "../../context.js";

@@ -7,7 +7,7 @@ import {
   teamDtoSchema,
   teamMemberDtoSchema,
   updateMemberRoleInputSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, noContentResponse, restaurantIdParam } from "../../lib/openapi.js";

@@ -1,5 +1,5 @@
-import type { DbOrTx } from "@sitli/db";
-import { auditLog } from "@sitli/db";
+import type { DbOrTx } from "@openpax/db";
+import { auditLog } from "@openpax/db";
 import type { Actor } from "../context.js";
 
 export interface AuditEntry {

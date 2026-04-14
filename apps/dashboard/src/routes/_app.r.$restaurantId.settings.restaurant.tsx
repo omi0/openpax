@@ -1,4 +1,4 @@
-import type { RestaurantDto, UpdateRestaurantInput } from "@sitli/shared";
+import type { RestaurantDto, UpdateRestaurantInput } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useId, useState } from "react";

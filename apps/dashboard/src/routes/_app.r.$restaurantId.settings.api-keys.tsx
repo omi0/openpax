@@ -1,4 +1,4 @@
-import type { CreatedApiKeyDto } from "@sitli/shared";
+import type { CreatedApiKeyDto } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen, Copy, KeyRound, Terminal } from "lucide-react";
@@ -202,7 +202,7 @@ function ApiKeysPage() {
         }
       >
         <pre className="overflow-x-auto rounded-xl bg-stone-900 px-4 py-3.5 text-[13px] leading-relaxed text-stone-100">
-          {`curl -H "X-Api-Key: sitli_..." \\
+          {`curl -H "X-Api-Key: openpax_..." \\
   "${origin}/api/v1/restaurants/${restaurantId}/bookings?date=$(date +%F)"`}
         </pre>
       </Card>

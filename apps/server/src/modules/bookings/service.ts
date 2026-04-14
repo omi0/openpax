@@ -12,15 +12,22 @@ import {
   SlotUnavailableError,
   transition,
   usableTables,
-} from "@sitli/core";
-import type { DbOrTx } from "@sitli/db";
-import { booking, bookingPayment, bookingPolicy, bookingTable, customer, service } from "@sitli/db";
+} from "@openpax/core";
+import type { DbOrTx } from "@openpax/db";
+import {
+  booking,
+  bookingPayment,
+  bookingPolicy,
+  bookingTable,
+  customer,
+  service,
+} from "@openpax/db";
 import type {
   BookingDto,
   ListBookingsQuery,
   PublicBookingDto,
   UpdateBookingInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";

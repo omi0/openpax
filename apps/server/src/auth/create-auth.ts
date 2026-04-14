@@ -3,8 +3,8 @@ import { cimd } from "@better-auth/cimd";
 import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { mcp } from "@better-auth/mcp";
-import type { Db } from "@sitli/db";
-import * as schema from "@sitli/db/schema";
+import type { Db } from "@openpax/db";
+import * as schema from "@openpax/db/schema";
 import type { BetterAuthPlugin } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
@@ -49,7 +49,7 @@ export const RESET_PASSWORD_TTL_SECONDS = 60 * 60;
 
 /**
  * Scopes an assistant (Claude, ChatGPT, any MCP client) can be granted.
- * `read` and `write` are Sitli's; the OIDC ones let clients ask for identity
+ * `read` and `write` are OpenPax's; the OIDC ones let clients ask for identity
  * and a refresh token. The consent page turns `write` off for a read-only
  * connection.
  */
@@ -89,7 +89,7 @@ export function assistantsSupported(baseURL: string): boolean {
  * hour, so every authorization request gets it added.
  */
 const assistantRefreshTokens: BetterAuthPlugin = {
-  id: "sitli-assistant-refresh-tokens",
+  id: "openpax-assistant-refresh-tokens",
   hooks: {
     before: [
       {
@@ -127,7 +127,7 @@ export function createAuth(options: CreateAuthOptions) {
       ]
     : [];
   return betterAuth({
-    appName: "Sitli",
+    appName: "OpenPax",
     baseURL: options.baseURL,
     basePath: "/api/auth",
     secret: options.secret,
@@ -187,7 +187,7 @@ export function createAuth(options: CreateAuthOptions) {
       }),
       apiKey({
         references: "organization",
-        defaultPrefix: "sitli_",
+        defaultPrefix: "openpax_",
         enableMetadata: true,
         rateLimit: { enabled: false },
       }),

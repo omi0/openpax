@@ -3,7 +3,7 @@ import {
   MEMBER_ROLES,
   type MemberRole,
   type TeamMemberDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Mail, UserPlus, Users } from "lucide-react";

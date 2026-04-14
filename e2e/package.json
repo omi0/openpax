@@ -1,6 +1,7 @@
 {
-  "name": "@sitli/e2e",
+  "name": "@openpax/e2e",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {

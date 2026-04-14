@@ -1,4 +1,4 @@
-import type { BookingPolicyDto } from "@sitli/shared";
+import type { BookingPolicyDto } from "@openpax/shared";
 import { Hourglass } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";

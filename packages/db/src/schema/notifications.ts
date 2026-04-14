@@ -108,7 +108,7 @@ export const notificationLog = pgTable(
 
 /**
  * A restaurant's own wording for one message (event × channel × audience ×
- * locale). Absent rows fall back to the defaults shipped in @sitli/shared.
+ * locale). Absent rows fall back to the defaults shipped in @openpax/shared.
  */
 export const notificationTemplate = pgTable(
   "notification_template",

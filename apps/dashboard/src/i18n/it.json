@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Sitli",
+    "name": "OpenPax",
     "today": "Oggi",
     "settings": "Impostazioni",
     "logout": "Esci",
@@ -71,7 +71,7 @@
     "phone": "Telefono",
     "address": "Indirizzo",
     "continue": "Continua",
-    "welcome": "Benvenuto in Sitli",
+    "welcome": "Benvenuto in OpenPax",
     "seats": "Quanti ospiti puoi far sedere contemporaneamente?",
     "seatsHint": "Conta tutte le sale. Potrai dividerle in sale più tardi.",
     "emailHint": "Dove arrivano gli avvisi delle nuove prenotazioni. Puoi aggiungerla dopo."
@@ -1000,7 +1000,7 @@
     },
     "rooms": {
       "tablesTitle": "Tavoli (facoltativi)",
-      "tablesHint": "Con i tavoli, Sitli assegna ogni prenotazione a un tavolo, controlla che sia libero e mostra la piantina in Oggi. Senza tavoli contano solo i posti.",
+      "tablesHint": "Con i tavoli, OpenPax assegna ogni prenotazione a un tavolo, controlla che sia libero e mostra la piantina in Oggi. Senza tavoli contano solo i posti.",
       "tablesLink": "Gestisci i tavoli",
       "tablesCount_one": "Hai {{count}} tavolo.",
       "tablesCount_other": "Hai {{count}} tavoli.",
@@ -1038,7 +1038,7 @@
   "assistants": {
     "title": "Assistenti",
     "intro": "Collega l'assistente che già usi: Claude, ChatGPT o qualsiasi app che parli MCP. Poi chiedigli com'è messa la serata, chi ha annullato questa settimana, o di prenotare un tavolo per un cliente al telefono. Agisce con i tuoi permessi e ogni modifica viene registrata a tuo nome.",
-    "disabled": "Gli assistenti richiedono che questo Sitli sia raggiungibile in HTTPS. Imposta PUBLIC_URL su un indirizzo https raggiungibile da internet.",
+    "disabled": "Gli assistenti richiedono che questo OpenPax sia raggiungibile in HTTPS. Imposta PUBLIC_URL su un indirizzo https raggiungibile da internet.",
     "urlTitle": "Indirizzo da dare all'assistente",
     "urlHint": "Incollalo dove l'assistente chiede un connettore o un server MCP. Ti riporterà qui per accedere e approvare.",
     "howTitle": "Come collegarlo",
@@ -1064,12 +1064,12 @@
     "canWrite": "Può fare modifiche",
     "connectedOn": "collegato il {{date}}",
     "disconnect": "Scollega",
-    "confirmDisconnect": "Scollegare questo assistente? Dovrai ricollegarlo per usare Sitli da lì.",
+    "confirmDisconnect": "Scollegare questo assistente? Dovrai ricollegarlo per usare OpenPax da lì.",
     "unknownClient": "Assistente"
   },
   "connect": {
     "title": "Collega un assistente",
-    "subtitle": "{{client}} vuole usare Sitli come {{email}}.",
+    "subtitle": "{{client}} vuole usare OpenPax come {{email}}.",
     "unknownClient": "Un assistente",
     "loading": "Controllo la richiesta…",
     "invalid": "Questa richiesta non è più valida. Ricomincia dall'assistente.",

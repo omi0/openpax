@@ -1,5 +1,5 @@
+import type { PublicBookingDto } from "@openpax/shared";
 import { useSignal } from "@preact/signals";
-import type { PublicBookingDto } from "@sitli/shared";
 import { useEffect } from "preact/hooks";
 import { ApiRequestError, api } from "../api.js";
 import { formatInstant, formatMoney } from "../dates.js";

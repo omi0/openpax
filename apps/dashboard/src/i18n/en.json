@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Sitli",
+    "name": "OpenPax",
     "today": "Today",
     "settings": "Settings",
     "logout": "Log out",
@@ -71,7 +71,7 @@
     "phone": "Phone",
     "address": "Address",
     "continue": "Continue",
-    "welcome": "Welcome to Sitli",
+    "welcome": "Welcome to OpenPax",
     "seats": "How many guests can you seat at once?",
     "seatsHint": "Count every room. You can split it into rooms later.",
     "emailHint": "Where new-booking alerts go. You can add it later."
@@ -1000,7 +1000,7 @@
     },
     "rooms": {
       "tablesTitle": "Tables (optional)",
-      "tablesHint": "With tables, Sitli assigns each booking to a table, checks that one is free, and shows a floor plan on Today. Without tables, only the seats count.",
+      "tablesHint": "With tables, OpenPax assigns each booking to a table, checks that one is free, and shows a floor plan on Today. Without tables, only the seats count.",
       "tablesLink": "Manage tables",
       "tablesCount_one": "You have {{count}} table.",
       "tablesCount_other": "You have {{count}} tables.",
@@ -1038,7 +1038,7 @@
   "assistants": {
     "title": "Assistants",
     "intro": "Connect the assistant you already use: Claude, ChatGPT or any app that speaks MCP. Then ask it what tonight looks like, who cancelled this week, or to book a table for a guest on the phone. It acts with your own permissions and every change is recorded under your name.",
-    "disabled": "Assistants need this Sitli to be reachable over HTTPS. Set PUBLIC_URL to an https address that the assistant can reach from the internet.",
+    "disabled": "Assistants need this OpenPax to be reachable over HTTPS. Set PUBLIC_URL to an https address that the assistant can reach from the internet.",
     "urlTitle": "Address to give the assistant",
     "urlHint": "Paste it where the assistant asks for a connector or MCP server. It will send you back here to log in and approve.",
     "howTitle": "How to connect",
@@ -1064,12 +1064,12 @@
     "canWrite": "Can make changes",
     "connectedOn": "connected {{date}}",
     "disconnect": "Disconnect",
-    "confirmDisconnect": "Disconnect this assistant? You will have to connect it again to use Sitli from it.",
+    "confirmDisconnect": "Disconnect this assistant? You will have to connect it again to use OpenPax from it.",
     "unknownClient": "Assistant"
   },
   "connect": {
     "title": "Connect an assistant",
-    "subtitle": "{{client}} wants to use Sitli as {{email}}.",
+    "subtitle": "{{client}} wants to use OpenPax as {{email}}.",
     "unknownClient": "An assistant",
     "loading": "Checking the request…",
     "invalid": "This request is not valid any more. Start again from the assistant.",

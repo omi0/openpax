@@ -20,6 +20,7 @@
 | `SIGNUP_MODE` | no | `first_user` (default): the first account created becomes the owner and sign-up closes; new staff join through invitations from Settings → Team. `invite_only` closes it from the start; `open` lets anyone sign up (hosted, multi-tenant instances). |
 | `PORT`, `HOST`, `LOG_LEVEL` | no | defaults `3000`, `0.0.0.0`, `info` |
 | `ROLE` | no | `all` (default), `api` (HTTP only) or `worker` (jobs only) to run several containers |
+| `POSTGRES_PASSWORD`, `POSTGRES_USER`, `POSTGRES_DB` | compose only | credentials of the bundled Postgres; user and database default to `openpax` |
 | `BIND_IP`, `PORT` | compose only | interface and host port to publish, default `0.0.0.0:3000`. Set `BIND_IP` to a Tailscale or LAN address to keep the instance private. |
 
 ## Reverse proxy

@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
-import { booking, notificationLog } from "@sitli/db";
+import { booking, notificationLog } from "@openpax/db";
 import {
   localeSchema,
   notificationAudienceSchema,
@@ -16,7 +16,7 @@ import {
   updateNotificationSettingsInputSchema,
   upsertNotificationTemplateInputSchema,
   upsertProviderConfigInputSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, desc, eq } from "drizzle-orm";
 import { requireRestaurant, requireSession } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";

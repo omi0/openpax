@@ -1,5 +1,5 @@
+import type { PublicWaitlistEntryDto } from "@openpax/shared";
 import { useSignal } from "@preact/signals";
-import type { PublicWaitlistEntryDto } from "@sitli/shared";
 import { ApiRequestError, api } from "../api.js";
 import { formatDateLong } from "../dates.js";
 import { locale, t } from "../i18n.js";
@@ -82,9 +82,9 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       <div class="field">
-        <label for="sitli-wl-time">{t("waitlist.preferredTime")}</label>
+        <label for="openpax-wl-time">{t("waitlist.preferredTime")}</label>
         <select
-          id="sitli-wl-time"
+          id="openpax-wl-time"
           value={preferredTime.value}
           onChange={(e) => {
             preferredTime.value = (e.target as HTMLSelectElement).value;
@@ -99,9 +99,9 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
         </select>
       </div>
       <div class="field">
-        <label for="sitli-wl-name">{t("name")}</label>
+        <label for="openpax-wl-name">{t("name")}</label>
         <input
-          id="sitli-wl-name"
+          id="openpax-wl-name"
           type="text"
           required
           autocomplete="name"
@@ -110,9 +110,9 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-wl-email">{t("email")}</label>
+        <label for="openpax-wl-email">{t("email")}</label>
         <input
-          id="sitli-wl-email"
+          id="openpax-wl-email"
           type="email"
           required
           autocomplete="email"
@@ -122,12 +122,12 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-wl-phone">
+        <label for="openpax-wl-phone">
           {t("phone")}
           {!cfg.widget.requirePhone ? ` (${t("optional")})` : ""}
         </label>
         <input
-          id="sitli-wl-phone"
+          id="openpax-wl-phone"
           type="tel"
           required={cfg.widget.requirePhone}
           autocomplete="tel"
@@ -137,9 +137,9 @@ export function WaitlistForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="sitli-wl-notes">{t("notes")}</label>
+        <label for="openpax-wl-notes">{t("notes")}</label>
         <textarea
-          id="sitli-wl-notes"
+          id="openpax-wl-notes"
           maxLength={1000}
           value={g.notes}
           onInput={(e) => update({ notes: (e.target as HTMLTextAreaElement).value })}

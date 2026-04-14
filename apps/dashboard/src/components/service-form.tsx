@@ -1,5 +1,5 @@
-import { WEEKDAYS } from "@sitli/core";
-import type { ServiceDto, UpsertServiceInput } from "@sitli/shared";
+import { WEEKDAYS } from "@openpax/core";
+import type { ServiceDto, UpsertServiceInput } from "@openpax/shared";
 import { Copy, Plus, Trash } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,6 +1,6 @@
-import type { DomainEvent, DomainEventType } from "@sitli/core";
-import { isDomainEventType } from "@sitli/core";
-import { outboxEvent } from "@sitli/db";
+import type { DomainEvent, DomainEventType } from "@openpax/core";
+import { isDomainEventType } from "@openpax/core";
+import { outboxEvent } from "@openpax/db";
 import { and, asc, eq, isNull, lt, sql } from "drizzle-orm";
 import type { AppContext } from "../context.js";
 

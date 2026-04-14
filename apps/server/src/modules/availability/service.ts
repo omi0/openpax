@@ -13,8 +13,8 @@ import {
   type ServiceDef,
   type TableDef,
   type TableLoad,
-} from "@sitli/core";
-import type { DbOrTx } from "@sitli/db";
+} from "@openpax/core";
+import type { DbOrTx } from "@openpax/db";
 import {
   area,
   booking,
@@ -24,8 +24,8 @@ import {
   diningTable,
   scheduleException,
   service,
-} from "@sitli/db";
-import type { AvailabilityResponse, MonthAvailabilityResponse } from "@sitli/shared";
+} from "@openpax/db";
+import type { AvailabilityResponse, MonthAvailabilityResponse } from "@openpax/shared";
 import { and, asc, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";

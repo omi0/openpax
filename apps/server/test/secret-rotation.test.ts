@@ -1,4 +1,4 @@
-import { notificationProviderConfig, paymentConfig } from "@sitli/db";
+import { notificationProviderConfig, paymentConfig } from "@openpax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildContext } from "../src/bootstrap.js";
 import { loadEnv } from "../src/env.js";

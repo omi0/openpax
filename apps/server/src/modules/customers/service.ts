@@ -1,4 +1,4 @@
-import { booking, bookingFeedback, customer, waitlistEntry } from "@sitli/db";
+import { booking, bookingFeedback, customer, waitlistEntry } from "@openpax/db";
 import type {
   CustomerDto,
   CustomerDuplicateDto,
@@ -6,7 +6,7 @@ import type {
   CustomerTagDto,
   ListCustomersQuery,
   UpdateCustomerInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";

@@ -1,11 +1,11 @@
-import { notificationProviderConfig, notificationSetting } from "@sitli/db";
+import { notificationProviderConfig, notificationSetting } from "@openpax/db";
 import {
   NOTIFICATION_EVENTS,
   type NotificationChannel,
   type NotificationSettingDto,
   type ProviderConfigDto,
   type UpsertProviderConfigInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -363,7 +363,7 @@ export async function resolveProviderFor(
         provider,
         config: smtpConfigFromUrl(
           ctx.env.SMTP_URL,
-          ctx.env.SMTP_FROM ?? "Sitli <no-reply@localhost>",
+          ctx.env.SMTP_FROM ?? "OpenPax <no-reply@localhost>",
         ),
         scope: "instance",
         row: null,
@@ -529,7 +529,7 @@ export async function sendTestMessage(
 ): Promise<{ providerId: string; scope: string }> {
   const resolved = await resolveProvider(ctx, r, channel);
   if (!resolved) throw ApiError.badRequest("no_provider", `No ${channel} provider is configured`);
-  const { renderTestEmail } = await import("@sitli/emails");
+  const { renderTestEmail } = await import("@openpax/emails");
   if (channel === "email") {
     const email = renderTestEmail({
       locale: r.locale as "it" | "en",
@@ -546,8 +546,8 @@ export async function sendTestMessage(
     if (!phone) throw ApiError.badRequest("invalid_phone", "Enter a valid phone number");
     const body =
       r.locale === "it"
-        ? `Sitli: SMS di prova da ${r.name}. La configurazione funziona.`
-        : `Sitli: test SMS from ${r.name}. Your configuration works.`;
+        ? `OpenPax: SMS di prova da ${r.name}. La configurazione funziona.`
+        : `OpenPax: test SMS from ${r.name}. Your configuration works.`;
     await (resolved.provider as NotificationProvider<"sms">).send(
       { to: phone, body },
       resolved.config,

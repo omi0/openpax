@@ -1,6 +1,6 @@
-import { formatWhen, formatWhenDate, renderBookingEmail } from "@sitli/emails";
-import type { Locale, NotificationAudience, NotificationEvent } from "@sitli/shared";
-import { renderSms } from "@sitli/shared/sms";
+import { formatWhen, formatWhenDate, renderBookingEmail } from "@openpax/emails";
+import type { Locale, NotificationAudience, NotificationEvent } from "@openpax/shared";
+import { renderSms } from "@openpax/shared/sms";
 import type { AppContext } from "../../context.js";
 import type { EmailMessage, SmsMessage } from "../../notifications/provider.js";
 import { formatAmount } from "../payments/index.js";

@@ -1,5 +1,5 @@
-import type { NotificationSettingDto } from "@sitli/shared";
-import { NOTIFICATION_EVENTS } from "@sitli/shared";
+import type { NotificationSettingDto } from "@openpax/shared";
+import { NOTIFICATION_EVENTS } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mail, MessageSquare } from "lucide-react";
 import { useState } from "react";

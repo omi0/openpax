@@ -5,8 +5,8 @@ import {
   restaurant,
   user,
   widgetConfig,
-} from "@sitli/db";
-import { renderInvitationEmail } from "@sitli/emails";
+} from "@openpax/db";
+import { renderInvitationEmail } from "@openpax/emails";
 import { asc, eq, sql } from "drizzle-orm";
 import { defineEventHandler } from "../../events/dispatch.js";
 import { defineJob } from "../../jobs/queue.js";

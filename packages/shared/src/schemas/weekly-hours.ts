@@ -1,5 +1,5 @@
-import type { TimeWindow, WeeklyHours } from "@sitli/core";
-import { WEEKDAYS } from "@sitli/core";
+import type { TimeWindow, WeeklyHours } from "@openpax/core";
+import { WEEKDAYS } from "@openpax/core";
 import { z } from "zod";
 import { localTimeSchema } from "./common.js";
 

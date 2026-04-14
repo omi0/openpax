@@ -1,5 +1,5 @@
-import { apikey } from "@sitli/db";
-import type { ApiKeyDto, CreateApiKeyInput, CreatedApiKeyDto } from "@sitli/shared";
+import { apikey } from "@openpax/db";
+import type { ApiKeyDto, CreateApiKeyInput, CreatedApiKeyDto } from "@openpax/shared";
 import { and, desc, eq } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -51,7 +51,7 @@ export async function createApiKey(
       body: {
         name: input.name,
         organizationId: r.organizationId,
-        prefix: "sitli_",
+        prefix: "openpax_",
         expiresIn: input.expiresInDays ? input.expiresInDays * 24 * 60 * 60 : null,
         metadata: { createdFromRestaurantId: r.id },
       },

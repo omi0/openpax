@@ -3,10 +3,10 @@
 Copy the snippet from **Settings → Widget** in the dashboard. It looks like:
 
 ```html
-<div id="sitli-booking"></div>
+<div id="openpax-booking"></div>
 <script src="https://bookings.example.com/embed.js"
         data-restaurant="trattoria-roma"
-        data-target="#sitli-booking" async></script>
+        data-target="#openpax-booking" async></script>
 ```
 
 The loader creates an iframe pointing at the hosted booking page and resizes

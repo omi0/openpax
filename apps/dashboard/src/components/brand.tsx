@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** The Sitli mark: a plate with a fork and knife, in brand green. */
+/** The OpenPax mark: a plate with a fork and knife, in brand green. */
 export function BrandMark({ className, size = 36 }: { className?: string; size?: number }) {
   return (
     <span
@@ -12,7 +12,7 @@ export function BrandMark({ className, size = 36 }: { className?: string; size?:
       style={{ width: size, height: size }}
     >
       <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none">
-        <title>Sitli</title>
+        <title>OpenPax</title>
         <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
         <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.4" opacity="0.7" />
         <path
@@ -38,7 +38,7 @@ export function BrandLockup({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <BrandMark size={34} />
-      <span className="text-lg font-bold tracking-tight text-stone-900">Sitli</span>
+      <span className="text-lg font-bold tracking-tight text-stone-900">OpenPax</span>
     </span>
   );
 }

@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DomainError, SlotUnavailableError, todayIn } from "@sitli/core";
-import { user } from "@sitli/db";
-import type { RestaurantSummaryDto } from "@sitli/shared";
+import { DomainError, SlotUnavailableError, todayIn } from "@openpax/core";
+import { user } from "@openpax/db";
+import type { RestaurantSummaryDto } from "@openpax/shared";
 import { eq } from "drizzle-orm";
 import { type Permissions, type RoleName, roleHasPermission, roles } from "../../auth/access.js";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
@@ -27,7 +27,7 @@ export interface ToolContext {
   ): Promise<{ row: RestaurantRow; actor: Actor; role: RoleName }>;
 }
 
-const SERVER_INFO = { name: "sitli", version: "1" };
+const SERVER_INFO = { name: "openpax", version: "1" };
 
 function pick(restaurants: RestaurantSummaryDto[], restaurantId: string | undefined) {
   if (restaurantId) {
@@ -52,7 +52,7 @@ function instructions(
   canWrite: boolean,
 ) {
   const lines = [
-    "Sitli is the restaurant's booking system: bookings, guests, waitlist, opening hours, closures and figures.",
+    "OpenPax is the restaurant's booking system: bookings, guests, waitlist, opening hours, closures and figures.",
     who
       ? `Connected as ${who.name} (${who.email}).`
       : "Connected as a member of the restaurant's team.",

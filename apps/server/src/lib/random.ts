@@ -1,5 +1,5 @@
 import { randomBytes, randomInt } from "node:crypto";
-import { generateConfirmationCode } from "@sitli/core";
+import { generateConfirmationCode } from "@openpax/core";
 
 const RANGE = 2 ** 48 - 1; // largest range randomInt accepts
 

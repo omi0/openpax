@@ -1,11 +1,11 @@
-import { booking, bookingFeedback, customer, notificationLog, service } from "@sitli/db";
+import { booking, bookingFeedback, customer, notificationLog, service } from "@openpax/db";
 import type {
   FeedbackDto,
   FeedbackSummaryDto,
   ListFeedbackQuery,
   PublicFeedbackDto,
   SubmitFeedbackInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";

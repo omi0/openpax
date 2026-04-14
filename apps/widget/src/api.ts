@@ -5,7 +5,7 @@ import type {
   PublicFeedbackDto,
   PublicWaitlistEntryDto,
   PublicWidgetConfigDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 
 export class ApiRequestError extends Error {
   constructor(

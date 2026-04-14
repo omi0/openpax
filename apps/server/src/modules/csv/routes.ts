@@ -5,7 +5,7 @@ import {
   exportCustomersQuerySchema,
   importQuerySchema,
   importResultDtoSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonResponse, restaurantIdParam } from "../../lib/openapi.js";

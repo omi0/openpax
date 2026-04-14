@@ -1,4 +1,4 @@
-import type { FeedbackDto, FeedbackSummaryDto } from "@sitli/shared";
+import type { FeedbackDto, FeedbackSummaryDto } from "@openpax/shared";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MessageSquareHeart, Star } from "lucide-react";

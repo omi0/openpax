@@ -1,4 +1,4 @@
-import { WEEKDAYS } from "@sitli/core";
+import { WEEKDAYS } from "@openpax/core";
 import {
   type BookingPolicyDto,
   MEMBER_ROLES,
@@ -9,7 +9,7 @@ import {
   type SetupStep,
   type UpdateRestaurantInput,
   type UpsertServiceInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import {
   type QueryClient,
   useMutation,

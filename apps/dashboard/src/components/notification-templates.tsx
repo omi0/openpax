@@ -4,7 +4,7 @@ import {
   type NotificationTemplatePreview,
   TEMPLATE_VARIABLES,
   type UpsertNotificationTemplateInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Mail, MessageSquare, Pencil, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

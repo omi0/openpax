@@ -1,4 +1,4 @@
-import type { PaymentConfigDto, UpdatePaymentConfigInput } from "@sitli/shared";
+import type { PaymentConfigDto, UpdatePaymentConfigInput } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, CircleAlert, Copy, CreditCard, Landmark, ShieldCheck } from "lucide-react";

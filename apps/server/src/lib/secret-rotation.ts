@@ -1,4 +1,4 @@
-import { notificationProviderConfig, paymentConfig } from "@sitli/db";
+import { notificationProviderConfig, paymentConfig } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import type { AppContext } from "../context.js";
 

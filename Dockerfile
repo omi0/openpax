@@ -9,9 +9,9 @@ COPY apps ./apps
 COPY packages ./packages
 COPY e2e/package.json ./e2e/package.json
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @sitli/dashboard build \
- && pnpm --filter @sitli/widget build \
- && pnpm --filter @sitli/server build
+RUN pnpm --filter @openpax/dashboard build \
+ && pnpm --filter @openpax/widget build \
+ && pnpm --filter @openpax/server build
 
 # ---------- runtime deps: only the server's production dependencies
 FROM node:24-slim AS deps
@@ -23,7 +23,7 @@ COPY packages/core/package.json ./packages/core/package.json
 COPY packages/db/package.json ./packages/db/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/emails/package.json ./packages/emails/package.json
-RUN pnpm install --frozen-lockfile --prod --filter @sitli/server... \
+RUN pnpm install --frozen-lockfile --prod --filter @openpax/server... \
  && pnpm store prune
 
 # ---------- runtime
@@ -35,7 +35,7 @@ ENV MIGRATIONS_DIR=/app/migrations
 ENV DASHBOARD_DIST=/app/public/dashboard
 ENV WIDGET_DIST=/app/public/widget
 WORKDIR /app
-RUN groupadd -r sitli && useradd -r -g sitli -d /app sitli
+RUN groupadd -r openpax && useradd -r -g openpax -d /app openpax
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
 COPY --from=build /app/apps/server/dist ./apps/server/dist
@@ -43,7 +43,7 @@ COPY --from=build /app/apps/server/package.json ./apps/server/package.json
 COPY --from=build /app/packages/db/migrations ./migrations
 COPY --from=build /app/apps/dashboard/dist ./public/dashboard
 COPY --from=build /app/apps/widget/dist ./public/widget
-USER sitli
+USER openpax
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/server/dist/index.mjs"]

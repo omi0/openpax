@@ -3,7 +3,7 @@ import type {
   ProviderConfigDto,
   ProviderDescriptorDto,
   ProviderFieldDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
 import { useState } from "react";

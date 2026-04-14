@@ -1,5 +1,5 @@
-import type { Db } from "@sitli/db";
-import { invitation, user } from "@sitli/db";
+import type { Db } from "@openpax/db";
+import { invitation, user } from "@openpax/db";
 import { and, eq, gt, sql } from "drizzle-orm";
 
 /**

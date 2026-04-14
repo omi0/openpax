@@ -1,4 +1,4 @@
-import { WEEKDAYS } from "@sitli/core";
+import { WEEKDAYS } from "@openpax/core";
 import type {
   AreaDto,
   CapacityRuleDto,
@@ -6,7 +6,7 @@ import type {
   ServiceDto,
   UpsertCapacityRuleInput,
   UpsertScheduleExceptionInput,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarOff, Clock, Plus, Trash } from "lucide-react";

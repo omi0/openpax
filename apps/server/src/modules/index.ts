@@ -6,7 +6,7 @@ import { csvModule } from "./csv/index.js";
 import { customersModule } from "./customers/index.js";
 import { feedbackModule } from "./feedback/index.js";
 import { mcpModule } from "./mcp/index.js";
-import type { SitliModule } from "./module.js";
+import type { OpenPaxModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
 import { paymentsModule } from "./payments/index.js";
 import { restaurantsModule } from "./restaurants/index.js";
@@ -17,7 +17,7 @@ import { waitlistModule } from "./waitlist/index.js";
 import { widgetModule } from "./widget/index.js";
 
 /** Order matters only for route registration. */
-export const modules: SitliModule[] = [
+export const modules: OpenPaxModule[] = [
   restaurantsModule,
   // before bookings and customers: its /export and /import paths would otherwise match their {id} routes
   csvModule,

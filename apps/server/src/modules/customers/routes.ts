@@ -8,7 +8,7 @@ import {
   mergeCustomersInputSchema,
   paginatedSchema,
   updateCustomerInputSchema,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, noContentResponse, restaurantIdParam } from "../../lib/openapi.js";

@@ -1,6 +1,7 @@
 {
-  "name": "@sitli/shared",
+  "name": "@openpax/shared",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,7 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@sitli/core": "workspace:*",
+    "@openpax/core": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

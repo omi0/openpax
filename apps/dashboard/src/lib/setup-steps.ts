@@ -1,4 +1,4 @@
-import type { SetupStep } from "@sitli/shared";
+import type { SetupStep } from "@openpax/shared";
 import {
   Bell,
   Clock,

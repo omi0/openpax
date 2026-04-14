@@ -1,4 +1,4 @@
-import { CUSTOMER_SORTS, type CustomerSort } from "@sitli/shared";
+import { CUSTOMER_SORTS, type CustomerSort } from "@openpax/shared";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CalendarX, Mail, Phone, Users, UserX } from "lucide-react";

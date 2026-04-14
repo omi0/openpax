@@ -1,4 +1,4 @@
-import type { TableDto, UpsertTableInput } from "@sitli/shared";
+import type { TableDto, UpsertTableInput } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { LayoutGrid, Pencil, Plus, Save, Trash } from "lucide-react";

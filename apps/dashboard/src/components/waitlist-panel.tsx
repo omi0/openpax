@@ -3,7 +3,7 @@ import type {
   CreateWaitlistEntryInput,
   RestaurantDto,
   WaitlistEntryDto,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarCheck, Hourglass, Phone, Plus, Send, Trash, Users } from "lucide-react";

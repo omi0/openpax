@@ -6,8 +6,8 @@ import {
   totalSeats,
   WEEKDAYS,
   weekdayOf,
-} from "@sitli/core";
-import { area, booking, scheduleException, service } from "@sitli/db";
+} from "@openpax/core";
+import { area, booking, scheduleException, service } from "@openpax/db";
 import {
   type AnalyticsDto,
   type AnalyticsQuery,
@@ -15,7 +15,7 @@ import {
   type BookingSourceSchemaType,
   LEAD_TIME_BUCKETS,
   type LeadTimeBucket,
-} from "@sitli/shared";
+} from "@openpax/shared";
 import { and, asc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
