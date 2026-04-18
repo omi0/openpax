@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# OpenPax helper, installed next to docker-compose.yml by install.sh.
+#
+#   openpax start              start the containers
+#   openpax stop               stop them (bookings and settings are kept)
+#   openpax restart
+#   openpax status             what is running and whether the app answers
+#   openpax logs [service]     follow the log (default: app)
+#   openpax update             pull the newest image and restart
+#   openpax backup             dump the database into backups/
+#   openpax restore <file>     replace the database with a backup
+#   openpax uninstall          remove the containers and the data (the folder stays)
+set -euo pipefail
+
+# Resolve symlinks so /usr/local/bin/openpax finds its folder.
+self=${BASH_SOURCE[0]}
+while [ -L "$self" ]; do
+  dir=$(cd "$(dirname "$self")" && pwd)
+  self=$(readlink "$self")
+  case $self in /*) ;; *) self="$dir/$self" ;; esac
+done
+cd "$(dirname "$self")"
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+env_get() { sed -n "s/^$1=//p" .env | tail -n 1; }
+http_get() {
+  if command -v curl >/dev/null 2>&1; then curl -fsS --max-time 5 "$1"
+  else wget -qO- --timeout=5 "$1"; fi
+}
+
+[ -f .env ] || die "no .env in $PWD: is this the OpenPax folder?"
+
+SUDO=""
+if ! docker info >/dev/null 2>&1; then
+  if command -v sudo >/dev/null 2>&1 && sudo docker info >/dev/null 2>&1; then
+    SUDO="sudo"
+  else
+    die "Docker is not running or not reachable."
+  fi
+fi
+compose() { $SUDO docker compose "$@"; }
+
+PORT=$(env_get PORT); PORT=${PORT:-3000}
+BIND=$(env_get BIND_IP)
+[ -n "$BIND" ] && [ "$BIND" != "0.0.0.0" ] || BIND=127.0.0.1
+PGUSER=$(env_get POSTGRES_USER); PGUSER=${PGUSER:-openpax}
+PGDB=$(env_get POSTGRES_DB); PGDB=${PGDB:-openpax}
+PUBLIC_URL=$(env_get PUBLIC_URL)
+HEALTH="http://$BIND:$PORT/api/health"
+
+healthy() { http_get "$HEALTH" 2>/dev/null | grep -q '"ok":true'; }
+
+wait_healthy() {
+  local i=0
+  while [ $i -lt 60 ]; do
+    healthy && return 0
+    sleep 2; i=$((i + 1))
+  done
+  return 1
+}
+
+started() {
+  if wait_healthy; then
+    say "OpenPax is running: $PUBLIC_URL"
+  else
+    compose logs --tail 40 app
+    die "the app did not answer within two minutes; the last log lines are above"
+  fi
+}
+
+case ${1:-} in
+  start)
+    compose up -d --remove-orphans
+    started
+    ;;
+  stop)
+    compose down
+    say "Stopped. Your data is kept; 'openpax start' brings it back."
+    ;;
+  restart)
+    compose down
+    compose up -d --remove-orphans
+    started
+    ;;
+  status)
+    compose ps
+    if healthy; then say "App: answering at $PUBLIC_URL"; else say "App: not answering"; fi
+    ;;
+  logs)
+    compose logs -f --tail 200 "${2:-app}"
+    ;;
+  update)
+    compose pull
+    compose up -d --remove-orphans
+    $SUDO docker image prune -f >/dev/null 2>&1 || true
+    started
+    ;;
+  backup)
+    mkdir -p backups
+    out="backups/openpax-$(date +%Y-%m-%d-%H%M).sql.gz"
+    compose exec -T db pg_dump -U "$PGUSER" "$PGDB" | gzip > "$out.tmp"
+    mv "$out.tmp" "$out"
+    say "Database saved to $PWD/$out"
+    say "Keep a copy of $PWD/.env with it: without APP_ENCRYPTION_KEY the stored credentials cannot be read."
+    ;;
+  restore)
+    file=${2:-}
+    [ -n "$file" ] || die "usage: openpax restore <backup.sql.gz>"
+    [ -f "$file" ] || die "no such file: $file"
+    say "This replaces every booking, guest and setting with the contents of $file."
+    printf 'Type yes to continue: '
+    read -r answer
+    [ "$answer" = "yes" ] || die "cancelled"
+    compose stop app
+    compose exec -T db psql -U "$PGUSER" -d postgres -v ON_ERROR_STOP=1 -q \
+      -c "DROP DATABASE IF EXISTS \"$PGDB\"" -c "CREATE DATABASE \"$PGDB\""
+    case $file in
+      *.gz) gunzip -c "$file" ;;
+      *) cat "$file" ;;
+    esac | compose exec -T db psql -U "$PGUSER" -d "$PGDB" -v ON_ERROR_STOP=1 -q
+    compose up -d
+    started
+    ;;
+  uninstall)
+    say "This removes the OpenPax containers AND the database with every booking."
+    say "Take a backup first with 'openpax backup' if you may want the data later."
+    printf 'Type delete to continue: '
+    read -r answer
+    [ "$answer" = "delete" ] || die "cancelled"
+    compose down -v --remove-orphans
+    say "Removed. The folder $PWD (with .env and backups/) is still there; delete it when you no longer need it."
+    ;;
+  *)
+    sed -n '2,12p' "$self" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

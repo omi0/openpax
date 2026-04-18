@@ -1,0 +1,73 @@
+# OpenPax from the published image. This is the file install.sh puts next to
+# your .env; it also works on its own: write .env (see the README) and run
+#   docker compose up -d
+#
+# Local changes belong in docker-compose.override.yml (Compose merges it on
+# its own), because install.sh replaces this file when you run it again.
+name: openpax
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openpax}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-openpax}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openpax} -d ${POSTGRES_DB:-openpax}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: ${OPENPAX_IMAGE:-ghcr.io/omi0/openpax}:${OPENPAX_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # BIND_IP publishes the app on one interface only: 127.0.0.1 when Caddy
+      # (below) handles the traffic, a LAN or Tailscale address to keep a
+      # private instance private.
+      - "${BIND_IP:-0.0.0.0}:${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-openpax}:${POSTGRES_PASSWORD:-}@db:5432/${POSTGRES_DB:-openpax}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      RATE_LIMIT: ${RATE_LIMIT:-on}
+      APP_ENCRYPTION_KEY_PREVIOUS: ${APP_ENCRYPTION_KEY_PREVIOUS:-}
+      SECURE_COOKIES: ${SECURE_COOKIES:-}
+      SIGNUP_MODE: ${SIGNUP_MODE:-first_user}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+  # Automatic HTTPS. Active with COMPOSE_PROFILES=https in .env: Caddy answers
+  # on ports 80 and 443 for OPENPAX_DOMAIN, obtains the certificate from
+  # Let's Encrypt and renews it. Not needed behind your own reverse proxy.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    environment:
+      OPENPAX_DOMAIN: ${OPENPAX_DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

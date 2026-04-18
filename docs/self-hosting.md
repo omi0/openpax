@@ -5,6 +5,48 @@
 - Docker with Compose (or any host that runs the image and a Postgres 16 database)
 - A domain with TLS if guests will use it (cookies are marked secure in production)
 
+## The installer
+
+`install.sh` at the root of the repository is the one-line path for people
+who do not know Docker:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/omi0/openpax/main/install.sh | bash
+```
+
+It downloads the files in `deploy/` (`docker-compose.yml`, `Caddyfile` and
+the `openpax` helper) into `/opt/openpax` (root) or `~/openpax`, writes a
+`.env` with generated secrets and starts the stack from the published image
+`ghcr.io/omi0/openpax`. Two paths:
+
+- **Domain:** `PUBLIC_URL=https://<domain>`, `COMPOSE_PROFILES=https`,
+  `BIND_IP=127.0.0.1`, `TRUST_PROXY=true`. Caddy listens on 80 and 443,
+  proxies to the app and manages the certificate. The installer refuses to
+  continue when another program holds those ports and warns when the domain
+  does not resolve to the machine's public address.
+- **No domain:** `PUBLIC_URL=http://<local ip>:3000`, `BIND_IP=0.0.0.0`,
+  `SECURE_COOKIES=false`. For a phone-only instance on the LAN.
+
+Running it again on an existing folder keeps `.env`, replaces the three
+files and pulls the newest image, so local changes to the compose file
+belong in `docker-compose.override.yml`. The helper covers `start`, `stop`,
+`restart`, `status`, `logs`, `update`, `backup`, `restore` and `uninstall`;
+it uses `sudo docker` on its own when the user is not in the docker group.
+
+Everything the installer asks can be given as environment variables
+(`OPENPAX_DIR`, `OPENPAX_DOMAIN`, `OPENPAX_URL`, `OPENPAX_PORT`,
+`OPENPAX_YES=1`), and forks can point it elsewhere with `OPENPAX_IMAGE`,
+`OPENPAX_TAG` and `OPENPAX_RAW_URL`. `OPENPAX_PULL=0` runs a locally built
+image, which is how the script is tested.
+
+## The image
+
+CI publishes `ghcr.io/omi0/openpax` for amd64 and arm64 on every push to
+`main` (`latest`, `sha-<commit>`) and on version tags (`1.2.3`, `1.2`,
+`latest`). The two architectures are built on native runners and joined into
+one manifest. `deploy/docker-compose.yml` runs that image; the compose file
+at the repository root builds from the checkout instead.
+
 ## Environment
 
 | variable | required | notes |
@@ -21,7 +63,9 @@
 | `PORT`, `HOST`, `LOG_LEVEL` | no | defaults `3000`, `0.0.0.0`, `info` |
 | `ROLE` | no | `all` (default), `api` (HTTP only) or `worker` (jobs only) to run several containers |
 | `POSTGRES_PASSWORD`, `POSTGRES_USER`, `POSTGRES_DB` | compose only | credentials of the bundled Postgres; user and database default to `openpax` |
-| `BIND_IP`, `PORT` | compose only | interface and host port to publish, default `0.0.0.0:3000`. Set `BIND_IP` to a Tailscale or LAN address to keep the instance private. |
+| `BIND_IP`, `PORT` | compose only | interface and host port to publish, default `0.0.0.0:3000`. Set `BIND_IP` to a Tailscale or LAN address to keep the instance private, `127.0.0.1` behind Caddy or another proxy. |
+| `OPENPAX_IMAGE`, `OPENPAX_TAG` | deploy compose only | image to run, default `ghcr.io/omi0/openpax` and `latest` |
+| `COMPOSE_PROFILES`, `OPENPAX_DOMAIN`, `HTTP_PORT`, `HTTPS_PORT` | deploy compose only | `COMPOSE_PROFILES=https` starts Caddy for `OPENPAX_DOMAIN` on ports 80 and 443 (`HTTP_PORT`, `HTTPS_PORT` to change them) |
 
 ## Reverse proxy
 
@@ -70,8 +114,9 @@ Every connection can be revoked from the same page.
 
 ## Backups
 
-Everything lives in Postgres. `pg_dump` the database on a schedule; also back
-up `APP_ENCRYPTION_KEY`.
+Everything lives in Postgres. `openpax backup` (installer) or `pg_dump` the
+database on a schedule; also back up `.env`, above all `APP_ENCRYPTION_KEY`.
+`openpax restore <file>` drops and recreates the database from a dump.
 
 ## Rotating the encryption key
 
@@ -100,6 +145,9 @@ with a `Retry-After` header. Counters live in the process, so with several
 `TRUST_PROXY=true`, otherwise every guest looks like the proxy's address.
 
 ## Upgrades
+
+With the installer: `openpax update`. With the image compose file:
+`docker compose pull && docker compose up -d`. From source:
 
 ```bash
 git pull

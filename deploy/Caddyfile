@@ -1,0 +1,6 @@
+# Caddy in front of OpenPax: HTTPS for OPENPAX_DOMAIN (set in .env), obtained
+# and renewed on its own. Used when COMPOSE_PROFILES=https.
+{$OPENPAX_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

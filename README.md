@@ -36,7 +36,8 @@ fees, no lock-in: your guests, your data, your server.
 - [Features](#features)
 - [Self-hosting](#self-hosting)
   - [Requirements](#requirements)
-  - [Quick start with Docker Compose](#quick-start-with-docker-compose)
+  - [Quick start: one line](#quick-start-one-line)
+  - [Docker Compose by hand](#docker-compose-by-hand)
   - [Configuration](#configuration)
   - [HTTPS and reverse proxy](#https-and-reverse-proxy)
   - [First run](#first-run)
@@ -107,35 +108,79 @@ fees, no lock-in: your guests, your data, your server.
 
 ### Requirements
 
-- Docker with Compose. Any host that runs a container and a Postgres 16 database works too.
-- A domain with HTTPS if guests will book online. Session cookies are marked secure in production, and the assistants feature needs HTTPS.
-- A machine with 1 GB of RAM is plenty. A 2 vCPU VM serves around a hundred booking requests per second.
+- A Linux server (Ubuntu, Debian, Fedora, a Raspberry Pi) or a Mac. The
+  installer sets up Docker on Linux; on a Mac install Docker Desktop first.
+- A domain name pointing at the machine if guests will book online. The
+  installer obtains and renews the HTTPS certificate. Session cookies are
+  marked secure in production, and the assistants feature needs HTTPS.
+- 1 GB of RAM is plenty. A 2 vCPU VM serves around a hundred booking
+  requests per second.
 
-### Quick start with Docker Compose
-
-```bash
-git clone https://github.com/omi0/openpax.git
-cd openpax
-cp .env.example .env
-```
-
-Generate the two secrets and paste them into `.env`:
+### Quick start: one line
 
 ```bash
-openssl rand -base64 32   # BETTER_AUTH_SECRET
-openssl rand -base64 32   # APP_ENCRYPTION_KEY
+curl -fsSL https://raw.githubusercontent.com/omi0/openpax/main/install.sh | bash
 ```
 
-Set `PUBLIC_URL` to the address guests and staff will use, then start the stack:
+The installer asks two questions, where to put the files and which domain
+OpenPax answers on, and does the rest:
+
+- checks Docker and offers to install it (Linux);
+- with a domain that points at the machine, adds Caddy in front, which gets
+  the certificate from Let's Encrypt and renews it. Without a domain OpenPax
+  runs on `http://<this machine>:3000`, right for a phone-only instance on
+  the restaurant's network;
+- generates the secrets, writes `.env`, `docker-compose.yml` and the
+  `openpax` helper to `/opt/openpax` (or `~/openpax` when not root), pulls
+  the image and starts everything;
+- changes nothing before you confirm, and prints the address to open at the
+  end. Run the same line again later to update: the configuration is kept.
+
+Open the address and create your account. The first account becomes the
+owner and sign-up closes behind it. Colleagues join through invitations from
+**Settings → Team**.
+
+The helper in that folder does the housekeeping:
+
+| Command | What it does |
+|---|---|
+| `openpax update` | pull the newest image and restart |
+| `openpax backup` | dump the database into `backups/` |
+| `openpax restore <file>` | put a backup back |
+| `openpax logs` | follow the log |
+| `openpax status`, `start`, `stop` | what it says |
+| `openpax uninstall` | remove the containers and the data |
+
+For scripted installs every question can be answered up front:
+`OPENPAX_DIR`, `OPENPAX_DOMAIN`, `OPENPAX_PORT`, `OPENPAX_URL` and
+`OPENPAX_YES=1` to take the defaults without asking. The header of
+[install.sh](install.sh) lists them all.
+
+### Docker Compose by hand
+
+The image is published as `ghcr.io/omi0/openpax` for amd64 and arm64.
+Download [deploy/docker-compose.yml](deploy/docker-compose.yml) and, for
+automatic HTTPS, [deploy/Caddyfile](deploy/Caddyfile) next to it, write a
+`.env` with the variables below, then:
 
 ```bash
 docker compose up -d
 ```
 
-Compose builds the image, starts Postgres, runs the migrations and serves the
-API, the dashboard and the widget on port 3000. Open `PUBLIC_URL` and create
-your account. The first account becomes the owner and sign-up closes behind it.
-Colleagues join through invitations from **Settings → Team**.
+Compose starts Postgres, runs the migrations and serves the API, the
+dashboard and the widget on port 3000. Set `COMPOSE_PROFILES=https`,
+`OPENPAX_DOMAIN` and `BIND_IP=127.0.0.1` in `.env` to put Caddy in front, or
+leave the profile off and use your own reverse proxy.
+
+To build from source instead, the compose file at the root of the repository
+builds the image from the checkout:
+
+```bash
+git clone https://github.com/omi0/openpax.git
+cd openpax
+cp .env.example .env     # set the secrets and PUBLIC_URL
+docker compose up -d
+```
 
 To try it out locally without a mail server, add the Mailpit override and
 every email lands in a web inbox on http://localhost:8025:
@@ -164,7 +209,9 @@ from `.env`.
 | `APP_ENCRYPTION_KEY_PREVIOUS` | during a rotation | Comma-separated older keys. See [Rotating the encryption key](#rotating-the-encryption-key). |
 | `PORT`, `HOST`, `LOG_LEVEL` | no | Defaults `3000`, `0.0.0.0`, `info`. |
 | `POSTGRES_PASSWORD`, `POSTGRES_USER`, `POSTGRES_DB` | compose only | Credentials of the bundled Postgres. User and database default to `openpax`. Set the password before the first start. |
-| `BIND_IP` | compose only | Interface to publish on, default `0.0.0.0`. Set a LAN or Tailscale address to keep the instance private. |
+| `BIND_IP` | compose only | Interface to publish on, default `0.0.0.0`. Set a LAN or Tailscale address to keep the instance private, `127.0.0.1` behind Caddy or your own proxy. |
+| `OPENPAX_IMAGE`, `OPENPAX_TAG` | deploy compose only | Image to run, default `ghcr.io/omi0/openpax` and `latest`. Pin a version with the tag. |
+| `COMPOSE_PROFILES`, `OPENPAX_DOMAIN`, `HTTP_PORT`, `HTTPS_PORT` | deploy compose only | `COMPOSE_PROFILES=https` starts Caddy for `OPENPAX_DOMAIN` on ports 80 and 443. |
 | `MAILPIT_PORT` | compose only | Port of the Mailpit inbox with the override, default `8025`. |
 
 ### HTTPS and reverse proxy
@@ -212,7 +259,9 @@ provider, or confirmations end up in spam.
 
 ### Backups
 
-Everything lives in Postgres. Dump it on a schedule:
+Everything lives in Postgres. With the installer, `openpax backup` writes a
+compressed dump into `backups/` and `openpax restore <file>` puts it back.
+By hand:
 
 ```bash
 docker compose exec db pg_dump -U openpax openpax | gzip > openpax-$(date +%F).sql.gz
@@ -231,6 +280,10 @@ docker compose up -d
 ```
 
 ### Upgrading
+
+With the installer, `openpax update` (or the install line again). With the
+image compose file, `docker compose pull && docker compose up -d`. From
+source:
 
 ```bash
 git pull
