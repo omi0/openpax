@@ -10,13 +10,14 @@ import {
   Dialog,
   Field,
   Input,
+  Select,
   Spinner,
   Stepper,
   Textarea,
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { staffAvailabilityQuery } from "@/lib/queries";
+import { areasQuery, staffAvailabilityQuery } from "@/lib/queries";
 import { formatTime } from "@/lib/utils";
 
 const at = (iso: string) => new Date(iso).getTime();
@@ -42,6 +43,7 @@ export function BookingEditDialog({
   const [day, setDay] = useState(booking.serviceDate);
   const [slot, setSlot] = useState(`${booking.serviceId}|${at(booking.startsAt)}`);
   const [notes, setNotes] = useState(booking.notes ?? "");
+  const [areaId, setAreaId] = useState<string | null>(booking.areaId);
   const [ignoreCapacity, setIgnoreCapacity] = useState(false);
   const [notifyGuest, setNotifyGuest] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +51,9 @@ export function BookingEditDialog({
     ...staffAvailabilityQuery(restaurant.id, day, partySize),
     enabled: open,
   });
+  const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
+  // open rooms, plus the booking's own room even when it is closed for now
+  const rooms = (areas.data ?? []).filter((a) => a.active || a.id === booking.areaId);
 
   const update = useMutation({
     mutationFn: (body: UpdateBookingInput) =>
@@ -107,6 +112,7 @@ export function BookingEditDialog({
     if (partySize !== booking.partySize) body.partySize = partySize;
     const trimmed = notes.trim();
     if (trimmed !== (booking.notes ?? "")) body.notes = trimmed || null;
+    if (areaId !== booking.areaId) body.areaId = areaId;
     if (Object.keys(body).length === 2) {
       setError(t("today.form.noChanges"));
       return;
@@ -163,6 +169,18 @@ export function BookingEditDialog({
             />
           )}
         </div>
+        {rooms.length > 0 ? (
+          <Field label={t("today.form.room")}>
+            <Select value={areaId ?? ""} onChange={(e) => setAreaId(e.target.value || null)}>
+              <option value="">{t("today.form.anyRoom")}</option>
+              {rooms.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label={t("today.form.notes")} className="sm:col-span-2">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         </Field>

@@ -25,7 +25,14 @@ export const availability = signal<AvailabilityResponse | null>(null);
 export const loadingSlots = signal(false);
 export const selectedSlot = signal<AvailabilitySlotDto | null>(null);
 
-export const guest = signal({ name: "", email: "", phone: "", notes: "", marketing: false });
+export const guest = signal({
+  name: "",
+  email: "",
+  phone: "",
+  notes: "",
+  marketing: false,
+  privacy: false,
+});
 export const submitting = signal(false);
 export const submitError = signal<string | null>(null);
 export const result = signal<PublicBookingDto | null>(null);
@@ -119,6 +126,6 @@ export function reset() {
   result.value = null;
   waitlistResult.value = null;
   submitError.value = null;
-  guest.value = { name: "", email: "", phone: "", notes: "", marketing: false };
+  guest.value = { name: "", email: "", phone: "", notes: "", marketing: false, privacy: false };
   void loadSlots();
 }

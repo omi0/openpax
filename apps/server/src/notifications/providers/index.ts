@@ -4,6 +4,7 @@ import { postmarkProvider } from "./postmark.js";
 import { resendProvider } from "./resend.js";
 import { sendgridProvider } from "./sendgrid.js";
 import { sesProvider } from "./ses.js";
+import { smsGatewayApiProvider } from "./smsgatewayapi.js";
 import { smtpProvider } from "./smtp.js";
 import { twilioProvider } from "./twilio.js";
 import { vonageProvider } from "./vonage.js";
@@ -18,5 +19,6 @@ export const builtinProviders: NotificationProvider[] = [
   consoleEmailProvider,
   twilioProvider,
   vonageProvider,
+  smsGatewayApiProvider,
   consoleSmsProvider,
 ];

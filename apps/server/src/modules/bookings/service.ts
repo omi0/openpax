@@ -28,7 +28,7 @@ import type {
   PublicBookingDto,
   UpdateBookingInput,
 } from "@openpax/shared";
-import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -187,6 +187,7 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   if (q.status && q.status.length > 0) conditions.push(inArray(booking.status, q.status));
   if (q.serviceId) conditions.push(eq(booking.serviceId, q.serviceId));
   if (q.customerId) conditions.push(eq(booking.customerId, q.customerId));
+  if (q.createdAfter) conditions.push(gt(booking.createdAt, new Date(q.createdAfter)));
   if (q.search) {
     const term = `%${q.search}%`;
     const match = or(
@@ -272,6 +273,7 @@ export interface CreateBookingParams {
   /** false = do not send the guest the confirmation (default true). */
   notifyGuest?: boolean;
   requirePhone?: boolean;
+  requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
   forceConfirmed?: boolean;
   /** CSV import: land in this status straight away, count the visit, send nothing. */
@@ -331,6 +333,12 @@ export async function createBooking(
     throw ApiError.badRequest("invalid_phone", "Phone number is not valid");
   if (p.requirePhone && !phone)
     throw ApiError.badRequest("phone_required", "Phone number is required");
+  const email = p.guest.email?.trim().toLowerCase() || null;
+  if (p.requireEmail && !email)
+    throw ApiError.badRequest("email_required", "Email address is required");
+  // a guest booking online must be reachable somehow, or no confirmation could ever go out
+  if (p.actor.type === "guest" && !email && !phone)
+    throw ApiError.badRequest("contact_required", "An email address or a phone number is required");
 
   const localDate = instantToLocal(p.startsAt, r.timezone).date;
   const candidateDates = [localDate, addDaysToLocalDate(localDate, -1)];

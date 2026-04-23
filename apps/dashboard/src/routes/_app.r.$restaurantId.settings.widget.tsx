@@ -174,6 +174,25 @@ function WidgetPage() {
               label={t("widget.requirePhone")}
             />
           </div>
+          <div className="sm:col-span-2">
+            <Switch
+              checked={w.requireEmail}
+              onChange={(requireEmail) => setW({ ...w, requireEmail })}
+              label={t("widget.requireEmail")}
+              description={t("widget.requireEmailHint")}
+            />
+          </div>
+          {!w.requireEmail && !w.requirePhone ? (
+            <p className="text-sm text-stone-500 sm:col-span-2">{t("widget.contactHint")}</p>
+          ) : null}
+          <div className="sm:col-span-2">
+            <Switch
+              checked={w.requirePrivacyConsent}
+              onChange={(requirePrivacyConsent) => setW({ ...w, requirePrivacyConsent })}
+              label={t("widget.requirePrivacyConsent")}
+              description={t("widget.requirePrivacyConsentHint")}
+            />
+          </div>
         </form>
       </Card>
 

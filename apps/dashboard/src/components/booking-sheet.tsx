@@ -10,6 +10,7 @@ import {
   CheckCheck,
   CircleCheck,
   Copy,
+  DoorOpen,
   LayoutGrid,
   Mail,
   Pencil,
@@ -34,7 +35,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { api } from "@/lib/api";
-import { bookingNotificationsQuery } from "@/lib/queries";
+import { areasQuery, bookingNotificationsQuery } from "@/lib/queries";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 
 export const ACTIVE_STATUSES = new Set(["pending", "confirmed", "seated"]);
@@ -98,8 +99,10 @@ export function BookingSheet({
   busy: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const areas = useQuery(areasQuery(restaurant.id));
   const b = booking;
   const active = b ? ACTIVE_STATUSES.has(b.status) : false;
+  const roomName = b?.areaId ? areas.data?.find((a) => a.id === b.areaId)?.name : undefined;
   return (
     <Sheet
       open={b !== null}
@@ -195,6 +198,11 @@ export function BookingSheet({
             <Row icon={<Users />} label={t("today.form.party")}>
               {t("today.guests", { count: b.partySize })}
             </Row>
+            {roomName ? (
+              <Row icon={<DoorOpen />} label={t("today.form.room")}>
+                {roomName}
+              </Row>
+            ) : null}
             {hasFloor ? (
               <Row icon={<LayoutGrid />} label={t("today.table")}>
                 {b.tables.length > 0 ? (

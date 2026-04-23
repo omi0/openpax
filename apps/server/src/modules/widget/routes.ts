@@ -61,6 +61,8 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           defaultLocale: cfg.defaultLocale as PublicWidgetConfigDto["widget"]["defaultLocale"],
           locales: [...SUPPORTED_LOCALES],
           requirePhone: cfg.requirePhone,
+          requireEmail: cfg.requireEmail,
+          requirePrivacyConsent: cfg.requirePrivacyConsent,
           welcomeMessage: cfg.welcomeMessage,
           termsUrl: cfg.termsUrl,
           privacyUrl: cfg.privacyUrl,

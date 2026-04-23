@@ -104,6 +104,8 @@ export function toWidgetConfigDto(
     logoUrl: row.logoUrl,
     defaultLocale: row.defaultLocale as WidgetConfigDto["defaultLocale"],
     requirePhone: row.requirePhone,
+    requireEmail: row.requireEmail,
+    requirePrivacyConsent: row.requirePrivacyConsent,
     welcomeMessage: row.welcomeMessage,
     termsUrl: row.termsUrl,
     privacyUrl: row.privacyUrl,

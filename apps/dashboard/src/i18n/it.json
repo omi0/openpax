@@ -31,7 +31,8 @@
     "menu": "Menu",
     "switchRestaurant": "Cambia ristorante",
     "confirm": "Conferma",
-    "actions": "Azioni"
+    "actions": "Azioni",
+    "newOnlineBooking": "Nuova prenotazione online: {{name}}, {{guests}}, {{when}}"
   },
   "auth": {
     "login": "Accedi",
@@ -151,7 +152,9 @@
       "notifyGuest": "Invia la conferma all'ospite",
       "notifyGuestHint": "Via email o SMS, come impostato in Notifiche.",
       "notifyChange": "Avvisa l'ospite della modifica",
-      "notifyChangeHint": "Via email o SMS, come impostato in Notifiche."
+      "notifyChangeHint": "Via email o SMS, come impostato in Notifiche.",
+      "room": "Sala",
+      "anyRoom": "Qualsiasi sala"
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -212,7 +215,14 @@
     "closureEdit": "Gestisci le chiusure",
     "resend": "Reinvia all'ospite",
     "resent": "Messaggio in invio all'ospite",
-    "resendNothing": "Niente da inviare: nessun canale attivo per questo stato, o l'ospite non ha contatti."
+    "resendNothing": "Niente da inviare: nessun canale attivo per questo stato, o l'ospite non ha contatti.",
+    "blockTimes": "Blocca orari",
+    "blockTimesHint": "Gli orari spuntati non si possono prenotare online in questo giorno. I responsabili possono comunque inserirli a mano ignorando i limiti.",
+    "blockLegend": "Tocca un orario per bloccarlo o riaprirlo.",
+    "blockedTimes": "Orari bloccati online",
+    "blockChange": "Modifica",
+    "blockRuleName": "Bloccato da Oggi",
+    "blockNoSlots": "Nessun orario in questo giorno."
   },
   "services": {
     "title": "Servizi",
@@ -338,7 +348,12 @@
     "noNotice": "Nessun preavviso",
     "maxAdvanceHint": "Quanti giorni in anticipo gli ospiti possono prenotare.",
     "cutoffHint": "Prima dell'arrivo. Dopo, gli ospiti devono chiamare.",
-    "noCutoff": "Fino all'ultimo"
+    "noCutoff": "Fino all'ultimo",
+    "requireEmail": "Email obbligatoria",
+    "requireEmailHint": "Spenta, gli ospiti possono prenotare con il solo telefono: la conferma arriva via SMS (serve un provider SMS in Notifiche).",
+    "contactHint": "Con email e telefono facoltativi, l'ospite deve comunque lasciare almeno uno dei due.",
+    "requirePrivacyConsent": "Casella privacy obbligatoria",
+    "requirePrivacyConsentHint": "Gli ospiti devono spuntare \"Ho letto e accetto l'informativa sulla privacy\" invece della sola riga in piccolo."
   },
   "weekday": {
     "mon": "Lun",

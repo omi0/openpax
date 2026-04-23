@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Armchair,
+  Ban,
   CalendarDays,
   CalendarOff,
   CalendarX,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BlockedTimesNotice, BlockTimesDialog, isBlockRule } from "@/components/block-times-dialog";
 import { BookingEditDialog } from "@/components/booking-edit-dialog";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
 import {
@@ -62,6 +64,7 @@ import { api } from "@/lib/api";
 import {
   areasQuery,
   bookingsQuery,
+  capacityRulesQuery,
   exceptionsQuery,
   meQuery,
   restaurantQuery,
@@ -107,9 +110,13 @@ function TodayPage() {
   const [view, setView] = useState<"list" | "floor">("list");
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const tables = useQuery(tablesQuery(restaurantId));
   const areas = useQuery(areasQuery(restaurantId));
   const exceptions = useQuery(exceptionsQuery(restaurantId));
+  const rules = useQuery(capacityRulesQuery(restaurantId));
+  // times of this day stopped for online bookings from the "Block times" dialog
+  const blocks = (rules.data ?? []).filter((r) => isBlockRule(r, date));
   const hasFloor = (tables.data?.length ?? 0) > 0;
   const rooms = areas.data ?? [];
   const closedRooms = rooms.filter((r) => !r.active);
@@ -219,6 +226,11 @@ function TodayPage() {
               <CalendarOff />
             </IconButton>
           ) : null}
+          {role !== "staff" && !closedAll ? (
+            <Button variant="outline" size="sm" icon={<Ban />} onClick={() => setBlocking(true)}>
+              {t("today.blockTimes")}
+            </Button>
+          ) : null}
           {rooms.length > 0 ? (
             <Button
               variant="outline"
@@ -258,6 +270,13 @@ function TodayPage() {
           restaurantId={restaurantId}
           exceptions={dayExceptions}
           closedAll={closedAll}
+        />
+      ) : null}
+      {blocks.length > 0 ? (
+        <BlockedTimesNotice
+          restaurantId={restaurantId}
+          blocks={blocks}
+          onEdit={role !== "staff" ? () => setBlocking(true) : undefined}
         />
       ) : null}
 
@@ -325,6 +344,7 @@ function TodayPage() {
                       booking={b}
                       timezone={restaurant.timezone}
                       hasFloor={hasFloor}
+                      roomName={b.areaId ? rooms.find((r) => r.id === b.areaId)?.name : undefined}
                       busy={act.isPending}
                       onOpen={() => setSelected(b.id)}
                       onAction={(a) => run(b, a)}
@@ -362,6 +382,13 @@ function TodayPage() {
       />
       {closing ? (
         <CloseDayDialog restaurantId={restaurantId} date={date} onClose={() => setClosing(false)} />
+      ) : null}
+      {blocking ? (
+        <BlockTimesDialog
+          restaurantId={restaurantId}
+          date={date}
+          onClose={() => setBlocking(false)}
+        />
       ) : null}
       <BookingFormDialog
         restaurant={restaurant}
@@ -665,6 +692,7 @@ function BookingRow({
   booking: b,
   timezone,
   hasFloor,
+  roomName,
   busy,
   onOpen,
   onAction,
@@ -674,6 +702,8 @@ function BookingRow({
   booking: BookingDto;
   timezone: string;
   hasFloor: boolean;
+  /** The room the party asked for or was given, when rooms exist. */
+  roomName?: string;
   busy: boolean;
   onOpen: () => void;
   onAction: (a: BookingAction) => void;
@@ -711,6 +741,12 @@ function BookingRow({
       </span>
     ) : null,
   ].filter(Boolean);
+  const room = roomName ? (
+    <span className="inline-flex items-center gap-1">
+      <DoorOpen className="size-3.5" />
+      {roomName}
+    </span>
+  ) : null;
 
   return (
     <li className={cn("px-4 py-2.5 md:py-2", !isActive && "bg-stone-50/70")}>
@@ -751,6 +787,7 @@ function BookingRow({
           <span className="hidden min-w-0 shrink-[2] items-baseline gap-x-2 truncate text-[13px] text-stone-500 md:flex">
             {b.customer.phone ? <span className="tabular-nums">{b.customer.phone}</span> : null}
             <span>{t(`today.source.${b.source}`)}</span>
+            {room}
             {flags}
           </span>
         </button>
@@ -764,6 +801,7 @@ function BookingRow({
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 [grid-area:meta] text-[13px] text-stone-500 md:hidden">
           {b.customer.phone ? <span>{b.customer.phone}</span> : null}
           <span>{t(`today.source.${b.source}`)}</span>
+          {room}
           {flags}
         </span>
         {hasFloor ? (

@@ -3,6 +3,7 @@ import { parseAddress } from "../src/notifications/providers/address.js";
 import { postmarkProvider } from "../src/notifications/providers/postmark.js";
 import { sendgridProvider } from "../src/notifications/providers/sendgrid.js";
 import { sesProvider, signV4 } from "../src/notifications/providers/ses.js";
+import { smsGatewayApiProvider } from "../src/notifications/providers/smsgatewayapi.js";
 import { vonageProvider } from "../src/notifications/providers/vonage.js";
 
 const email = {
@@ -140,5 +141,25 @@ describe("sms providers", () => {
         { apiKey: "k", apiSecret: "s", from: "Trattoria" },
       ),
     ).rejects.toThrow(/Bad Credentials/);
+  });
+
+  it("sends through SMS Gateway API with the client headers and reports its errors", async () => {
+    const config = { clientId: "id-1", clientSecret: "secret-1", sender: "Trattoria" };
+    const calls = mockFetch(200, { messageid: "sg-1" });
+    const ok = await smsGatewayApiProvider.send({ to: "+393331234567", body: "ciao" }, config);
+    expect(ok.providerMessageId).toBe("sg-1");
+    const headers = new Headers(calls[0]?.init.headers);
+    expect(headers.get("x-client-id")).toBe("id-1");
+    expect(headers.get("x-client-secret")).toBe("secret-1");
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({
+      message: "ciao",
+      to: "393331234567",
+      sender: "Trattoria",
+    });
+
+    mockFetch(400, { error: 102, errorMsg: "Not enough credits." });
+    await expect(
+      smsGatewayApiProvider.send({ to: "+393331234567", body: "ciao" }, config),
+    ).rejects.toThrow(/400: Not enough credits/);
   });
 });

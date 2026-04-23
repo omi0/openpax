@@ -14,6 +14,7 @@ import {
 import { eq } from "drizzle-orm";
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
+import { ApiError } from "../../lib/errors.js";
 import { jsonBody, jsonResponse, restaurantIdParam, slugParam } from "../../lib/openapi.js";
 import { findRestaurantById, findRestaurantBySlug } from "../../lib/restaurant-lookup.js";
 import { syncPendingForBooking } from "../payments/index.js";
@@ -38,7 +39,11 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       const body = c.req.valid("json");
       const [[cfg], [policy]] = await Promise.all([
         ctx.db
-          .select({ requirePhone: widgetConfig.requirePhone })
+          .select({
+            requirePhone: widgetConfig.requirePhone,
+            requireEmail: widgetConfig.requireEmail,
+            requirePrivacyConsent: widgetConfig.requirePrivacyConsent,
+          })
           .from(widgetConfig)
           .where(eq(widgetConfig.restaurantId, r.id))
           .limit(1),
@@ -48,6 +53,8 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           .where(eq(bookingPolicy.restaurantId, r.id))
           .limit(1),
       ]);
+      if (cfg?.requirePrivacyConsent && !body.privacyAccepted)
+        throw ApiError.badRequest("privacy_required", "Please accept the privacy policy");
       const result = await svc.createBooking(ctx, r, {
         serviceId: body.serviceId,
         startsAt: new Date(body.startsAt),
@@ -55,7 +62,7 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         areaId: body.areaId ?? null,
         guest: {
           name: body.guest.name,
-          email: body.guest.email,
+          email: body.guest.email ?? null,
           phone: body.guest.phone ?? null,
           locale: body.guest.locale ?? null,
         },
@@ -65,6 +72,7 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         source: "widget",
         actor: { type: "guest", id: null },
         requirePhone: cfg?.requirePhone ?? false,
+        requireEmail: cfg?.requireEmail ?? false,
       });
       return c.json(svc.toPublicBookingDto(ctx, r, result, policy?.cutoff ?? 0), 201);
     },

@@ -1,7 +1,7 @@
 import type { PublicBookingDto } from "@openpax/shared";
 import { formatInstant, formatMoney } from "../dates.js";
 import { locale, t } from "../i18n.js";
-import { reset } from "../state.js";
+import { guest, reset } from "../state.js";
 import { CodeBox, DoneIcon } from "./chrome.js";
 
 export function PaymentNotice({ booking }: { booking: PublicBookingDto }) {
@@ -32,12 +32,18 @@ export function PaymentNotice({ booking }: { booking: PublicBookingDto }) {
 export function Confirmation({ booking, hosted }: { booking: PublicBookingDto; hosted: boolean }) {
   const paying = booking.payment?.status === "pending";
   const pending = booking.status === "pending" && !paying;
+  // where the message went: the email when there is one, otherwise the phone (SMS), otherwise nowhere
+  const channel = guest.value.email ? "" : guest.value.phone ? "Sms" : "None";
   return (
     <div class="done">
       <DoneIcon kind={paying ? "card" : pending ? "wait" : "check"} />
       <h1>{paying ? t("payment.title") : pending ? t("pendingTitle") : t("confirmedTitle")}</h1>
       <p class="sub">
-        {paying ? t("payment.intro") : pending ? t("pendingText") : t("confirmedText")}
+        {paying
+          ? t("payment.intro")
+          : pending
+            ? t(`pendingText${channel}`)
+            : t(`confirmedText${channel}`)}
       </p>
       <PaymentNotice booking={booking} />
       <CodeBox code={booking.confirmationCode} />

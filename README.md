@@ -61,13 +61,16 @@ fees, no lock-in: your guests, your data, your server.
 
 - Availability engine with three capacity layers: pacing per slot for each service, seats of the open rooms, and tables with automatic assignment and joinable pairs.
 - Booking policy for online guests: notice, horizon, party sizes, automatic confirmation or manual approval, larger groups told to call.
-- Staff bookings and edits ignore the online-only rules, with a separate manager override for real capacity.
+- Staff bookings and edits ignore the online-only rules, with a separate manager override for real capacity. A booking can carry the room the party asked for.
+- "Block times" on Today stops online bookings at chosen times of one day (a Saturday evening already full from the phone) with one tap per slot; managers can still book them by hand.
+- New online bookings are announced on every dashboard screen as they arrive, so the person at the desk does not have to refresh.
 - Status flow: pending, confirmed, seated, completed, no-show, cancelled with a reason, reopen. Every change is written to the audit log.
 - Idempotent creation and advisory locks per restaurant and date, so a busy Saturday cannot be double-booked from two phones at once.
 - Waitlist: guests join when a date is full, get an offer with an expiry when a table frees up, and accept or decline from a link. Staff offer, book or remove entries from Today.
 
 **Guests**
 
+- The guest form asks for name, phone and email; the owner decides which are mandatory (phone-only guests get their confirmation by SMS) and whether a privacy checkbox must be ticked.
 - Guest book with search, profile, notes, tags, visit, no-show and cancellation counters, and the booking history.
 - Duplicate detection and a merge that moves bookings, waitlist entries and feedback.
 - GDPR delete that anonymises a guest and keeps the figures.
@@ -82,7 +85,7 @@ fees, no lock-in: your guests, your data, your server.
 
 **Notifications**
 
-- Email through SMTP, Resend, SendGrid, Postmark or Amazon SES. SMS through Twilio or Vonage. Configured from the dashboard, credentials encrypted at rest, one-click test sends.
+- Email through SMTP, Resend, SendGrid, Postmark or Amazon SES. SMS through Twilio, Vonage or SMS Gateway API. Configured from the dashboard, credentials encrypted at rest, one-click test sends.
 - Confirmations, changes, cancellations, reminders before the visit, waitlist offers, feedback requests and staff alerts, each toggled per channel and per audience in a rules matrix.
 - Per-restaurant message templates in Italian and English with a live preview, and a log of every message sent.
 
@@ -250,8 +253,8 @@ goes away as things get done.
 Two levels. `SMTP_URL` is the instance fallback: it covers password resets,
 invitations and any restaurant that has not set up its own provider. Each
 restaurant can then configure its own sender from **Settings → Notifications**
-with SMTP, Resend, SendGrid, Postmark or Amazon SES, and SMS through Twilio or
-Vonage. Credentials are encrypted with `APP_ENCRYPTION_KEY` before they touch
+with SMTP, Resend, SendGrid, Postmark or Amazon SES, and SMS through Twilio,
+Vonage or SMS Gateway API. Credentials are encrypted with `APP_ENCRYPTION_KEY` before they touch
 the database, and the page has a test-send button for each channel.
 
 Use a domain you control as the sender, with SPF and DKIM set up at your

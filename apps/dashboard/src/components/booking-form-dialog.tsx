@@ -17,7 +17,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { staffAvailabilityQuery } from "@/lib/queries";
+import { areasQuery, staffAvailabilityQuery } from "@/lib/queries";
 
 export function BookingFormDialog({
   restaurant,
@@ -45,6 +45,8 @@ export function BookingFormDialog({
     ...staffAvailabilityQuery(restaurant.id, day, partySize),
     enabled: open,
   });
+  const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
+  const rooms = (areas.data ?? []).filter((a) => a.active);
 
   const create = useMutation({
     mutationFn: (body: CreateStaffBookingInput) =>
@@ -74,6 +76,7 @@ export function BookingFormDialog({
         email: String(f.get("email") || "") || undefined,
       },
       notes: String(f.get("notes") || "") || undefined,
+      areaId: String(f.get("areaId") || "") || undefined,
       source: String(f.get("source")) as CreateStaffBookingInput["source"],
       seatNow: f.get("seatNow") === "on",
       ignoreCapacity: f.get("ignoreCapacity") === "on",
@@ -153,6 +156,18 @@ export function BookingFormDialog({
             <option value="manual">{t("today.source.manual")}</option>
           </Select>
         </Field>
+        {rooms.length > 0 ? (
+          <Field label={t("today.form.room")}>
+            <Select name="areaId" defaultValue="">
+              <option value="">{t("today.form.anyRoom")}</option>
+              {rooms.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label={t("today.form.notes")} className="sm:col-span-2">
           <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
         </Field>

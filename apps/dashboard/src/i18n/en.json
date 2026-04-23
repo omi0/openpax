@@ -31,7 +31,8 @@
     "menu": "Menu",
     "switchRestaurant": "Switch restaurant",
     "confirm": "Confirm",
-    "actions": "Actions"
+    "actions": "Actions",
+    "newOnlineBooking": "New online booking: {{name}}, {{guests}}, {{when}}"
   },
   "auth": {
     "login": "Log in",
@@ -151,7 +152,9 @@
       "notifyGuest": "Send the confirmation to the guest",
       "notifyGuestHint": "By email or SMS, as set under Notifications.",
       "notifyChange": "Tell the guest about the change",
-      "notifyChangeHint": "By email or SMS, as set under Notifications."
+      "notifyChangeHint": "By email or SMS, as set under Notifications.",
+      "room": "Room",
+      "anyRoom": "Any room"
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -212,7 +215,14 @@
     "closureEdit": "Manage closures",
     "resend": "Resend to guest",
     "resent": "Message queued for the guest",
-    "resendNothing": "Nothing to send: no channel is on for this status, or the guest has no contact."
+    "resendNothing": "Nothing to send: no channel is on for this status, or the guest has no contact.",
+    "blockTimes": "Block times",
+    "blockTimesHint": "Ticked times cannot be booked online on this day. Managers can still add them by hand, ignoring the limits.",
+    "blockLegend": "Tap a time to block or reopen it.",
+    "blockedTimes": "Times blocked online",
+    "blockChange": "Change",
+    "blockRuleName": "Blocked from Today",
+    "blockNoSlots": "No times on this day."
   },
   "services": {
     "title": "Services",
@@ -338,7 +348,12 @@
     "noNotice": "No notice needed",
     "maxAdvanceHint": "How many days ahead guests can book.",
     "cutoffHint": "Before arrival. Later than that, guests have to call.",
-    "noCutoff": "Any time"
+    "noCutoff": "Any time",
+    "requireEmail": "Require email address",
+    "requireEmailHint": "Off, guests can book with just a phone number: the confirmation goes by SMS (needs an SMS provider under Notifications).",
+    "contactHint": "With both optional, guests still have to leave at least one of the two.",
+    "requirePrivacyConsent": "Privacy checkbox",
+    "requirePrivacyConsentHint": "Guests must tick \"I have read and accept the privacy policy\" instead of the fine-print line."
   },
   "weekday": {
     "mon": "Mon",

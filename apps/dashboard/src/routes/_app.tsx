@@ -26,6 +26,7 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BrandLockup, BrandMark } from "@/components/brand";
+import { NewBookingsWatcher } from "@/components/new-bookings-watcher";
 import { Avatar, Menu } from "@/components/ui";
 import { setLanguage } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
@@ -134,6 +135,14 @@ function AppLayout() {
         <BrandLockup className="mb-5 px-2" />
         <NavContent me={me} current={current} onLogout={logout} />
       </aside>
+
+      {current ? (
+        <NewBookingsWatcher
+          key={current.id}
+          restaurantId={current.id}
+          timezone={current.timezone}
+        />
+      ) : null}
 
       <main className="min-w-0 flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
         <div className="mx-auto max-w-6xl px-4 py-5 md:px-8 md:py-8">

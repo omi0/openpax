@@ -19,7 +19,8 @@ export const bookingActionSchema = z.enum(BOOKING_ACTIONS);
 
 export const guestInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  email: emailSchema,
+  /** Optional here; the widget config decides whether an email, a phone or either is required. */
+  email: emailSchema.optional(),
   phone: phoneSchema.optional(),
   locale: localeSchema.optional(),
 });
@@ -34,6 +35,8 @@ export const createPublicBookingInputSchema = z.object({
   guest: guestInputSchema,
   notes: z.string().trim().max(1000).optional(),
   marketingConsent: z.boolean().default(false),
+  /** The guest ticked the privacy box; checked when the widget config requires it. */
+  privacyAccepted: z.boolean().optional(),
   /** Client-generated key so retries return the same booking instead of a duplicate. */
   idempotencyKey: z.string().min(8).max(100).optional(),
 });
@@ -150,6 +153,8 @@ export const listBookingsQuerySchema = paginationQuerySchema.extend({
     .optional(),
   serviceId: idSchema.optional(),
   customerId: idSchema.optional(),
+  /** Only bookings created after this instant (the dashboard polls for new ones). */
+  createdAfter: instantSchema.optional(),
   search: z.string().trim().max(100).optional(),
   /** Chronological by default; "desc" for history views. */
   order: z.enum(["asc", "desc"]).default("asc"),

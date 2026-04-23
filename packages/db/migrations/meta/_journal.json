@@ -78,6 +78,13 @@
       "when": 1789411027773,
       "tag": "0010_assistants",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789839978865,
+      "tag": "0011_widget_contact_rules",
+      "breakpoints": true
     }
   ]
 }

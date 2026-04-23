@@ -1,0 +1,2 @@
+ALTER TABLE "widget_config" ADD COLUMN "require_email" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "widget_config" ADD COLUMN "require_privacy_consent" boolean DEFAULT false NOT NULL;

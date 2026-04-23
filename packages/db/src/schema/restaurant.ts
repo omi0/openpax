@@ -74,6 +74,10 @@ export const widgetConfig = pgTable("widget_config", {
   logoUrl: text(),
   defaultLocale: text().notNull().default("it"),
   requirePhone: boolean().notNull().default(true),
+  /** false = guests may book with a phone number only (the confirmation then goes by SMS). */
+  requireEmail: boolean().notNull().default(true),
+  /** true = guests must tick a privacy checkbox instead of the fine-print line. */
+  requirePrivacyConsent: boolean().notNull().default(false),
   welcomeMessage: text(),
   termsUrl: text(),
   privacyUrl: text(),

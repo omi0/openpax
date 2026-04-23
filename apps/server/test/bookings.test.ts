@@ -6,6 +6,7 @@ import {
   FRIDAY,
   guestBooking,
   romeInstant,
+  type Session,
   type TestApp,
 } from "./helpers.js";
 
@@ -373,5 +374,179 @@ describe("staff bookings", () => {
     );
     expect(tooBig.status).toBe(409);
     expect(tooBig.body.code).toBe("slot_unavailable");
+  });
+});
+
+describe("guest contact rules", () => {
+  const widgetConfig = (fx: { restaurantId: string }) =>
+    `/api/v1/restaurants/${fx.restaurantId}/widget-config`;
+  /** Change a few widget switches, keeping the rest as it is (the PUT replaces the whole config). */
+  async function setWidget(
+    fx: { restaurantId: string; session: Session },
+    patch: Record<string, unknown>,
+  ) {
+    const current = await api<Record<string, unknown>>(
+      t,
+      "GET",
+      widgetConfig(fx),
+      undefined,
+      fx.session,
+    );
+    const { restaurantId: _r, embedSnippet: _e, hostedUrl: _h, ...input } = current.body;
+    const res = await api(t, "PUT", widgetConfig(fx), { ...input, ...patch }, fx.session);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+  }
+
+  it("wants an email by default and takes a phone-only guest once the switch is off", async () => {
+    const fx = await createFixture(t);
+    const phoneOnly = guestBooking(fx, {
+      guest: { name: "Mario Rossi", phone: "+39 333 1234567" },
+    });
+    const denied = await api<{ code: string }>(t, "POST", publicBookings(fx), phoneOnly);
+    expect(denied.status).toBe(400);
+    expect(denied.body.code).toBe("email_required");
+
+    await setWidget(fx, { requireEmail: false });
+    const ok = await api<PublicBooking>(t, "POST", publicBookings(fx), phoneOnly);
+    expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+    const list = await api<{
+      items: Array<{ customer: { email: string | null; phone: string | null } }>;
+    }>(t, "GET", `${bookings(fx)}?date=${FRIDAY}`, undefined, fx.session);
+    expect(list.body.items[0]?.customer).toMatchObject({ email: null, phone: "+393331234567" });
+
+    const cfg = await api<{ widget: { requireEmail: boolean; requirePhone: boolean } }>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/widget-config`,
+    );
+    expect(cfg.body.widget).toMatchObject({ requireEmail: false, requirePhone: true });
+  });
+
+  it("still needs one way to reach the guest when email and phone are both optional", async () => {
+    const fx = await createFixture(t);
+    await setWidget(fx, { requireEmail: false, requirePhone: false });
+    const nobody = await api<{ code: string }>(
+      t,
+      "POST",
+      publicBookings(fx),
+      guestBooking(fx, { guest: { name: "Anonimo" } }),
+    );
+    expect(nobody.status).toBe(400);
+    expect(nobody.body.code).toBe("contact_required");
+    const withEmail = await api<PublicBooking>(
+      t,
+      "POST",
+      publicBookings(fx),
+      guestBooking(fx, { guest: { name: "Anna Verdi", email: "anna@example.com" } }),
+    );
+    expect(withEmail.status, JSON.stringify(withEmail.body)).toBe(201);
+  });
+
+  it("enforces the privacy checkbox when the widget asks for it", async () => {
+    const fx = await createFixture(t);
+    await setWidget(fx, { requirePrivacyConsent: true });
+    const unticked = await api<{ code: string }>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(unticked.status).toBe(400);
+    expect(unticked.body.code).toBe("privacy_required");
+    const ticked = await api<PublicBooking>(
+      t,
+      "POST",
+      publicBookings(fx),
+      guestBooking(fx, { privacyAccepted: true }),
+    );
+    expect(ticked.status, JSON.stringify(ticked.body)).toBe(201);
+    const cfg = await api<{ widget: { requirePrivacyConsent: boolean } }>(
+      t,
+      "GET",
+      `/api/public/v1/restaurants/${fx.slug}/widget-config`,
+    );
+    expect(cfg.body.widget.requirePrivacyConsent).toBe(true);
+  });
+});
+
+describe("blocked times", () => {
+  it("a zero-cover rule closes those slots online but managers can still book them by hand", async () => {
+    const fx = await createFixture(t);
+    const rule = await api<{ id: string }>(
+      t,
+      "POST",
+      `/api/v1/restaurants/${fx.restaurantId}/capacity-rules`,
+      {
+        name: "Blocked from Today",
+        serviceId: fx.serviceId,
+        date: FRIDAY,
+        startTime: "20:00",
+        endTime: "21:00",
+        maxCovers: 0,
+      },
+      fx.session,
+    );
+    expect(rule.status, JSON.stringify(rule.body)).toBe(201);
+
+    const availability = await api<{
+      slots: Array<{ startLocal: string; available: boolean; reason?: string }>;
+    }>(t, "GET", `/api/public/v1/restaurants/${fx.slug}/availability?date=${FRIDAY}&partySize=2`);
+    const at = (time: string) => availability.body.slots.find((s) => s.startLocal === time);
+    expect(at("19:30")?.available).toBe(true);
+    expect(at("20:00")).toMatchObject({ available: false, reason: "full" });
+    expect(at("20:30")).toMatchObject({ available: false, reason: "full" });
+    expect(at("21:00")?.available).toBe(true);
+
+    const online = await api<{ code: string }>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(online.status).toBe(409);
+    expect(online.body.code).toBe("slot_unavailable");
+
+    const byHand = await api<{ status: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 4,
+        customer: { name: "Tavolo del titolare", phone: "+39 333 9876543" },
+        source: "phone",
+        ignoreCapacity: true,
+      },
+      fx.session,
+    );
+    expect(byHand.status, JSON.stringify(byHand.body)).toBe(201);
+    expect(byHand.body.status).toBe("confirmed");
+  });
+});
+
+describe("bookings created after an instant", () => {
+  it("filters the list with createdAfter so the dashboard can poll for new bookings", async () => {
+    const fx = await createFixture(t);
+    const a = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    const b = await api<PublicBooking>(
+      t,
+      "POST",
+      publicBookings(fx),
+      guestBooking(fx, {
+        startsAt: romeInstant(FRIDAY, "21:00"),
+        guest: { name: "Lucia Bianchi", email: "lucia@example.com", phone: "+39 340 7654321" },
+      }),
+    );
+    expect(a.status).toBe(201);
+    expect(b.status, JSON.stringify(b.body)).toBe(201);
+
+    const all = await api<{ total: number }>(
+      t,
+      "GET",
+      `${bookings(fx)}?createdAfter=2000-01-01T00:00:00Z`,
+      undefined,
+      fx.session,
+    );
+    expect(all.body.total).toBe(2);
+    const later = new Date(Date.now() + 86_400_000).toISOString();
+    const none = await api<{ total: number }>(
+      t,
+      "GET",
+      `${bookings(fx)}?createdAfter=${encodeURIComponent(later)}`,
+      undefined,
+      fx.session,
+    );
+    expect(none.body.total).toBe(0);
   });
 });

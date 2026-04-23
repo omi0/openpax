@@ -19,6 +19,48 @@ function idempotencyKey() {
   return `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+/** A sentence with {terms} and {privacy} placeholders, rendered as links when the URLs are set. */
+function Legal({
+  text,
+  terms,
+  privacy,
+  privacyLabel,
+}: {
+  text: string;
+  terms: string | null;
+  privacy: string | null;
+  privacyLabel: string;
+}) {
+  const nodes = [];
+  let offset = 0;
+  for (const part of text.split(/(\{terms\}|\{privacy\})/)) {
+    const key = `${offset}`;
+    offset += part.length;
+    if (part === "{terms}")
+      nodes.push(
+        terms ? (
+          <a key={key} href={terms} target="_blank" rel="noreferrer">
+            {t("termsLink")}
+          </a>
+        ) : (
+          t("termsLink")
+        ),
+      );
+    else if (part === "{privacy}")
+      nodes.push(
+        privacy ? (
+          <a key={key} href={privacy} target="_blank" rel="noreferrer">
+            {privacyLabel}
+          </a>
+        ) : (
+          privacyLabel
+        ),
+      );
+    else nodes.push(part);
+  }
+  return <>{nodes}</>;
+}
+
 export function GuestForm({ onDone }: { onDone: () => void }) {
   const cfg = config.value;
   const slot = selectedSlot.value;
@@ -37,9 +79,15 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         serviceId: slot.serviceId,
         startsAt: slot.startsAt,
         partySize: partySize.value,
-        guest: { name: g.name, email: g.email, phone: g.phone || undefined, locale: locale.value },
+        guest: {
+          name: g.name,
+          email: g.email || undefined,
+          phone: g.phone || undefined,
+          locale: locale.value,
+        },
         notes: g.notes || undefined,
         marketingConsent: g.marketing,
+        privacyAccepted: g.privacy,
         idempotencyKey: idempotencyKey(),
       });
       step.value = "done";
@@ -100,11 +148,14 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div class="field">
-        <label for="openpax-email">{t("email")}</label>
+        <label for="openpax-email">
+          {t("email")}
+          {!cfg.widget.requireEmail ? ` (${t("optional")})` : ""}
+        </label>
         <input
           id="openpax-email"
           type="email"
-          required
+          required={cfg.widget.requireEmail}
           autocomplete="email"
           inputMode="email"
           value={g.email}
@@ -143,25 +194,31 @@ export function GuestForm({ onDone }: { onDone: () => void }) {
         />
         <span>{t("marketing")}</span>
       </label>
-      {terms || privacy ? (
+      {cfg.widget.requirePrivacyConsent ? (
+        <label class="check">
+          <input
+            type="checkbox"
+            required
+            checked={g.privacy}
+            onChange={(e) => update({ privacy: (e.target as HTMLInputElement).checked })}
+          />
+          <span>
+            <Legal
+              text={terms ? t("consentWithTerms") : t("consent")}
+              terms={terms}
+              privacy={privacy}
+              privacyLabel={t("consentPrivacyLink")}
+            />
+          </span>
+        </label>
+      ) : terms || privacy ? (
         <p class="fine">
-          {t("terms").split(/\{terms\}|\{privacy\}/)[0]}
-          {terms ? (
-            <a href={terms} target="_blank" rel="noreferrer">
-              {t("termsLink")}
-            </a>
-          ) : (
-            t("termsLink")
-          )}
-          {t("terms").split("{terms}")[1]?.split("{privacy}")[0]}
-          {privacy ? (
-            <a href={privacy} target="_blank" rel="noreferrer">
-              {t("privacyLink")}
-            </a>
-          ) : (
-            t("privacyLink")
-          )}
-          {t("terms").split("{privacy}")[1]}
+          <Legal
+            text={t("terms")}
+            terms={terms}
+            privacy={privacy}
+            privacyLabel={t("privacyLink")}
+          />
         </p>
       ) : null}
 
