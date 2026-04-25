@@ -6,9 +6,11 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button, type ButtonVariant } from "./primitives";
@@ -241,7 +243,19 @@ export interface MenuItem {
   disabled?: boolean;
 }
 
-/** Small popover of actions anchored to a trigger. Closes on outside click and Escape. */
+interface MenuPosition {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+}
+
+/**
+ * Small popover of actions anchored to a trigger. Closes on outside click,
+ * Escape and scrolling. It is rendered at the body, at the trigger's screen
+ * position, so a list with rounded, clipped corners (Today's rows) cannot cut
+ * it off; near the bottom of the screen it opens upward.
+ */
 export function Menu({
   trigger,
   items,
@@ -255,13 +269,40 @@ export function Menu({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<MenuPosition | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useEscape(open, close);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      // measured once shown; before that a fair guess (one row of 44px per item)
+      const height = menuRef.current?.offsetHeight ?? items.length * 44 + 12;
+      const fitsBelow = r.bottom + 4 + height <= window.innerHeight - 8;
+      const below = fitsBelow || r.top < height + 12;
+      setPos({
+        ...(below ? { top: r.bottom + 4 } : { bottom: window.innerHeight - r.top + 4 }),
+        ...(align === "end"
+          ? { right: Math.max(8, window.innerWidth - r.right) }
+          : { left: Math.max(8, r.left) }),
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [open, align, items.length, close]);
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!ref.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
@@ -269,41 +310,43 @@ export function Menu({
   return (
     <div ref={ref} className={cn("relative inline-flex", className)}>
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
-      {open ? (
-        <div
-          role="menu"
-          className={cn(
-            "absolute top-full z-40 mt-1 min-w-48 animate-pop-in rounded-xl border border-stone-200 bg-white p-1.5 shadow-pop",
-            align === "end" ? "right-0" : "left-0",
-          )}
-        >
-          {items.map((item, i) =>
-            item === "separator" ? (
-              <div key={`sep-${i}`} className="my-1 border-t border-stone-100" />
-            ) : (
-              <button
-                key={`${i}-${String(item.label)}`}
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                onClick={() => {
-                  setOpen(false);
-                  item.onSelect();
-                }}
-                className={cn(
-                  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[15px] disabled:opacity-50 [&_svg]:size-4",
-                  item.tone === "danger"
-                    ? "text-red-700 hover:bg-red-50"
-                    : "text-stone-800 hover:bg-stone-100",
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ),
-          )}
-        </div>
-      ) : null}
+      {open && pos
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={pos}
+              className="fixed z-[70] min-w-48 animate-pop-in rounded-xl border border-stone-200 bg-white p-1.5 shadow-pop"
+            >
+              {items.map((item, i) =>
+                item === "separator" ? (
+                  <div key={`sep-${i}`} className="my-1 border-t border-stone-100" />
+                ) : (
+                  <button
+                    key={`${i}-${String(item.label)}`}
+                    type="button"
+                    role="menuitem"
+                    disabled={item.disabled}
+                    onClick={() => {
+                      setOpen(false);
+                      item.onSelect();
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[15px] disabled:opacity-50 [&_svg]:size-4",
+                      item.tone === "danger"
+                        ? "text-red-700 hover:bg-red-50"
+                        : "text-stone-800 hover:bg-stone-100",
+                    )}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ),
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
