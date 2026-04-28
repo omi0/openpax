@@ -38,6 +38,18 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: check
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: openpax
+          POSTGRES_PASSWORD: openpax
+          POSTGRES_DB: openpax
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U openpax" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://openpax:openpax@localhost:5432/openpax
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
