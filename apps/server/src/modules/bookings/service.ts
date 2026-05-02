@@ -276,8 +276,11 @@ export interface CreateBookingParams {
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
   forceConfirmed?: boolean;
-  /** CSV import: land in this status straight away, count the visit, send nothing. */
-  imported?: { status: BookingStatus };
+  /**
+   * CSV import: land in this status straight away, count the visit, send
+   * nothing; `createdAt` keeps the date the booking was taken in the old system.
+   */
+  imported?: { status: BookingStatus; createdAt?: Date };
   /**
    * Hooks that run inside the booking transaction, for callers that must
    * change their own rows together with the booking (waitlist entries).
@@ -508,6 +511,7 @@ async function insertBookingLocked(
       manageToken: newToken(),
       idempotencyKey: p.idempotencyKey ?? null,
       createdByUserId: p.actor.type === "user" ? p.actor.id : null,
+      ...(p.imported?.createdAt ? { createdAt: p.imported.createdAt } : {}),
     })
     .returning();
   if (!row) throw new Error("booking insert failed");

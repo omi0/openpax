@@ -12,11 +12,12 @@ export interface ImportResult {
   total: number;
   dryRun: boolean;
   errors: Array<{ line: number; message: string }>;
+  warnings: Array<{ line: number; message: string }>;
 }
 
 const TEMPLATES = {
   bookings:
-    "date,time,guests,name,email,phone,service,status,notes,source\r\n2025-03-14,20:00,4,Mario Rossi,mario@example.com,+39 333 1234567,Cena,completed,Compleanno,phone\r\n",
+    "date,time,guests,name,email,phone,service,status,notes,source,room\r\n2025-03-14,20:00,4,Mario Rossi,mario@example.com,+39 333 1234567,Cena,completed,Compleanno,phone,Sala\r\n",
   customers:
     'name,email,phone,tags,notes,locale,marketing_consent\r\nMario Rossi,mario@example.com,+39 333 1234567,"vip,regular",Tavolo vicino alla finestra,it,true\r\n',
 } as const;
@@ -170,20 +171,36 @@ function ImportDialog({
               })}
             </p>
             {result.errors.length > 0 ? (
-              <div className="mt-2">
-                <p className="text-xs font-semibold uppercase tracking-wide">{t("csv.errors")}</p>
-                <ul className="mt-1 max-h-48 list-disc overflow-auto pl-4 text-[13px]">
-                  {result.errors.map((e) => (
-                    <li key={`${e.line}-${e.message}`}>
-                      {t("csv.line", { line: e.line })}: {e.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ImportNotes title={t("csv.errors")} items={result.errors} />
+            ) : null}
+            {result.warnings?.length > 0 ? (
+              <ImportNotes title={t("csv.warnings")} items={result.warnings} />
             ) : null}
           </Alert>
         ) : null}
       </div>
     </Dialog>
+  );
+}
+
+function ImportNotes({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ line: number; message: string }>;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-2">
+      <p className="text-xs font-semibold uppercase tracking-wide">{title}</p>
+      <ul className="mt-1 max-h-48 list-disc overflow-auto pl-4 text-[13px]">
+        {items.map((e) => (
+          <li key={`${e.line}-${e.message}`}>
+            {t("csv.line", { line: e.line })}: {e.message}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

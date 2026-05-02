@@ -9,7 +9,7 @@ import {
   localToInstant,
   parseLocalTime,
 } from "@openpax/core";
-import { booking, customer, service } from "@openpax/db";
+import { area, booking, customer, service } from "@openpax/db";
 import {
   BOOKING_CSV_COLUMNS,
   CUSTOMER_CSV_COLUMNS,
@@ -62,6 +62,7 @@ export async function exportBookings(
       booking,
       customer,
       serviceName: service.name,
+      roomName: area.name,
       tables: sql<string>`coalesce((
         select string_agg(dt.name, ' + ' order by dt.sort_order, dt.name)
         from booking_table bt join dining_table dt on dt.id = bt.table_id
@@ -70,6 +71,7 @@ export async function exportBookings(
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
+    .leftJoin(area, eq(area.id, booking.areaId))
     .where(and(...conditions))
     .orderBy(asc(booking.startsAt))
     .limit(EXPORT_LIMIT);
@@ -87,6 +89,7 @@ export async function exportBookings(
       source: x.booking.source,
       code: x.booking.confirmationCode,
       tables: x.tables,
+      room: x.roomName ?? "",
       notes: x.booking.notes,
       created_at: x.booking.createdAt.toISOString(),
     })),
@@ -137,11 +140,17 @@ export async function exportCustomers(
 // ---------- import
 
 type Row = Record<string, string>;
+interface Note {
+  line: number;
+  message: string;
+}
 interface Report {
   created: number;
   updated: number;
   skipped: number;
-  errors: Array<{ line: number; message: string }>;
+  errors: Note[];
+  /** Rows that went in with something left out (an unreadable phone, an unknown room). */
+  warnings: Note[];
 }
 
 /** Accept a few header spellings (English, Italian, the export's own). */
@@ -150,7 +159,7 @@ const ALIASES: Record<string, string[]> = {
   email: ["email", "e_mail", "mail"],
   phone: ["phone", "telefono", "tel", "phone_number", "cellulare"],
   tags: ["tags", "tag", "etichette"],
-  notes: ["notes", "note", "notes_"],
+  notes: ["notes", "note", "notes_", "richieste"],
   locale: ["locale", "lingua", "language"],
   marketing_consent: ["marketing_consent", "marketing", "consenso_marketing", "newsletter"],
   date: ["date", "data", "service_date", "giorno"],
@@ -159,6 +168,49 @@ const ALIASES: Record<string, string[]> = {
   service: ["service", "servizio"],
   status: ["status", "stato"],
   source: ["source", "origine", "canale"],
+  room: ["room", "sala", "area", "stanza"],
+  created_at: ["created_at", "created", "creata_il", "data_creazione", "inserita_il"],
+  /** The row's id in the system it comes from: re-importing the file skips what is already in. */
+  reference: ["reference", "ref", "external_id", "id", "riferimento"],
+};
+
+/** Status spellings an export from another system (or a spreadsheet) may use. */
+const STATUS_ALIASES: Record<string, BookingStatus> = {
+  in_attesa: "pending",
+  attesa: "pending",
+  confermato: "confirmed",
+  confermata: "confirmed",
+  arrivato: "seated",
+  arrivata: "seated",
+  seduto: "seated",
+  al_tavolo: "seated",
+  completato: "completed",
+  completata: "completed",
+  concluso: "completed",
+  conclusa: "completed",
+  canceled: "cancelled",
+  cancellato: "cancelled",
+  cancellata: "cancelled",
+  annullato: "cancelled",
+  annullata: "cancelled",
+  noshow: "no_show",
+  non_arrivato: "no_show",
+  non_arrivata: "no_show",
+  non_presentato: "no_show",
+  assente: "no_show",
+};
+
+const SOURCE_ALIASES: Record<string, BookingSource> = {
+  web: "widget",
+  online: "widget",
+  sito: "widget",
+  telefono: "phone",
+  walkin: "walk_in",
+  walk: "walk_in",
+  passaggio: "walk_in",
+  manuale: "manual",
+  staff: "manual",
+  assistente: "assistant",
 };
 
 function pick(row: Row, field: string): string {
@@ -171,6 +223,56 @@ function pick(row: Row, field: string): string {
 
 const truthy = (v: string) =>
   ["1", "true", "yes", "y", "si", "sì", "ok", "x"].includes(v.toLowerCase());
+
+const slug = (v: string) =>
+  v
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/_+/g, "_");
+
+/**
+ * A timestamp from another system: ISO with an offset is taken as is, a bare
+ * "YYYY-MM-DD HH:mm[:ss]" is read as the restaurant's local time.
+ */
+function parseInstant(raw: string, timezone: string): Date | null {
+  const local = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2})(?:\.\d+)?)?$/);
+  if (local?.[1] && local[2] && isLocalDate(local[1]) && isLocalTime(local[2])) {
+    const instant = localToInstant(local[1], parseLocalTime(local[2]), timezone);
+    return new Date(instant.getTime() + Number(local[3] ?? 0) * 1000);
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** A room by name, exact first, then "sopra" for "Sala sopra". */
+function findRoom<T extends { id: string; name: string }>(rooms: T[], raw: string): T | undefined {
+  const wanted = raw.trim().toLowerCase();
+  if (!wanted) return undefined;
+  return (
+    rooms.find((a) => a.name.toLowerCase() === wanted) ??
+    rooms.find(
+      (a) => a.name.toLowerCase().includes(wanted) || wanted.includes(a.name.toLowerCase()),
+    )
+  );
+}
+
+/**
+ * The phone of a row: normalised when it can be read; otherwise the booking
+ * (or guest) still goes in without it and the raw value is kept in the notes,
+ * so a number typed wrong is not lost and a placeholder costs nothing.
+ */
+function readPhone(
+  raw: string | null,
+  locale: string,
+  notes: string | null,
+  warn: (message: string) => void,
+): { phone: string | null; notes: string | null } {
+  const phone = normalizePhone(raw, locale);
+  if (!raw || phone) return { phone, notes };
+  warn(`phone "${raw}" could not be read; kept in the notes`);
+  const line = `Tel. ${raw}`;
+  return { phone: null, notes: notes?.includes(line) ? notes : notes ? `${notes}\n${line}` : line };
+}
 
 function parseRows(text: string): { rows: Row[]; header: string[] } {
   const parsed = parseCsv(text);
@@ -198,7 +300,7 @@ export async function importCustomers(
 ): Promise<ImportResultDto> {
   const { rows, header } = parseRows(text);
   requireColumns(header, ["name"]);
-  const report: Report = { created: 0, updated: 0, skipped: 0, errors: [] };
+  const report: Report = { created: 0, updated: 0, skipped: 0, errors: [], warnings: [] };
 
   for (const [i, row] of rows.entries()) {
     const line = i + 2;
@@ -209,13 +311,12 @@ export async function importCustomers(
       continue;
     }
     const email = pick(row, "email").toLowerCase() || null;
-    const rawPhone = pick(row, "phone") || null;
-    const phone = normalizePhone(rawPhone, r.locale);
-    if (rawPhone && !phone) {
-      report.errors.push({ line, message: `invalid phone "${rawPhone}"` });
-      report.skipped += 1;
-      continue;
-    }
+    const { phone, notes } = readPhone(
+      pick(row, "phone") || null,
+      r.locale,
+      pick(row, "notes") || null,
+      (message) => report.warnings.push({ line, message }),
+    );
     const localeRaw = pick(row, "locale").toLowerCase();
     const locale = localeRaw === "it" || localeRaw === "en" ? localeRaw : null;
     const tags = pick(row, "tags")
@@ -223,7 +324,6 @@ export async function importCustomers(
       .map((t) => t.trim())
       .filter((t) => t !== "")
       .slice(0, 20);
-    const notes = pick(row, "notes") || null;
     const consentRaw = pick(row, "marketing_consent");
 
     // does the guest exist? (email first, then phone)
@@ -239,6 +339,13 @@ export async function importCustomers(
         .select()
         .from(customer)
         .where(and(eq(customer.restaurantId, r.id), eq(customer.phone, phone)))
+        .limit(1);
+    // nothing to match on but the name: re-importing the file must not add the guest again
+    if (!existing && !email && !phone)
+      [existing] = await ctx.db
+        .select()
+        .from(customer)
+        .where(and(eq(customer.restaurantId, r.id), ilike(customer.name, name)))
         .limit(1);
     if (existing) report.updated += 1;
     else report.created += 1;
@@ -274,7 +381,13 @@ export async function importCustomers(
       entityType: "customer",
       data: { created: report.created, updated: report.updated, skipped: report.skipped },
     });
-  return { total: rows.length, ...report, dryRun, errors: report.errors.slice(0, 200) };
+  return {
+    total: rows.length,
+    ...report,
+    dryRun,
+    errors: report.errors.slice(0, 200),
+    warnings: report.warnings.slice(0, 200),
+  };
 }
 
 export async function importBookings(
@@ -293,8 +406,12 @@ export async function importBookings(
     .orderBy(asc(service.sortOrder), asc(service.name));
   const fallback = services.find((s) => s.active) ?? services[0];
   if (!fallback) throw ApiError.badRequest("no_service", "Create a service before importing");
+  const rooms = await ctx.db
+    .select({ id: area.id, name: area.name })
+    .from(area)
+    .where(eq(area.restaurantId, r.id));
   const now = ctx.now();
-  const report: Report = { created: 0, updated: 0, skipped: 0, errors: [] };
+  const report: Report = { created: 0, updated: 0, skipped: 0, errors: [], warnings: [] };
 
   for (const [i, row] of rows.entries()) {
     const line = i + 2;
@@ -302,6 +419,7 @@ export async function importBookings(
       report.errors.push({ line, message });
       report.skipped += 1;
     };
+    const warn = (message: string) => report.warnings.push({ line, message });
     const date = pick(row, "date").replace(/\//g, "-");
     const time = pick(row, "time").slice(0, 5);
     const guests = Number(pick(row, "guests"));
@@ -331,50 +449,75 @@ export async function importBookings(
       continue;
     }
     const startsAt = localToInstant(date, parseLocalTime(time), r.timezone);
-    const statusRaw = pick(row, "status").toLowerCase().replace(/[\s-]/g, "_") as BookingStatus;
-    const status: BookingStatus = statusRaw
-      ? statusRaw
-      : startsAt.getTime() < now.getTime()
-        ? "completed"
-        : "confirmed";
-    if (!(BOOKING_STATUSES as readonly string[]).includes(status)) {
+    const past = startsAt.getTime() < now.getTime();
+    const statusKey = slug(pick(row, "status"));
+    let status = (STATUS_ALIASES[statusKey] ?? statusKey) as BookingStatus;
+    if (statusKey && !(BOOKING_STATUSES as readonly string[]).includes(status)) {
       fail(`unknown status "${pick(row, "status")}"`);
       continue;
     }
-    const sourceRaw = pick(row, "source").toLowerCase().replace(/[\s-]/g, "_") as BookingSource;
-    const source: BookingSource = sourceRaw || "manual";
+    // what was still open on a past date is history now: the guest came, as far as anyone knows
+    if (
+      !statusKey ||
+      (past && (status === "confirmed" || status === "seated" || status === "pending"))
+    )
+      status = past ? "completed" : "confirmed";
+    const sourceKey = slug(pick(row, "source"));
+    const source = (SOURCE_ALIASES[sourceKey] ?? (sourceKey || "manual")) as BookingSource;
     if (!(BOOKING_SOURCES as readonly string[]).includes(source)) {
       fail(`unknown source "${pick(row, "source")}"`);
       continue;
     }
     const email = pick(row, "email").toLowerCase() || null;
-    const rawPhone = pick(row, "phone") || null;
-    const phone = normalizePhone(rawPhone, r.locale);
-    if (rawPhone && !phone) {
-      fail(`invalid phone "${rawPhone}"`);
-      continue;
-    }
+    const { phone, notes } = readPhone(
+      pick(row, "phone") || null,
+      r.locale,
+      pick(row, "notes") || null,
+      warn,
+    );
+    const roomRaw = pick(row, "room");
+    const room = findRoom(rooms, roomRaw);
+    if (roomRaw && !room) warn(`unknown room "${roomRaw}"; imported without a room`);
+    const createdRaw = pick(row, "created_at");
+    const createdAt = createdRaw ? parseInstant(createdRaw, r.timezone) : null;
+    if (createdRaw && !createdAt) warn(`created_at "${createdRaw}" could not be read; ignored`);
+    const consentRaw = pick(row, "marketing_consent");
+    const reference = pick(row, "reference");
+    const idempotencyKey = reference ? `import:${reference}` : null;
 
-    // the same guest at the same time already exists: skip rather than duplicate
-    const [dup] = await ctx.db
-      .select({ id: booking.id })
-      .from(booking)
-      .innerJoin(customer, eq(customer.id, booking.customerId))
-      .where(
-        and(
-          eq(booking.restaurantId, r.id),
-          eq(booking.startsAt, startsAt),
-          email
-            ? eq(customer.email, email)
-            : phone
-              ? eq(customer.phone, phone)
-              : ilike(customer.name, name),
-        ),
-      )
-      .limit(1);
-    if (dup) {
-      report.skipped += 1;
-      continue;
+    if (idempotencyKey) {
+      // the file carries its own ids: what came in before is skipped, whatever changed since
+      const [done] = await ctx.db
+        .select({ id: booking.id })
+        .from(booking)
+        .where(and(eq(booking.restaurantId, r.id), eq(booking.idempotencyKey, idempotencyKey)))
+        .limit(1);
+      if (done) {
+        report.skipped += 1;
+        continue;
+      }
+    } else {
+      // the same guest at the same time already exists: skip rather than duplicate
+      const [dup] = await ctx.db
+        .select({ id: booking.id })
+        .from(booking)
+        .innerJoin(customer, eq(customer.id, booking.customerId))
+        .where(
+          and(
+            eq(booking.restaurantId, r.id),
+            eq(booking.startsAt, startsAt),
+            email
+              ? eq(customer.email, email)
+              : phone
+                ? eq(customer.phone, phone)
+                : ilike(customer.name, name),
+          ),
+        )
+        .limit(1);
+      if (dup) {
+        report.skipped += 1;
+        continue;
+      }
     }
     report.created += 1;
     if (dryRun) continue;
@@ -383,12 +526,15 @@ export async function importBookings(
         serviceId: svc.id,
         startsAt,
         partySize: guests,
+        areaId: room?.id ?? null,
         guest: { name, email, phone },
-        notes: pick(row, "notes") || null,
+        notes,
+        marketingConsent: consentRaw ? truthy(consentRaw) : undefined,
+        idempotencyKey,
         source,
         actor,
         ignoreCapacity: true,
-        imported: { status },
+        imported: { status, ...(createdAt ? { createdAt } : {}) },
       });
     } catch (error) {
       report.created -= 1;
@@ -403,5 +549,11 @@ export async function importBookings(
       entityType: "booking",
       data: { created: report.created, skipped: report.skipped },
     });
-  return { total: rows.length, ...report, dryRun, errors: report.errors.slice(0, 200) };
+  return {
+    total: rows.length,
+    ...report,
+    dryRun,
+    errors: report.errors.slice(0, 200),
+    warnings: report.warnings.slice(0, 200),
+  };
 }

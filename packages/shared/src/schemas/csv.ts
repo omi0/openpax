@@ -36,6 +36,8 @@ export const importResultDtoSchema = z.object({
   dryRun: z.boolean(),
   /** Line numbers count the header as line 1. */
   errors: z.array(z.object({ line: z.number().int(), message: z.string() })).max(200),
+  /** Rows that were imported with something left out (a phone that could not be read, an unknown room). */
+  warnings: z.array(z.object({ line: z.number().int(), message: z.string() })).max(200),
 });
 export type ImportResultDto = z.infer<typeof importResultDtoSchema>;
 
@@ -51,6 +53,7 @@ export const BOOKING_CSV_COLUMNS = [
   "source",
   "code",
   "tables",
+  "room",
   "notes",
   "created_at",
 ] as const;

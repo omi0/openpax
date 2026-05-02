@@ -898,7 +898,7 @@
       "customers": "Import guests from CSV"
     },
     "hint": {
-      "bookings": "One booking per row. Columns: date (YYYY-MM-DD), time (HH:mm), guests, name, email, phone, service, status, notes, source. Past dates are imported as completed and never trigger emails; capacity is not checked.",
+      "bookings": "One booking per row. Columns: date (YYYY-MM-DD), time (HH:mm), guests, name, email, phone, service, status, notes, source; optional room, created_at, marketing_consent and reference (with a reference, rows already imported are skipped). Past dates are imported as completed and never trigger emails; capacity is not checked. A phone that cannot be read is kept in the notes.",
       "customers": "One guest per row. Columns: name, email, phone, tags (comma separated), notes, locale, marketing_consent. Existing guests (same email or phone) are updated."
     },
     "file": "CSV file",
@@ -907,6 +907,7 @@
     "preview": "Preview",
     "result": "{{created}} created, {{updated}} updated, {{skipped}} skipped",
     "errors": "Rows with problems",
+    "warnings": "Rows imported with a note",
     "line": "Line {{line}}",
     "done": "Import complete",
     "template": "Download a template",

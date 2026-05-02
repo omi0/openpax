@@ -898,7 +898,7 @@
       "customers": "Importa ospiti da CSV"
     },
     "hint": {
-      "bookings": "Una prenotazione per riga. Colonne: date (AAAA-MM-GG), time (HH:mm), guests, name, email, phone, service, status, notes, source. Le date passate vengono importate come concluse e non inviano email; la capienza non viene verificata.",
+      "bookings": "Una prenotazione per riga. Colonne: date (AAAA-MM-GG), time (HH:mm), guests, name, email, phone, service, status, notes, source; facoltative room, created_at, marketing_consent e reference (con un riferimento le righe già importate vengono saltate). Le date passate vengono importate come concluse e non inviano email; la capienza non viene verificata. Un telefono illeggibile viene conservato nelle note.",
       "customers": "Un ospite per riga. Colonne: name, email, phone, tags (separati da virgola), notes, locale, marketing_consent. Gli ospiti già presenti (stessa email o telefono) vengono aggiornati."
     },
     "file": "File CSV",
@@ -907,6 +907,7 @@
     "preview": "Anteprima",
     "result": "{{created}} creati, {{updated}} aggiornati, {{skipped}} saltati",
     "errors": "Righe con problemi",
+    "warnings": "Righe importate con un'avvertenza",
     "line": "Riga {{line}}",
     "done": "Importazione completata",
     "template": "Scarica un modello",

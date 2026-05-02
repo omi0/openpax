@@ -196,13 +196,21 @@ The `csv` module exports bookings (with the list filters) and the guest book
 as UTF-8 CSV with a BOM, and imports both from CSV posted as `text/csv`
 (`?dryRun=1` validates and counts without writing). Headers are matched
 loosely (English, Italian and the export's own names; `;` and tab
-delimiters are detected). Guests are matched by email, then phone, and
-updated (tags merged, notes appended); bookings are created with
-`imported: { status }`, which skips capacity, lands straight in the given
-status (past rows default to `completed`, future ones to `confirmed`),
-counts the visit or no-show on the guest, and flags the `booking.created`
-event so no message or feedback request goes out. Rows that duplicate an
-existing booking (same instant and guest) are skipped. The parser lives in
+delimiters are detected), and so are statuses and sources (`confermato`,
+`arrivato`, `annullata`, `telefono`…). Guests are matched by email, then
+phone, and updated (tags merged, notes appended); bookings are created with
+`imported: { status, createdAt }`, which skips capacity, lands straight in
+the given status (past rows default to `completed`, and a past row still
+`confirmed` or `seated` becomes `completed` too), keeps the `created_at` of
+the system the row comes from, counts the visit or no-show on the guest, and
+flags the `booking.created` event so no message or feedback request goes
+out. Optional columns: `room` (matched to an area by name), `marketing_consent`
+and `reference`, the row's id in the old system, stored as the idempotency
+key `import:<reference>` so re-importing the same file skips what is already
+in; without a reference, rows that duplicate an existing booking (same
+instant and guest) are skipped. A phone that cannot be read does not reject
+the row: the booking or guest goes in without it, the raw value lands in the
+notes and the result lists the line under `warnings`. The parser lives in
 `apps/server/src/lib/csv.ts`.
 
 ### Waitlist
