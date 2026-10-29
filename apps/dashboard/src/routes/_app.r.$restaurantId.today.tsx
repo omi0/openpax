@@ -828,11 +828,6 @@ function BookingRow({
       </span>
     ) : null,
   ].filter(Boolean);
-  const cancelledBy = b.cancelledByOperatorName ? (
-    <span className="font-medium text-red-700">
-      {t("today.cancelledByName", { name: b.cancelledByOperatorName })}
-    </span>
-  ) : null;
   const room = roomName ? (
     <span className="inline-flex items-center gap-1">
       <DoorOpen className="size-3.5" />
@@ -879,7 +874,6 @@ function BookingRow({
           <span className="hidden min-w-0 shrink-[2] items-baseline gap-x-2 truncate text-[13px] text-stone-500 md:flex">
             {b.customer.phone ? <span className="tabular-nums">{b.customer.phone}</span> : null}
             <span>{t(`today.source.${b.source}`)}</span>
-            {cancelledBy}
             {room}
             {flags}
           </span>
@@ -894,7 +888,6 @@ function BookingRow({
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 [grid-area:meta] text-[13px] text-stone-500 md:hidden">
           {b.customer.phone ? <span>{b.customer.phone}</span> : null}
           <span>{t(`today.source.${b.source}`)}</span>
-          {cancelledBy}
           {room}
           {flags}
         </span>
