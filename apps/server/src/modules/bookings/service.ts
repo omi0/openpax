@@ -241,34 +241,33 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   };
 }
 
-/** Seat the booking on the best free table(s) of the floor plan, if the restaurant has one. */
+/**
+ * Seat the booking on the best free table(s) of the floor plan, if the
+ * restaurant has one. When staff seat by hand, their tables stay while still
+ * free at the new time and in the booking's room; otherwise they are dropped
+ * and the booking waits for a table again.
+ */
 async function assignTables(
   tx: DbOrTx,
   bookingId: string,
   input: AvailabilityInput | null,
   req: { startsAt: Date; endsAt: Date; partySize: number; areaId: string | null },
-  /** Tables the guest asked for: used as they are, if free. */
-  requested?: readonly string[],
 ): Promise<void> {
-  // seated by hand: the staff's tables stay as they are
-  if (input?.manualTables && !requested?.length) return;
-  await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
-  if (!input?.tables || input.tables.length === 0) return;
-  const usable = usableTables(input.tables, input.rooms);
-  if (requested && requested.length > 0) {
-    const ids = new Set(requested);
+  const usable = input?.tables ? usableTables(input.tables, input.rooms) : [];
+  if (input?.manualTables) {
+    const current = await tx
+      .select({ tableId: bookingTable.tableId })
+      .from(bookingTable)
+      .where(eq(bookingTable.bookingId, bookingId));
+    if (current.length === 0) return;
     const free = new Set(freeTables(usable, input.tableLoads ?? [], req).map((t) => t.id));
-    const known = input.tables.filter((t) => ids.has(t.id));
-    if (known.length !== ids.size) throw ApiError.notFound("Table");
-    const taken = known.filter((t) => !free.has(t.id));
-    if (taken.length > 0)
-      throw ApiError.conflict("table_taken", "A chosen table is taken at that time", {
-        tables: taken.map((t) => t.name),
-      });
-    await tx.insert(bookingTable).values(known.map((t) => ({ bookingId, tableId: t.id })));
+    if (current.every((c) => free.has(c.tableId))) return;
+    await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
     return;
   }
-  const chosen = findTableAssignment(usable, input.tableLoads ?? [], req);
+  await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
+  if (usable.length === 0) return;
+  const chosen = findTableAssignment(usable, input?.tableLoads ?? [], req);
   if (!chosen) return; // staff override: stays unassigned, visible on the floor plan
   await tx.insert(bookingTable).values(chosen.map((t) => ({ bookingId, tableId: t.id })));
 }
@@ -299,8 +298,6 @@ export interface CreateBookingParams {
   notifyGuest?: boolean;
   /** Staff member who took the booking (checked by the caller). */
   operatorName?: string | null;
-  /** Tables the guest asked for; absent = picked automatically. */
-  tableIds?: readonly string[];
   requirePhone?: boolean;
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
@@ -545,13 +542,12 @@ async function insertBookingLocked(
     })
     .returning();
   if (!row) throw new Error("booking insert failed");
-  await assignTables(
-    tx,
-    row.id,
-    floor,
-    { startsAt: p.startsAt, endsAt, partySize: p.partySize, areaId: p.areaId ?? null },
-    p.tableIds,
-  );
+  await assignTables(tx, row.id, floor, {
+    startsAt: p.startsAt,
+    endsAt,
+    partySize: p.partySize,
+    areaId: p.areaId ?? null,
+  });
 
   if (status === "seated" || (p.imported && status === "completed")) {
     await tx

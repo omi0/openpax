@@ -118,4 +118,33 @@ describe("linked tables", () => {
     ];
     expect(ids(findTableAssignment(block, [], req(8)))).toEqual(["5", "6", "7", "8"]);
   });
+
+  it("keeps pairing joinable tables in rooms without links", () => {
+    const mixed = [
+      table("1", 2, { joinWith: ["2"] }),
+      table("2", 2),
+      table("D1", 2, { areaId: "garden" }),
+      table("D2", 2, { areaId: "garden" }),
+    ];
+    const busy = [
+      { tableId: "1", startsAt: at(18), endsAt: at(20) },
+      { tableId: "2", startsAt: at(18), endsAt: at(20) },
+    ];
+    expect(ids(findTableAssignment(mixed, busy, req(4)))).toEqual(["D1", "D2"]);
+  });
+
+  it("finds a group on a big, densely linked plan", () => {
+    // 6 × 6 grid of two-seaters, each linked to its right and lower neighbour
+    const grid: TableDef[] = [];
+    for (let r = 0; r < 6; r += 1)
+      for (let c = 0; c < 6; c += 1)
+        grid.push(
+          table(`${r}-${c}`, 2, {
+            joinWith: [...(c < 5 ? [`${r}-${c + 1}`] : []), ...(r < 5 ? [`${r + 1}-${c}`] : [])],
+          }),
+        );
+    const group = findTableAssignment(grid, [], req(24));
+    expect(group).toHaveLength(12);
+    expect(findTableAssignment(grid, [], req(73))).toBeNull();
+  });
 });

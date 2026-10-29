@@ -181,7 +181,6 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         seatNow: body.seatNow,
         notifyGuest: body.notifyGuest,
         operatorName: operator?.name ?? null,
-        tableIds: body.tableIds,
       });
       return c.json(svc.toBookingDto(result), 201);
     },

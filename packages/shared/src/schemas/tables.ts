@@ -16,10 +16,10 @@ export const upsertTableInputSchema = z
     width: z.number().min(2).max(100).default(10),
     height: z.number().min(2).max(100).default(10),
     joinable: z.boolean().default(true),
-    /** Tables it can be pushed against (same room). */
-    joinWith: z.array(idSchema).max(30).default([]),
-    /** Extra guests at the head when alone or at the end of a joined row. */
-    headSeats: z.number().int().min(0).max(4).default(0),
+    /** Tables it can be pushed against (same room); left out on an update = unchanged. */
+    joinWith: z.array(idSchema).max(30).optional(),
+    /** Extra guests at the head when alone or at the end of a joined row; left out = unchanged (0 when new). */
+    headSeats: z.number().int().min(0).max(4).optional(),
     active: z.boolean().default(true),
     sortOrder: z.number().int().default(0),
   })

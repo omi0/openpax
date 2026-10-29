@@ -368,7 +368,10 @@ export async function cancelMeetingOfBooking(
 
 /**
  * The event booking changed (time, size, notes): send the host the invite
- * again so the description is current. No-op without a live meeting.
+ * again so the description is current. When the meeting no longer fits (the
+ * event now starts before it ends, or the group got too small for one) it is
+ * cancelled instead, and the host gets the cancellation. No-op without a
+ * live meeting.
  */
 export async function refreshMeetingOfBooking(
   ctx: AppContext,
@@ -378,6 +381,21 @@ export async function refreshMeetingOfBooking(
   await ctx.db.transaction(async (tx) => {
     const row = await activeMeeting(tx, restaurantId, bookingId);
     if (!row) return;
+    const [b] = await tx
+      .select({ startsAt: booking.startsAt, partySize: booking.partySize })
+      .from(booking)
+      .where(eq(booking.id, bookingId))
+      .limit(1);
+    const policy = await loadPolicy(tx, restaurantId);
+    const fits =
+      b !== undefined &&
+      row.endsAt.getTime() <= b.startsAt.getTime() &&
+      policy.meetingMinPartySize !== null &&
+      b.partySize >= policy.meetingMinPartySize;
+    if (!fits) {
+      await cancelRow(tx, { id: restaurantId }, row, { type: "system", id: null }, ctx.now());
+      return;
+    }
     const sequence = row.sequence + 1;
     await tx.update(bookingMeeting).set({ sequence }).where(eq(bookingMeeting.id, row.id));
     await emitEvent(tx, {

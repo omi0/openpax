@@ -2,7 +2,11 @@ import type { BookingDto, RestaurantDto, UpdateBookingInput } from "@openpax/sha
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
+import {
+  OperatorGate,
+  OperatorsLoadError,
+  type VerifiedOperator,
+} from "@/components/operator-gate";
 import { SlotPicker } from "@/components/slot-picker";
 import {
   Alert,
@@ -158,6 +162,12 @@ export function BookingEditDialog({
         title={t("operators.whoIsChanging")}
         onCancel={onClose}
         onVerified={setOperator}
+      />
+      <OperatorsLoadError
+        open={open && operatorList.isError}
+        retrying={operatorList.isFetching}
+        onRetry={() => void operatorList.refetch()}
+        onCancel={onClose}
       />
       <Dialog
         open={formOpen}

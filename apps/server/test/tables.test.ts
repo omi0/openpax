@@ -373,6 +373,17 @@ describe("tables and auto-assignment", () => {
     );
     expect(cross.status).toBe(400);
 
+    // an update that leaves the links out keeps them
+    const rename = await api(
+      t,
+      "PUT",
+      `${base}/tables/${two.id}`,
+      { name: "2", areaId: upstairs, maxCovers: 2 },
+      fx.session,
+    );
+    expect(rename.status).toBe(200);
+    expect(await links()).toEqual({ "1": 1, "2": 2, "3": 1, "26": 0 });
+
     // 1 no longer joins 2: 2 forgets 1 too
     const cut = await api(
       t,
@@ -388,46 +399,6 @@ describe("tables and auto-assignment", () => {
       (await api(t, "DELETE", `${base}/tables/${three.id}`, undefined, fx.session)).status,
     ).toBe(204);
     expect(await links()).toEqual({ "1": 0, "2": 0, "26": 0 });
-  });
-  it("seats a new booking at the tables the guest asked for, if they are free", async () => {
-    const fx = await createFixture(t);
-    const base = `/api/v1/restaurants/${fx.restaurantId}`;
-    const add = async (name: string, sortOrder: number) =>
-      (
-        await api<{ id: string }>(
-          t,
-          "POST",
-          `${base}/tables`,
-          { name, maxCovers: 2, sortOrder },
-          fx.session,
-        )
-      ).body.id;
-    await add("A", 1);
-    const oven1 = await add("1", 2);
-    const oven2 = await add("2", 3);
-    const staffBooking = (tableIds: string[], name: string, partySize: number) =>
-      api<Booking & { code?: string; tables?: unknown }>(
-        t,
-        "POST",
-        `${base}/bookings`,
-        {
-          serviceId: fx.serviceId,
-          startsAt: romeInstant(FRIDAY, "20:00"),
-          partySize,
-          customer: { name, phone: "+39 333 1234567" },
-          tableIds,
-          notifyGuest: false,
-        },
-        fx.session,
-      );
-    const near = await staffBooking([oven1, oven2], "Forno", 4);
-    expect(near.status, JSON.stringify(near.body)).toBe(201);
-    expect(near.body.tables.map((x) => x.name).sort()).toEqual(["1", "2"]);
-
-    // table A is still free, so the slot is open, but the guest wants 2
-    const again = await staffBooking([oven2], "Altro", 2);
-    expect(again.status).toBe(409);
-    expect(again.body.code).toBe("table_taken");
   });
   it("leaves bookings without a table, and slots open, when staff seat by hand", async () => {
     const fx = await createFixture(t);
@@ -470,5 +441,22 @@ describe("tables and auto-assignment", () => {
     const second = await book("due");
     expect(second.status, JSON.stringify(second.body)).toBe(201);
     expect(await tablesOf(second.body.id)).toEqual([]);
+
+    // the first party cancels, the second takes its table, then the first comes back:
+    // it must not share the table, it waits to be seated again
+    const action = (id: string, act: string) =>
+      api(t, "POST", `${base}/bookings/${id}/actions`, { action: act }, fx.session);
+    expect((await action(first.body.id, "cancel")).status).toBe(200);
+    const take = await api(
+      t,
+      "PUT",
+      `${base}/bookings/${second.body.id}/tables`,
+      { tableIds: [only.body.id] },
+      fx.session,
+    );
+    expect(take.status).toBe(200);
+    expect((await action(first.body.id, "reopen")).status).toBe(200);
+    expect(await tablesOf(first.body.id)).toEqual([]);
+    expect((await tablesOf(second.body.id)).map((x) => x.name)).toEqual(["1"]);
   });
 });

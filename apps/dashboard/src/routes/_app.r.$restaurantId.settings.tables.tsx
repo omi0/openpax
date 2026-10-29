@@ -319,10 +319,11 @@ function TableDialog({
   };
   // only tables of the same room can be pushed together
   const neighbours = tables.filter((o) => o.id !== table?.id && o.areaId === v.areaId);
+  const links = v.joinWith ?? [];
   const toggleLink = (id: string) =>
     setV({
       ...v,
-      joinWith: v.joinWith.includes(id) ? v.joinWith.filter((x) => x !== id) : [...v.joinWith, id],
+      joinWith: links.includes(id) ? links.filter((x) => x !== id) : [...links, id],
     });
   const num =
     (key: "minCovers" | "maxCovers" | "headSeats" | "sortOrder" | "width" | "height") =>
@@ -388,7 +389,7 @@ function TableDialog({
             inputMode="numeric"
             min={0}
             max={4}
-            value={v.headSeats}
+            value={v.headSeats ?? 0}
             onChange={num("headSeats")}
           />
         </Field>
@@ -447,7 +448,7 @@ function TableDialog({
               <p className="mb-2 text-sm text-stone-500">{t("tables.joinsWithHint")}</p>
               <div className="flex flex-wrap gap-2">
                 {neighbours.map((o) => {
-                  const on = v.joinWith.includes(o.id);
+                  const on = links.includes(o.id);
                   return (
                     <button
                       key={o.id}

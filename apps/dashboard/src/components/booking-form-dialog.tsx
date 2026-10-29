@@ -3,7 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MeetingDialog } from "@/components/meeting-dialog";
-import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
+import {
+  OperatorGate,
+  OperatorsLoadError,
+  type VerifiedOperator,
+} from "@/components/operator-gate";
 import { SlotPicker } from "@/components/slot-picker";
 import {
   Alert,
@@ -131,6 +135,12 @@ export function BookingFormDialog({
         title={t("operators.whoIsTaking")}
         onCancel={onClose}
         onVerified={setOperator}
+      />
+      <OperatorsLoadError
+        open={open && operators.isError}
+        retrying={operators.isFetching}
+        onRetry={() => void operators.refetch()}
+        onCancel={onClose}
       />
       <Dialog
         open={formOpen}

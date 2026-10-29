@@ -48,6 +48,8 @@ export function TableAssignDialog({
   const [chosen, setChosen] = useState<Set<string>>(new Set(booking.tables.map((x) => x.id)));
   const [force, setForce] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // the server saw a clash this screen did not (e.g. a booking made meanwhile)
+  const [takenOnServer, setTakenOnServer] = useState(false);
   const save = useMutation({
     mutationFn: () =>
       api.put(`/api/v1/restaurants/${restaurantId}/bookings/${booking.id}/tables`, {
@@ -58,7 +60,16 @@ export function TableAssignDialog({
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] });
       onClose();
     },
-    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
+    onError: (e) => {
+      if (e instanceof ApiClientError && e.code === "table_taken") setTakenOnServer(true);
+      setError(
+        e instanceof ApiClientError && e.code === "table_taken"
+          ? t("today.tableTaken")
+          : e instanceof ApiClientError
+            ? e.message
+            : t("app.error"),
+      );
+    },
   });
   const active = tables.filter((x) => x.active);
   // head seats count only where the plan allows them
@@ -66,7 +77,8 @@ export function TableAssignDialog({
     active.filter((x) => chosen.has(x.id)),
     tableLinks(active),
   ).max;
-  const conflict = active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
+  const conflict =
+    takenOnServer || active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
   const toggle = (id: string) => {
     const next = new Set(chosen);
     if (next.has(id)) next.delete(id);

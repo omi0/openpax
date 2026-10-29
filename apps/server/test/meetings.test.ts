@@ -302,6 +302,46 @@ describe("host meetings, edge cases", () => {
     expect(update[0]?.subject).toContain("30");
   });
 
+  it("cancels the meeting when the group shrinks below the size or the event moves before it", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const meetingOf = async (id: string) =>
+      (
+        await api<Meeting | null>(
+          t,
+          "GET",
+          `${base(fx)}/bookings/${id}/meeting`,
+          undefined,
+          fx.session,
+        )
+      ).body;
+    const change = async (id: string, body: Record<string, unknown>) => {
+      const res = await api(
+        t,
+        "PATCH",
+        `${base(fx)}/bookings/${id}`,
+        { ...body, ignoreCapacity: true, notifyGuest: false },
+        fx.session,
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      await t.processEvents();
+    };
+
+    const smaller = await groupBooking(fx);
+    await schedule(fx, smaller, "15:00");
+    await t.processEvents();
+    await change(smaller, { partySize: 8 });
+    expect(await meetingOf(smaller)).toBeNull();
+    expect(hostEmails().at(-1)?.calendar?.method).toBe("CANCEL");
+
+    const earlier = await groupBooking(fx, 25, "20:00");
+    await schedule(fx, earlier, "16:00");
+    await t.processEvents();
+    await change(earlier, { startsAt: romeInstant(FRIDAY, "12:00") });
+    expect(await meetingOf(earlier)).toBeNull();
+    expect(hostEmails().at(-1)?.calendar?.method).toBe("CANCEL");
+  });
+
   it("blocks slots that overlap a booked meeting when windows overlap", async () => {
     const fx = await createFixture(t);
     await setUp(fx);

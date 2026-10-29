@@ -70,15 +70,21 @@ export function freeTables(
 
 /** Most tables one party can be spread over. */
 const MAX_JOINED = 12;
-/** Bound on the sets looked at per request, so availability stays fast. */
+/** Bound on the groups looked at per request, so availability stays fast. */
 const MAX_SETS = 20_000;
 
+interface Pick {
+  tables: TableDef[];
+  /** Seats left empty. */
+  waste: number;
+}
+
 /**
- * Pick the table(s) for a party: the single free table that wastes the
- * fewest seats, else the pair of joinable tables in the same area that does.
- * When the floor plan says which tables touch (joinWith), the fewest linked
- * tables that fit are joined instead, wasting the fewest seats.
- * Returns null when nothing fits.
+ * Pick the table(s) for a party. In rooms whose plan says which tables touch
+ * (joinWith), the fewest linked tables that fit are joined, in rows or
+ * blocks; elsewhere the single free table that wastes the fewest seats, else
+ * a pair of joinable tables of the same room. Fewer tables win, then fewer
+ * empty seats. Returns null when nothing fits.
  */
 export function findTableAssignment(
   tables: readonly TableDef[],
@@ -87,14 +93,32 @@ export function findTableAssignment(
 ): TableDef[] | null {
   const free = freeTables(tables, loads, req);
   const n = req.partySize;
-  if (tables.some((t) => (t.joinWith?.length ?? 0) > 0)) return findLinkedAssignment(free, n);
+  const linkedRooms = new Set(
+    tables.filter((t) => (t.joinWith?.length ?? 0) > 0).map((t) => t.areaId),
+  );
+  const loose = pairAssignment(
+    free.filter((t) => !linkedRooms.has(t.areaId)),
+    n,
+  );
+  if (linkedRooms.size === 0) return loose?.tables ?? null;
+  const linked = findLinkedAssignment(
+    free.filter((t) => linkedRooms.has(t.areaId)),
+    n,
+  );
+  const best = [loose, linked]
+    .filter((p): p is Pick => p !== null)
+    .sort((a, b) => a.tables.length - b.tables.length || a.waste - b.waste)[0];
+  return best?.tables ?? null;
+}
 
+/** One table (head seats included), else a pair of joinable tables of the same room. */
+function pairAssignment(free: readonly TableDef[], n: number): Pick | null {
   let single: TableDef | null = null;
   for (const t of free) {
     if (n < t.minCovers || n > t.maxCovers + (t.headSeats ?? 0)) continue;
     if (!single || t.maxCovers < single.maxCovers) single = t;
   }
-  if (single) return [single];
+  if (single) return { tables: [single], waste: single.maxCovers + (single.headSeats ?? 0) - n };
 
   let pair: [TableDef, TableDef] | null = null;
   let pairMax = Number.POSITIVE_INFINITY;
@@ -113,7 +137,7 @@ export function findTableAssignment(
       }
     }
   }
-  return pair;
+  return pair ? { tables: pair, waste: pairMax - n } : null;
 }
 
 /**
@@ -153,24 +177,57 @@ export function tableLinks(tables: readonly TableDef[]): (a: TableDef, b: TableD
 /**
  * Smallest connected group of free linked tables that seats the party, with
  * the fewest empty seats; ties keep the staff's table order. Groups are
- * enumerated once each (ESU algorithm), size by size.
+ * enumerated once each (ESU algorithm), size by size, only in the parts of
+ * the plan that could hold the party at all. If that takes too long, the
+ * first group grown table by table that fits is used instead.
  */
-function findLinkedAssignment(free: readonly TableDef[], n: number): TableDef[] | null {
-  const linked = tableLinks(free);
-  const neighbours = new Map(free.map((t) => [t.id, free.filter((o) => linked(t, o))]));
+function findLinkedAssignment(all: readonly TableDef[], n: number): Pick | null {
+  const byId = new Map(all.map((t) => [t.id, t]));
+  const near = new Map(all.map((t) => [t.id, new Set<string>()]));
+  for (const t of all) {
+    for (const id of t.joinWith ?? []) {
+      const o = byId.get(id);
+      if (!o || o.id === t.id || o.areaId !== t.areaId || !t.joinable || !o.joinable) continue;
+      near.get(t.id)?.add(o.id);
+      near.get(o.id)?.add(t.id);
+    }
+  }
+  const linked = (a: TableDef, b: TableDef) => near.get(a.id)?.has(b.id) ?? false;
+  const neighbours = (t: TableDef) => all.filter((o) => near.get(t.id)?.has(o.id)); // staff order
+
+  // connected parts of the plan; skip those that cannot seat the party even full
+  const part = new Map<string, number>();
+  const room: number[] = [];
+  for (const t of all) {
+    if (part.has(t.id)) continue;
+    const k = room.length;
+    room.push(0);
+    const queue = [t];
+    part.set(t.id, k);
+    while (queue.length > 0) {
+      const x = queue.shift() as TableDef;
+      room[k] = (room[k] ?? 0) + x.maxCovers + (x.headSeats ?? 0);
+      for (const y of neighbours(x)) {
+        if (part.has(y.id)) continue;
+        part.set(y.id, k);
+        queue.push(y);
+      }
+    }
+  }
+  const free = all.filter((t) => (room[part.get(t.id) ?? 0] ?? 0) >= n);
+  if (free.length === 0) return null;
+
   const index = new Map(free.map((t, i) => [t.id, i]));
-  const idx = (t: TableDef) => index.get(t.id) ?? 0;
+  const idx = (t: TableDef) => index.get(t.id) ?? -1;
   let visited = 0;
 
   for (let size = 1; size <= MAX_JOINED; size += 1) {
-    let best: TableDef[] | null = null;
-    let bestWaste = Number.POSITIVE_INFINITY;
+    let best: Pick | null = null;
     const consider = (group: TableDef[]) => {
       visited += 1;
       const { min, max } = joinedCapacity(group, linked);
-      if (n < min || n > max || max - n >= bestWaste) return;
-      best = [...group];
-      bestWaste = max - n;
+      if (n < min || n > max || (best && max - n >= best.waste)) return;
+      best = { tables: [...group], waste: max - n };
     };
     const extend = (group: TableDef[], ext: TableDef[], root: TableDef) => {
       if (visited > MAX_SETS) return;
@@ -179,7 +236,7 @@ function findLinkedAssignment(free: readonly TableDef[], n: number): TableDef[] 
       while (rest.length > 0) {
         const w = rest.shift() as TableDef;
         const next = [...rest];
-        for (const u of neighbours.get(w.id) ?? []) {
+        for (const u of neighbours(w)) {
           if (idx(u) <= idx(root) || group.includes(u) || next.includes(u)) continue;
           if (group.some((g) => linked(g, u))) continue; // reachable earlier: counted there
           next.push(u);
@@ -190,12 +247,36 @@ function findLinkedAssignment(free: readonly TableDef[], n: number): TableDef[] 
     for (const root of free) {
       extend(
         [root],
-        (neighbours.get(root.id) ?? []).filter((u) => idx(u) > idx(root)),
+        neighbours(root).filter((u) => idx(u) > idx(root)),
         root,
       );
     }
     if (best) return best;
-    if (visited > MAX_SETS) return null;
+    if (visited > MAX_SETS) return growGroup(free, n, neighbours, linked);
+  }
+  return null;
+}
+
+/** Fallback for big plans: from each table, add neighbours until the party fits. */
+function growGroup(
+  free: readonly TableDef[],
+  n: number,
+  neighbours: (t: TableDef) => TableDef[],
+  linked: (a: TableDef, b: TableDef) => boolean,
+): Pick | null {
+  for (const root of free) {
+    const group = [root];
+    const queue = [...neighbours(root)];
+    for (;;) {
+      const { min, max } = joinedCapacity(group, linked);
+      if (n >= min && n <= max) return { tables: group, waste: max - n };
+      if (group.length >= MAX_JOINED) break;
+      const next = queue.shift();
+      if (!next) break;
+      if (group.includes(next)) continue;
+      group.push(next);
+      queue.push(...neighbours(next));
+    }
   }
   return null;
 }

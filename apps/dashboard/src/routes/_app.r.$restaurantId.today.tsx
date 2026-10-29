@@ -528,7 +528,8 @@ function TodayPage() {
           booking={assigning}
           tables={tables.data}
           areas={rooms}
-          dayBookings={items}
+          // every service: an aperitivo still at the table blocks it for dinner
+          dayBookings={allItems}
           onClose={() => setAssigning(null)}
         />
       ) : null}

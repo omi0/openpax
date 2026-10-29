@@ -59,7 +59,7 @@ async function assertLinks(
   tx: DbOrTx,
   restaurantId: string,
   tableId: string | null,
-  input: UpsertTableInput,
+  input: UpsertTableInput & { joinWith: string[] },
 ): Promise<string[]> {
   const ids = [...new Set(input.joinWith)].filter((id) => id !== tableId);
   if (ids.length === 0) return ids;
@@ -106,10 +106,13 @@ export async function createTable(
 ): Promise<TableDto> {
   await assertArea(ctx, r.id, input.areaId);
   const row = await ctx.db.transaction(async (tx) => {
-    const joinWith = await assertLinks(tx, r.id, null, input);
+    const joinWith = await assertLinks(tx, r.id, null, {
+      ...input,
+      joinWith: input.joinWith ?? [],
+    });
     const [created] = await tx
       .insert(diningTable)
-      .values({ ...input, joinWith, restaurantId: r.id })
+      .values({ ...input, joinWith, headSeats: input.headSeats ?? 0, restaurantId: r.id })
       .returning();
     if (!created) throw new Error("table insert failed");
     await syncLinks(tx, r.id, created.id, joinWith);
@@ -135,14 +138,18 @@ export async function updateTable(
 ): Promise<TableDto> {
   await assertArea(ctx, r.id, input.areaId);
   const row = await ctx.db.transaction(async (tx) => {
-    const joinWith = await assertLinks(tx, r.id, id, input);
+    // links left out stay as they are
+    const joinWith =
+      input.joinWith === undefined
+        ? undefined
+        : await assertLinks(tx, r.id, id, { ...input, joinWith: input.joinWith });
     const [updated] = await tx
       .update(diningTable)
       .set({ ...input, joinWith })
       .where(and(eq(diningTable.id, id), eq(diningTable.restaurantId, r.id)))
       .returning();
     if (!updated) throw ApiError.notFound("Table");
-    await syncLinks(tx, r.id, id, joinWith);
+    if (joinWith) await syncLinks(tx, r.id, id, joinWith);
     return updated;
   });
   await writeAudit(ctx.db, {

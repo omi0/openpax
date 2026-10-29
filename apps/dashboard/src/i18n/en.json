@@ -240,7 +240,8 @@
     "modifiedBy": "Changed by",
     "cancelledBy": "Cancelled by",
     "cancelledByName": "cancelled by {{name}}",
-    "allServices": "All"
+    "allServices": "All",
+    "tableTaken": "One of the chosen tables is taken at that time. Pick another or tick \"Seat here anyway\"."
   },
   "services": {
     "title": "Services",
@@ -1154,7 +1155,10 @@
     "locked": "Too many wrong codes: try again in 5 minutes or ask a manager.",
     "askAgain": "That code is no longer valid: pick your name again.",
     "notMe": "Not me",
-    "correctHint": "Only owners and managers can correct it."
+    "correctHint": "Only owners and managers can correct it.",
+    "loadErrorTitle": "No connection",
+    "loadError": "The staff names did not load. Check the connection and try again.",
+    "retry": "Try again"
   },
   "meetings": {
     "hostFallback": "the chef",

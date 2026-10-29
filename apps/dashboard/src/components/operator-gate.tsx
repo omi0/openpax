@@ -168,3 +168,38 @@ export function OperatorGate({
     </Dialog>
   );
 }
+
+/** The staff list did not load: say so instead of opening nothing. */
+export function OperatorsLoadError({
+  open,
+  retrying,
+  onRetry,
+  onCancel,
+}: {
+  open: boolean;
+  retrying: boolean;
+  onRetry: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      title={t("operators.loadErrorTitle")}
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" size="lg" onClick={onCancel}>
+            {t("app.cancel")}
+          </Button>
+          <Button size="lg" loading={retrying} onClick={onRetry}>
+            {t("operators.retry")}
+          </Button>
+        </>
+      }
+    >
+      <Alert>{t("operators.loadError")}</Alert>
+    </Dialog>
+  );
+}

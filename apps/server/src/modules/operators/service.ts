@@ -7,7 +7,7 @@ import type {
   OperatorProof,
   UpdateOperatorInput,
 } from "@openpax/shared";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
 import { ApiError } from "../../lib/errors.js";
@@ -135,38 +135,50 @@ export async function deleteOperator(
   });
 }
 
-/** Check an operator's PIN; five wrong ones in a row lock them for five minutes. */
+/**
+ * Check an operator's PIN; five wrong ones in a row lock them for five minutes.
+ * Each try first takes one of the five attempts in a single UPDATE, so codes
+ * sent in parallel cannot slip past the limit.
+ */
 export async function checkOperator(
   ctx: AppContext,
   r: RestaurantRow,
   proof: OperatorProof,
 ): Promise<OperatorRow> {
-  const [op] = await ctx.db
-    .select()
-    .from(bookingOperator)
-    .where(and(eq(bookingOperator.id, proof.id), eq(bookingOperator.restaurantId, r.id)))
-    .limit(1);
-  if (!op) throw ApiError.badRequest("unknown_operator", "This operator does not exist");
   const now = ctx.now();
-  if (op.lockedUntil && op.lockedUntil > now)
+  const mine = and(eq(bookingOperator.id, proof.id), eq(bookingOperator.restaurantId, r.id));
+  const [op] = await ctx.db
+    .update(bookingOperator)
+    .set({ failedAttempts: sql`${bookingOperator.failedAttempts} + 1` })
+    .where(
+      and(
+        mine,
+        or(isNull(bookingOperator.lockedUntil), lte(bookingOperator.lockedUntil, now)),
+        lt(bookingOperator.failedAttempts, MAX_ATTEMPTS),
+      ),
+    )
+    .returning();
+  if (!op) {
+    const [exists] = await ctx.db
+      .select({ id: bookingOperator.id })
+      .from(bookingOperator)
+      .where(mine)
+      .limit(1);
+    if (!exists) throw ApiError.badRequest("unknown_operator", "This operator does not exist");
     throw new ApiError(429, "operator_locked", "Too many wrong codes, try again in a few minutes");
+  }
   if (!(await pinMatches(op.pinHash, proof.pin))) {
-    const failed = op.failedAttempts + 1;
-    await ctx.db
-      .update(bookingOperator)
-      .set(
-        failed >= MAX_ATTEMPTS
-          ? { failedAttempts: 0, lockedUntil: new Date(now.getTime() + LOCK_MS) }
-          : { failedAttempts: failed },
-      )
-      .where(eq(bookingOperator.id, op.id));
+    if (op.failedAttempts >= MAX_ATTEMPTS)
+      await ctx.db
+        .update(bookingOperator)
+        .set({ failedAttempts: 0, lockedUntil: new Date(now.getTime() + LOCK_MS) })
+        .where(eq(bookingOperator.id, op.id));
     throw ApiError.badRequest("wrong_pin", "Wrong code");
   }
-  if (op.failedAttempts > 0 || op.lockedUntil)
-    await ctx.db
-      .update(bookingOperator)
-      .set({ failedAttempts: 0, lockedUntil: null })
-      .where(eq(bookingOperator.id, op.id));
+  await ctx.db
+    .update(bookingOperator)
+    .set({ failedAttempts: 0, lockedUntil: null })
+    .where(eq(bookingOperator.id, op.id));
   return op;
 }
 

@@ -721,6 +721,31 @@ describe("booking operators", () => {
     expect(shortPin.status).toBe(400);
   });
 
+  it("counts wrong codes sent all at once", async () => {
+    const fx = await createFixture(t);
+    const marco = await addOperator(fx, "Marco", "123456");
+    const tries = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        api<{ code: string }>(
+          t,
+          "POST",
+          `${ops(fx)}/${marco.id}/verify`,
+          { pin: String(900000 + i) },
+          fx.session,
+        ),
+      ),
+    );
+    expect(tries.filter((x) => x.body.code === "wrong_pin").length).toBeLessThanOrEqual(5);
+    const after = await api<{ code: string }>(
+      t,
+      "POST",
+      `${ops(fx)}/${marco.id}/verify`,
+      { pin: "123456" },
+      fx.session,
+    );
+    expect(after.body.code).toBe("operator_locked");
+  });
+
   it("never asks guests booking online", async () => {
     const fx = await createFixture(t);
     await addOperator(fx, "Marco", "123456");

@@ -66,8 +66,6 @@ export const createStaffBookingInputSchema = z.object({
   notifyGuest: z.boolean().default(true),
   /** Who is taking it; required from dashboard users once the restaurant has operators. */
   operator: operatorProofSchema.optional(),
-  /** Tables the guest asked for; absent = picked automatically. */
-  tableIds: z.array(idSchema).min(1).max(12).optional(),
 });
 export type CreateStaffBookingInput = z.infer<typeof createStaffBookingInputSchema>;
 

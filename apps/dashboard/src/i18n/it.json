@@ -240,7 +240,8 @@
     "modifiedBy": "Modificata da",
     "cancelledBy": "Annullata da",
     "cancelledByName": "annullata da {{name}}",
-    "allServices": "Tutte"
+    "allServices": "Tutte",
+    "tableTaken": "Uno dei tavoli scelti è occupato a quell'ora. Scegline un altro o spunta \"Assegna comunque\"."
   },
   "services": {
     "title": "Servizi",
@@ -1154,7 +1155,10 @@
     "locked": "Troppi codici sbagliati: riprova tra 5 minuti o chiedi al responsabile.",
     "askAgain": "Il codice non è più valido: scegli di nuovo il tuo nome.",
     "notMe": "Non sono io",
-    "correctHint": "Solo titolare e manager possono correggerlo."
+    "correctHint": "Solo titolare e manager possono correggerlo.",
+    "loadErrorTitle": "Connessione assente",
+    "loadError": "Non riesco a caricare i nomi dello staff. Controlla la connessione e riprova.",
+    "retry": "Riprova"
   },
   "meetings": {
     "hostFallback": "lo chef",
