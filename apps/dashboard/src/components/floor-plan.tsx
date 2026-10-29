@@ -52,7 +52,8 @@ export function FloorPlan({
 }) {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
-  const [areaFilter, setAreaFilter] = useState<string | "all">("all");
+  // one room at a time (tables of a room overlap the others on the plan)
+  const [picked, setPicked] = useState<string | null>(null);
   const [drag, setDrag] = useState<{
     id: string;
     startX: number;
@@ -63,7 +64,15 @@ export function FloorPlan({
     y: number;
   } | null>(null);
 
-  const visible = tables.filter((x) => areaFilter === "all" || x.areaId === areaFilter);
+  const tabs = [
+    ...areas,
+    ...(tables.some((x) => x.areaId === null) ? [{ id: "", name: t("tables.noArea") }] : []),
+  ];
+  const areaFilter =
+    tabs.find((a) => a.id === picked)?.id ??
+    tabs.find((a) => tables.some((x) => (x.areaId ?? "") === a.id))?.id ??
+    tabs[0]?.id;
+  const visible = tables.filter((x) => areaFilter === undefined || (x.areaId ?? "") === areaFilter);
   const toUnits = (e: ReactPointerEvent) => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
@@ -105,14 +114,14 @@ export function FloorPlan({
 
   return (
     <div className={className}>
-      {areas.length > 0 ? (
+      {tabs.length > 1 ? (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {[{ id: "all" as const, name: t("tables.allAreas") }, ...areas].map((a) => (
+          {tabs.map((a) => (
             <button
               key={a.id}
               type="button"
               aria-pressed={areaFilter === a.id}
-              onClick={() => setAreaFilter(a.id)}
+              onClick={() => setPicked(a.id)}
               className={cn(
                 "h-8 rounded-full px-3 text-sm font-medium transition-colors",
                 areaFilter === a.id
