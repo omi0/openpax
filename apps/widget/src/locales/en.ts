@@ -13,7 +13,8 @@ export const en: Dictionary = {
   guests: "Guests",
   guestsOne: "1 guest",
   guestsMany: "{n} guests",
-  largerParty: "More than {n}? Call us on {phone}.",
+  largerParty:
+    "More than {n} guests? Call us on {phone}: for groups we prepare a dedicated menu with the chef.",
   largerPartyNoPhone: "For groups of more than {n}, please contact the restaurant.",
   date: "Date",
   time: "Time",

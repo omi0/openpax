@@ -17,12 +17,7 @@ export function PartyDatePicker() {
   const cfg = config.value;
   if (!cfg) return null;
   const sizes: number[] = [];
-  for (
-    let n = cfg.policy.minPartySize;
-    n <= Math.min(cfg.policy.maxPartySize, cfg.policy.minPartySize + 11);
-    n += 1
-  )
-    sizes.push(n);
+  for (let n = cfg.policy.minPartySize; n <= cfg.policy.maxPartySize; n += 1) sizes.push(n);
   const maxDate = addDays(today.value, cfg.policy.maxAdvanceDays);
   const largest = sizes[sizes.length - 1] ?? cfg.policy.maxPartySize;
   const phone = cfg.restaurant.phone;
@@ -32,25 +27,20 @@ export function PartyDatePicker() {
 
   return (
     <div>
-      <span class="label">
+      <label class="label" for="openpax-party">
         {t("guests")}
-        <span class="value">
-          {partySize.value === 1 ? t("guestsOne") : t("guestsMany", { n: partySize.value })}
-        </span>
-      </span>
-      <div class="row">
+      </label>
+      <select
+        id="openpax-party"
+        value={String(partySize.value)}
+        onChange={(e) => void selectPartySize(Number((e.target as HTMLSelectElement).value))}
+      >
         {sizes.map((n) => (
-          <button
-            key={n}
-            type="button"
-            class="chip"
-            aria-pressed={partySize.value === n}
-            onClick={() => void selectPartySize(n)}
-          >
-            {n}
-          </button>
+          <option key={n} value={String(n)}>
+            {n === 1 ? t("guestsOne") : t("guestsMany", { n })}
+          </option>
         ))}
-      </div>
+      </select>
       <p class="fine larger">
         {phone ? t("largerParty", { n: largest, phone }) : t("largerPartyNoPhone", { n: largest })}
       </p>
