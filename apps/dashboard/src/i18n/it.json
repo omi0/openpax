@@ -160,14 +160,7 @@
       "operatorChoose": "Scegli il tuo nome…",
       "operatorRequired": "Scegli chi sta prendendo la prenotazione.",
       "unknownOperator": "Questo nome non è più nell'elenco dello staff. Scegline un altro.",
-      "pickDateFirst": "Scegli prima la data che chiede il cliente.",
-      "table": "Tavolo",
-      "tableAuto": "Automatico",
-      "tablePick": "Lo scelgo io",
-      "tablePickHint": "Tocca i tavoli che chiede il cliente. I tavoli grigi sono già occupati a quell'ora.",
-      "tableSeats_one": "{{count}} posto per {{guests}} persone",
-      "tableSeats_other": "{{count}} posti per {{guests}} persone",
-      "tableTaken": "Uno dei tavoli scelti è già occupato a quell'ora. Scegline un altro."
+      "pickDateFirst": "Scegli prima la data che chiede il cliente."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -856,7 +849,9 @@
     "layoutSaved": "Disposizione salvata",
     "confirmDelete": "Eliminare questo tavolo?",
     "size": "Dimensioni sulla piantina",
-    "activeHint": "I tavoli non attivi non vengono mai assegnati."
+    "activeHint": "I tavoli non attivi non vengono mai assegnati.",
+    "autoAssign": "Assegna i tavoli in automatico",
+    "autoAssignHint": "Spento: le prenotazioni arrivano senza tavolo e li assegni tu dalla pagina Oggi, sulla planimetria. I tavoli non bloccano gli orari: conta solo il limite di persone."
   },
   "payments": {
     "title": "Pagamenti",

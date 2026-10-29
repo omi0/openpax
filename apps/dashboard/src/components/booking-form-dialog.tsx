@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { MeetingDialog } from "@/components/meeting-dialog";
 import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
 import { SlotPicker } from "@/components/slot-picker";
-import { TablePicker } from "@/components/table-picker";
 import {
   Alert,
   Button,
@@ -41,15 +40,12 @@ export function BookingFormDialog({
   // no default day: whoever takes the booking must type the date the guest asked for
   const [day, setDay] = useState("");
   const [slot, setSlot] = useState("");
-  // null = automatic; otherwise the tables the guest asked for
-  const [tableIds, setTableIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!open) return;
     setPartySize(2);
     setDay("");
     setSlot("");
-    setTableIds(null);
     setError(null);
     setWantsMeeting(false);
     setOperator(null);
@@ -94,7 +90,6 @@ export function BookingFormDialog({
       setOperator(null);
       return t("operators.askAgain");
     }
-    if (e.code === "table_taken") return t("today.form.tableTaken");
     return e.code === "operator_required" ? t("today.form.operatorRequired") : null;
   };
 
@@ -115,12 +110,12 @@ export function BookingFormDialog({
       },
       notes: String(f.get("notes") || "") || undefined,
       areaId: String(f.get("areaId") || "") || undefined,
-      source: String(f.get("source")) as CreateStaffBookingInput["source"],
-      seatNow: f.get("seatNow") === "on",
+      // taken over the phone (walk-ins are seated from the floor)
+      source: "phone",
+      seatNow: false,
       ignoreCapacity: f.get("ignoreCapacity") === "on",
       notifyGuest: f.get("notifyGuest") === "on",
       operator: operator ? { id: operator.id, pin: operator.pin } : undefined,
-      tableIds: tableIds && tableIds.length > 0 ? tableIds : undefined,
     });
   };
 
@@ -218,13 +213,6 @@ export function BookingFormDialog({
           <Field label={t("today.form.email")}>
             <Input name="email" type="email" inputMode="email" autoComplete="off" />
           </Field>
-          <Field label={t("today.form.source")}>
-            <Select name="source" defaultValue="phone">
-              <option value="phone">{t("today.source.phone")}</option>
-              <option value="walk_in">{t("today.source.walk_in")}</option>
-              <option value="manual">{t("today.source.manual")}</option>
-            </Select>
-          </Field>
           {rooms.length > 0 ? (
             <Field label={t("today.form.room")}>
               <Select name="areaId" defaultValue="">
@@ -237,16 +225,6 @@ export function BookingFormDialog({
               </Select>
             </Field>
           ) : null}
-          <div className="sm:col-span-2">
-            <TablePicker
-              restaurantId={restaurant.id}
-              date={day}
-              slot={slots.find((s) => `${s.serviceId}|${s.startsAt}` === slot) ?? null}
-              partySize={partySize}
-              value={tableIds}
-              onChange={setTableIds}
-            />
-          </div>
           <Field label={t("today.form.notes")} className="sm:col-span-2">
             <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
           </Field>
@@ -257,7 +235,6 @@ export function BookingFormDialog({
               label={t("today.form.notifyGuest")}
               description={t("today.form.notifyGuestHint")}
             />
-            <Checkbox name="seatNow" label={t("today.form.seatNow")} />
             {canMeet ? (
               <Checkbox
                 checked={wantsMeeting}

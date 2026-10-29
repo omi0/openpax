@@ -139,6 +139,8 @@ export const bookingPolicyDtoSchema = z.object({
   meetingHostName: z.string().trim().max(80).nullable(),
   /** Gets a calendar invite for every meeting; null = no invite. */
   meetingHostEmail: emailSchema.nullable(),
+  /** false = staff seat every party by hand; tables then never limit availability. */
+  autoAssignTables: z.boolean(),
 });
 export type BookingPolicyDto = z.infer<typeof bookingPolicyDtoSchema>;
 

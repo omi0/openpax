@@ -40,6 +40,7 @@ export function FloorPlan({
   onMove,
   onSelect,
   selectedId,
+  selectedIds,
   className,
 }: {
   tables: TableDto[];
@@ -48,6 +49,8 @@ export function FloorPlan({
   onMove?: (positions: Position[]) => void;
   onSelect?: (table: TableDto) => void;
   selectedId?: string | null;
+  /** Several tables picked at once (assigning a joined group). */
+  selectedIds?: ReadonlySet<string>;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -151,7 +154,7 @@ export function FloorPlan({
           const status = statusOf?.(table) ?? { tone: table.active ? "free" : "inactive" };
           const cx = x + table.width / 2;
           const cy = y + table.height / 2;
-          const selected = selectedId === table.id;
+          const selected = selectedId === table.id || (selectedIds?.has(table.id) ?? false);
           // fit the guest name to the table width (roughly 1.1 units per character at size 2)
           const maxChars = Math.max(6, Math.floor(table.width / 1.15));
           const label =
@@ -180,7 +183,7 @@ export function FloorPlan({
                   rx={table.width / 2}
                   ry={table.height / 2}
                   strokeWidth={selected ? 0.8 : 0.45}
-                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
+                  className={cn(fills[status.tone], selected && "fill-brand-100 stroke-brand-600")}
                 />
               ) : (
                 <rect
@@ -190,7 +193,7 @@ export function FloorPlan({
                   height={table.height}
                   rx={1.4}
                   strokeWidth={selected ? 0.8 : 0.45}
-                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
+                  className={cn(fills[status.tone], selected && "fill-brand-100 stroke-brand-600")}
                 />
               )}
               <text

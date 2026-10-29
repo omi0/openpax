@@ -80,6 +80,8 @@ export const bookingPolicy = pgTable("booking_policy", {
   meetingHostName: text(),
   /** Receives a calendar invite for every meeting; empty = no invite. */
   meetingHostEmail: text(),
+  /** false = staff seat every party by hand; tables then never limit availability. */
+  autoAssignTables: boolean().notNull().default(true),
   updatedAt: updatedAt(),
 });
 

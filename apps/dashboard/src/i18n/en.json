@@ -160,14 +160,7 @@
       "operatorChoose": "Pick your name…",
       "operatorRequired": "Choose who is taking the booking.",
       "unknownOperator": "This name is no longer in the staff list. Pick another one.",
-      "pickDateFirst": "Pick the date the guest asked for first.",
-      "table": "Table",
-      "tableAuto": "Automatic",
-      "tablePick": "I'll choose",
-      "tablePickHint": "Tap the tables the guest asked for. Grey tables are taken at that time.",
-      "tableSeats_one": "{{count}} seat for {{guests}} guests",
-      "tableSeats_other": "{{count}} seats for {{guests}} guests",
-      "tableTaken": "One of the chosen tables is taken at that time. Pick another."
+      "pickDateFirst": "Pick the date the guest asked for first."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -856,7 +849,9 @@
     "layoutSaved": "Layout saved",
     "confirmDelete": "Delete this table?",
     "size": "Size on the plan",
-    "activeHint": "Inactive tables are never assigned."
+    "activeHint": "Inactive tables are never assigned.",
+    "autoAssign": "Assign tables automatically",
+    "autoAssignHint": "Off: bookings come in without a table and you seat them from the Today page, on the floor plan. Tables never block a time: only the guest limit counts."
   },
   "payments": {
     "title": "Payments",

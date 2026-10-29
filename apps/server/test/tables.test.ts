@@ -429,4 +429,46 @@ describe("tables and auto-assignment", () => {
     expect(again.status).toBe(409);
     expect(again.body.code).toBe("table_taken");
   });
+  it("leaves bookings without a table, and slots open, when staff seat by hand", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const policy = await api<{ autoAssignTables: boolean }>(
+      t,
+      "PUT",
+      `${base}/policy`,
+      { autoAssignTables: false },
+      fx.session,
+    );
+    expect(policy.body.autoAssignTables).toBe(false);
+    const only = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/tables`,
+      { name: "1", maxCovers: 2 },
+      fx.session,
+    );
+    const book = (name: string) =>
+      api<Booking>(t, "POST", `/api/public/v1/restaurants/${fx.slug}/bookings`, {
+        ...guestBooking(fx, { partySize: 2 }),
+        guest: { name, email: `${name}@example.com`, phone: "+39 333 1234567" },
+      });
+    const tablesOf = async (id: string) =>
+      (await api<Booking>(t, "GET", `${base}/bookings/${id}`, undefined, fx.session)).body.tables;
+    const first = await book("uno");
+    expect(first.status).toBe(201);
+    expect(await tablesOf(first.body.id)).toEqual([]);
+
+    // seated by hand; the next party still gets in (only the guest limit counts)
+    const seat = await api(
+      t,
+      "PUT",
+      `${base}/bookings/${first.body.id}/tables`,
+      { tableIds: [only.body.id] },
+      fx.session,
+    );
+    expect(seat.status).toBe(200);
+    const second = await book("due");
+    expect(second.status, JSON.stringify(second.body)).toBe(201);
+    expect(await tablesOf(second.body.id)).toEqual([]);
+  });
 });

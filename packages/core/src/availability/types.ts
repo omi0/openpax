@@ -110,6 +110,8 @@ export interface AvailabilityInput {
   tables?: TableDef[];
   /** Tables taken by active bookings. */
   tableLoads?: TableLoad[];
+  /** Staff seat every party by hand: tables do not limit slots, none is picked automatically. */
+  manualTables?: boolean;
   /** IANA timezone of the restaurant, e.g. "Europe/Rome". */
   timezone: string;
   /** Service date being queried, in the restaurant's timezone. */

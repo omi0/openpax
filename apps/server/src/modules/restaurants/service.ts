@@ -90,6 +90,7 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
     meetingHours: row.meetingHours,
     meetingHostName: row.meetingHostName,
     meetingHostEmail: row.meetingHostEmail,
+    autoAssignTables: row.autoAssignTables,
   };
 }
 

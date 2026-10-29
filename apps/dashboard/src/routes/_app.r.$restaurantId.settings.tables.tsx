@@ -1,4 +1,4 @@
-import type { TableDto, UpsertTableInput } from "@openpax/shared";
+import type { BookingPolicyDto, TableDto, UpsertTableInput } from "@openpax/shared";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { LayoutGrid, Pencil, Plus, Save, Trash } from "lucide-react";
@@ -21,7 +21,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { areasQuery, tablesQuery } from "@/lib/queries";
+import { areasQuery, policyQuery, tablesQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/r/$restaurantId/settings/tables")({
@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_app/r/$restaurantId/settings/tables")({
     await Promise.all([
       context.queryClient.ensureQueryData(tablesQuery(params.restaurantId)),
       context.queryClient.ensureQueryData(areasQuery(params.restaurantId)),
+      context.queryClient.ensureQueryData(policyQuery(params.restaurantId)),
     ]);
   },
   component: TablesPage,
@@ -76,6 +77,15 @@ function TablesPage() {
   const toast = useToast();
   const { data: tables } = useSuspenseQuery(tablesQuery(restaurantId));
   const { data: areas } = useSuspenseQuery(areasQuery(restaurantId));
+  const { data: policy } = useSuspenseQuery(policyQuery(restaurantId));
+  const setAuto = useMutation({
+    mutationFn: (autoAssignTables: boolean) =>
+      api.put<BookingPolicyDto>(`/api/v1/restaurants/${restaurantId}/policy`, {
+        autoAssignTables,
+      }),
+    onSuccess: (next) => queryClient.setQueryData(policyQuery(restaurantId).queryKey, next),
+    onError: () => toast.error(t("app.error")),
+  });
   const [editing, setEditing] = useState<TableDto | "new" | null>(null);
   const [pending, setPending] = useState<Map<string, Position>>(new Map());
   const invalidate = () =>
@@ -110,6 +120,16 @@ function TablesPage() {
   return (
     <div className="space-y-5">
       <RoomsCard restaurantId={restaurantId} rooms={areas} tables={tables} />
+
+      <Card>
+        <Switch
+          checked={policy.autoAssignTables}
+          disabled={setAuto.isPending}
+          onChange={(on) => setAuto.mutate(on)}
+          label={t("tables.autoAssign")}
+          description={t("tables.autoAssignHint")}
+        />
+      </Card>
 
       <Card
         title={t("tables.floorPlan")}

@@ -246,6 +246,8 @@ async function assignTables(
   /** Tables the guest asked for: used as they are, if free. */
   requested?: readonly string[],
 ): Promise<void> {
+  // seated by hand: the staff's tables stay as they are
+  if (input?.manualTables && !requested?.length) return;
   await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
   if (!input?.tables || input.tables.length === 0) return;
   const usable = usableTables(input.tables, input.rooms);

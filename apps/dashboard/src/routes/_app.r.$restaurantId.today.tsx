@@ -521,6 +521,7 @@ function TodayPage() {
           restaurantId={restaurantId}
           booking={assigning}
           tables={tables.data}
+          areas={rooms}
           dayBookings={items}
           onClose={() => setAssigning(null)}
         />

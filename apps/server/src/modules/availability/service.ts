@@ -228,6 +228,7 @@ export async function loadAvailabilityInput(
     rooms: rooms.map(
       (x): RoomDef => ({ id: x.id, name: x.name, seats: x.seats, active: x.active }),
     ),
+    manualTables: !policy.autoAssignTables,
     ...(tables.length > 0
       ? {
           tables: tables.map(tableToDef),

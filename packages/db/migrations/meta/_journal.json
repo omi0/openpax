@@ -99,6 +99,13 @@
       "when": 1793292679027,
       "tag": "0013_table_links",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793294840677,
+      "tag": "0014_manual_tables",
+      "breakpoints": true
     }
   ]
 }
