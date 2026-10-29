@@ -3,6 +3,9 @@ import { t } from "../i18n.js";
 import { availability, canJoinWaitlist, loadingSlots, selectedSlot, step } from "../state.js";
 import { Loading } from "./chrome.js";
 
+/** Times the guest can never pick again: hidden instead of greyed out. */
+const GONE = new Set(["in_past", "outside_lead_time"]);
+
 function WaitlistCta() {
   if (!canJoinWaitlist.value) return null;
   return (
@@ -37,7 +40,8 @@ export function SlotGrid() {
         <p class="empty">{t("closed")}</p>
       </div>
     );
-  if (data.slots.length === 0)
+  const slotsLeft = data.slots.filter((s) => !(s.reason && GONE.has(s.reason)));
+  if (slotsLeft.length === 0)
     return (
       <div>
         <span class="label">{t("time")}</span>
@@ -47,8 +51,7 @@ export function SlotGrid() {
     );
 
   const byService = new Map<string, AvailabilitySlotDto[]>();
-  for (const s of data.slots)
-    byService.set(s.serviceId, [...(byService.get(s.serviceId) ?? []), s]);
+  for (const s of slotsLeft) byService.set(s.serviceId, [...(byService.get(s.serviceId) ?? []), s]);
   const showServiceNames = byService.size > 1;
 
   return (
