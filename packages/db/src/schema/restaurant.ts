@@ -73,8 +73,6 @@ export const bookingPolicy = pgTable("booking_policy", {
   waitlistAutoOffer: boolean().notNull().default(true),
   /** How long a guest has to accept an offered table. */
   waitlistOfferMinutes: integer().notNull().default(120),
-  /** Names staff pick from when taking a booking (one login shared by the whole team). */
-  operators: text().array().notNull().default([]),
   /** Groups from this size can book a planning meeting with the host (chef, manager); null = off. */
   meetingMinPartySize: integer(),
   /** When the host takes meetings; each window runs from the first start to the end of the last meeting. */

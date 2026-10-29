@@ -235,7 +235,9 @@
     "ask": {
       "seat": "Confermi? {{name}} al tavolo",
       "complete": "Confermi? Concludere il tavolo di {{name}}"
-    }
+    },
+    "modifiedBy": "Modificata da",
+    "cancelledBy": "Annullata da"
   },
   "services": {
     "title": "Servizi",
@@ -1116,13 +1118,30 @@
     "backTo": "Dopo l'approvazione tornerai su {{host}}."
   },
   "operators": {
-    "title": "Nomi dello staff per le prenotazioni",
-    "hint": "Chi prende una prenotazione dal gestionale deve scegliere il suo nome da questo elenco. Lascialo vuoto per non chiederlo.",
-    "empty": "Nessun nome: il gestionale non chiede chi prende la prenotazione.",
+    "title": "Staff e codici",
+    "hint": "Chi prende, modifica o annulla una prenotazione dal gestionale sceglie il suo nome e scrive il suo codice di 6 cifre. Senza nomi non viene chiesto niente.",
+    "empty": "Nessuno: il gestionale non chiede chi sta lavorando.",
     "placeholder": "Nome, es. Marco",
+    "pin": "Codice (6 cifre)",
     "add": "Aggiungi",
     "remove": "Togli {{name}}",
-    "duplicate": "Questo nome c'è già."
+    "confirmRemove": "Togliere {{name}}? Il suo nome resta sulle prenotazioni già prese.",
+    "duplicate": "Questo nome c'è già.",
+    "changePin": "Cambia codice",
+    "newPin": "Nuovo codice",
+    "pinChanged": "Codice cambiato",
+    "whoIsTaking": "Chi prende la prenotazione?",
+    "whoIsChanging": "Chi modifica la prenotazione?",
+    "whoIsCancelling": "Chi annulla la prenotazione?",
+    "typeCode": "{{name}}, scrivi il tuo codice",
+    "code": "Codice",
+    "back": "Torna ai nomi",
+    "erase": "Cancella",
+    "wrongPin": "Codice sbagliato, riprova.",
+    "locked": "Troppi codici sbagliati: riprova tra 5 minuti o chiedi al responsabile.",
+    "askAgain": "Il codice non è più valido: scegli di nuovo il tuo nome.",
+    "notMe": "Non sono io",
+    "correctHint": "Solo titolare e manager possono correggerlo."
   },
   "meetings": {
     "hostFallback": "lo chef",

@@ -91,6 +91,8 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     locale: x.booking.locale as BookingDto["locale"],
     notes: x.booking.notes,
     operatorName: x.booking.operatorName,
+    modifiedByOperatorName: x.booking.modifiedByOperatorName,
+    cancelledByOperatorName: x.booking.cancelledByOperatorName,
     confirmationCode: x.booking.confirmationCode,
     tables: x.tables,
     payment: x.payment ? toPaymentDto(x.payment) : null,
@@ -273,10 +275,8 @@ export interface CreateBookingParams {
   seatNow?: boolean;
   /** false = do not send the guest the confirmation (default true). */
   notifyGuest?: boolean;
-  /** Staff member who took the booking. */
+  /** Staff member who took the booking (checked by the caller). */
   operatorName?: string | null;
-  /** Dashboard users must pick a name when the restaurant has an operator list. */
-  requireOperator?: boolean;
   requirePhone?: boolean;
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
@@ -295,21 +295,6 @@ export interface CreateBookingParams {
    */
   onLocked?: (tx: DbOrTx, booking: { id: string }) => Promise<void>;
   onCreated?: (tx: DbOrTx, booking: { id: string; startsAt: Date }) => Promise<void>;
-}
-
-/**
- * The operator must come from the restaurant's list. With `required`, a
- * missing name is refused too; an empty list turns the whole check off.
- */
-function assertOperator(operators: string[], name: string | null | undefined, required: boolean) {
-  if (operators.length === 0) return;
-  if (!name) {
-    if (required)
-      throw ApiError.badRequest("operator_required", "Choose who is taking the booking");
-    return;
-  }
-  if (!operators.includes(name))
-    throw ApiError.badRequest("unknown_operator", "This name is not in the operator list");
 }
 
 /** Reasons that mean "there is no room": the only ones that stop staff from reopening a booking. */
@@ -499,7 +484,6 @@ async function insertBookingLocked(
     .where(eq(bookingPolicy.restaurantId, r.id))
     .limit(1);
   if (!policy) throw ApiError.notFound("Booking policy");
-  assertOperator(policy.operators, p.operatorName, p.requireOperator ?? false);
 
   let status: BookingStatus;
   if (p.imported) status = p.imported.status;
@@ -606,6 +590,8 @@ export interface ApplyActionParams {
   action: BookingAction;
   actor: Actor;
   reason?: string | null;
+  /** Operator who cancelled (checked by the caller). */
+  operatorName?: string | null;
 }
 
 export async function applyBookingAction(
@@ -650,9 +636,15 @@ export async function applyBookingAction(
       .set({
         status: next,
         ...(next === "cancelled"
-          ? { cancelledAt: ctx.now(), cancellationReason: p.reason ?? null }
+          ? {
+              cancelledAt: ctx.now(),
+              cancellationReason: p.reason ?? null,
+              cancelledByOperatorName: p.operatorName ?? null,
+            }
           : {}),
-        ...(p.action === "reopen" ? { cancelledAt: null, cancellationReason: null } : {}),
+        ...(p.action === "reopen"
+          ? { cancelledAt: null, cancellationReason: null, cancelledByOperatorName: null }
+          : {}),
       })
       .where(eq(booking.id, row.id));
     if (p.action === "reopen") {
@@ -781,6 +773,8 @@ export async function updateBooking(
   bookingId: string,
   input: UpdateBookingInput,
   actor: Actor,
+  /** Operator who made the change (checked by the caller). */
+  modifiedBy?: string | null,
 ): Promise<BookingWithRelations> {
   await ctx.db.transaction(async (tx) => {
     const [row] = await tx
@@ -844,15 +838,8 @@ export async function updateBooking(
       if (areaId !== row.areaId) changes.push("areaId");
     }
     if (input.notes !== undefined && input.notes !== row.notes) changes.push("notes");
-    if (input.operatorName !== undefined && input.operatorName !== row.operatorName) {
-      const [policy] = await tx
-        .select({ operators: bookingPolicy.operators })
-        .from(bookingPolicy)
-        .where(eq(bookingPolicy.restaurantId, r.id))
-        .limit(1);
-      assertOperator(policy?.operators ?? [], input.operatorName, false);
+    if (input.operatorName !== undefined && input.operatorName !== row.operatorName)
       changes.push("operatorName");
-    }
     if (changes.length === 0) return;
 
     await tx
@@ -866,6 +853,7 @@ export async function updateBooking(
         areaId,
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.operatorName !== undefined ? { operatorName: input.operatorName } : {}),
+        ...(modifiedBy ? { modifiedByOperatorName: modifiedBy } : {}),
       })
       .where(eq(booking.id, row.id));
     if (timingChanged) {

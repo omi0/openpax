@@ -10,6 +10,7 @@ export * from "./schemas/customer.js";
 export * from "./schemas/feedback.js";
 export * from "./schemas/meeting.js";
 export * from "./schemas/notifications.js";
+export * from "./schemas/operator.js";
 export * from "./schemas/payments.js";
 export * from "./schemas/restaurant.js";
 export * from "./schemas/service.js";

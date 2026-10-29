@@ -242,6 +242,16 @@ export function BookingSheet({
                 {b.operatorName}
               </Row>
             ) : null}
+            {b.modifiedByOperatorName ? (
+              <Row icon={<Pencil />} label={t("today.modifiedBy")}>
+                {b.modifiedByOperatorName}
+              </Row>
+            ) : null}
+            {b.cancelledByOperatorName ? (
+              <Row icon={<Ban />} label={t("today.cancelledBy")}>
+                {b.cancelledByOperatorName}
+              </Row>
+            ) : null}
             <Row icon={<Clock />} label={t("today.operatorTakenAt")}>
               <span className="capitalize tabular-nums">
                 {formatDateTime(b.createdAt, restaurant.timezone, i18n.language)}

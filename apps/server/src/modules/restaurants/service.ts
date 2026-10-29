@@ -86,7 +86,6 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
     waitlistEnabled: row.waitlistEnabled,
     waitlistAutoOffer: row.waitlistAutoOffer,
     waitlistOfferMinutes: row.waitlistOfferMinutes,
-    operators: row.operators,
     meetingMinPartySize: row.meetingMinPartySize,
     meetingHours: row.meetingHours,
     meetingHostName: row.meetingHostName,

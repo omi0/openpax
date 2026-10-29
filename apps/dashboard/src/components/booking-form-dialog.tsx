@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MeetingDialog } from "@/components/meeting-dialog";
+import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
 import { SlotPicker } from "@/components/slot-picker";
 import {
   Alert,
@@ -18,7 +19,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { areasQuery, policyQuery, staffAvailabilityQuery } from "@/lib/queries";
+import { areasQuery, operatorsQuery, policyQuery, staffAvailabilityQuery } from "@/lib/queries";
 
 export function BookingFormDialog({
   restaurant,
@@ -47,6 +48,7 @@ export function BookingFormDialog({
     setSlot("");
     setError(null);
     setWantsMeeting(false);
+    setOperator(null);
   }, [open]);
   // staff see every slot with room, without the online-only rules (notice, horizon, party size)
   const availability = useQuery({
@@ -56,7 +58,12 @@ export function BookingFormDialog({
   const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
   const rooms = (areas.data ?? []).filter((a) => a.active);
   const policy = useQuery({ ...policyQuery(restaurant.id), enabled: open });
-  const operators = policy.data?.operators ?? [];
+  // with operators, whoever takes the booking says who they are first (name + code)
+  const operators = useQuery({ ...operatorsQuery(restaurant.id), enabled: open });
+  const [operator, setOperator] = useState<VerifiedOperator | null>(null);
+  const needsOperator = (operators.data?.length ?? 0) > 0;
+  const gateOpen = open && needsOperator && operator === null;
+  const formOpen = open && operators.isSuccess && (!needsOperator || operator !== null);
   const meetingFrom = policy.data?.meetingMinPartySize ?? null;
   const canMeet = meetingFrom !== null && partySize >= meetingFrom;
   const [wantsMeeting, setWantsMeeting] = useState(false);
@@ -76,14 +83,15 @@ export function BookingFormDialog({
     onError: (e) =>
       setError(operatorError(e) ?? (e instanceof ApiClientError ? e.message : t("app.error"))),
   });
-  const operatorError = (e: unknown) =>
-    e instanceof ApiClientError && (e.code === "operator_required" || e.code === "unknown_operator")
-      ? t(
-          e.code === "operator_required"
-            ? "today.form.operatorRequired"
-            : "today.form.unknownOperator",
-        )
-      : null;
+  const operatorError = (e: unknown) => {
+    if (!(e instanceof ApiClientError)) return null;
+    if (e.code === "wrong_pin" || e.code === "unknown_operator" || e.code === "operator_locked") {
+      // the code changed or the operator was removed meanwhile: ask again
+      setOperator(null);
+      return t("operators.askAgain");
+    }
+    return e.code === "operator_required" ? t("today.form.operatorRequired") : null;
+  };
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -106,7 +114,7 @@ export function BookingFormDialog({
       seatNow: f.get("seatNow") === "on",
       ignoreCapacity: f.get("ignoreCapacity") === "on",
       notifyGuest: f.get("notifyGuest") === "on",
-      operatorName: String(f.get("operatorName") || "") || undefined,
+      operator: operator ? { id: operator.id, pin: operator.pin } : undefined,
     });
   };
 
@@ -115,8 +123,16 @@ export function BookingFormDialog({
 
   return (
     <>
+      <OperatorGate
+        restaurantId={restaurant.id}
+        operators={operators.data ?? []}
+        open={gateOpen}
+        title={t("operators.whoIsTaking")}
+        onCancel={onClose}
+        onVerified={setOperator}
+      />
       <Dialog
-        open={open}
+        open={formOpen}
         onClose={onClose}
         title={t("today.newBooking")}
         size="lg"
@@ -132,6 +148,16 @@ export function BookingFormDialog({
         }
       >
         <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          {operator ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-brand-50 px-3.5 py-2.5 sm:col-span-2">
+              <span className="text-[15px]">
+                {t("today.operatorLabel")}: <strong>{operator.name}</strong>
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => setOperator(null)}>
+                {t("operators.notMe")}
+              </Button>
+            </div>
+          ) : null}
           <Field label={t("today.form.date")}>
             <Input
               type="date"
@@ -186,20 +212,6 @@ export function BookingFormDialog({
           <Field label={t("today.form.email")}>
             <Input name="email" type="email" inputMode="email" autoComplete="off" />
           </Field>
-          {operators.length > 0 ? (
-            <Field label={t("today.form.operator")} required>
-              <Select name="operatorName" defaultValue="" required>
-                <option value="" disabled>
-                  {t("today.form.operatorChoose")}
-                </option>
-                {operators.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
           <Field label={t("today.form.source")}>
             <Select name="source" defaultValue="phone">
               <option value="phone">{t("today.source.phone")}</option>

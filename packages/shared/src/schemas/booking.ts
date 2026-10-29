@@ -10,6 +10,7 @@ import {
   partySizeSchema,
   phoneSchema,
 } from "./common.js";
+import { operatorProofSchema } from "./operator.js";
 import { bookingPaymentDtoSchema, publicPaymentDtoSchema } from "./payments.js";
 import { bookingTableDtoSchema } from "./tables.js";
 
@@ -63,8 +64,8 @@ export const createStaffBookingInputSchema = z.object({
   /** Staff may override capacity (e.g. squeeze in regulars). */
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),
-  /** Who took it; required from dashboard users when the restaurant has an operator list. */
-  operatorName: operatorNameSchema.optional(),
+  /** Who is taking it; required from dashboard users once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
 });
 export type CreateStaffBookingInput = z.infer<typeof createStaffBookingInputSchema>;
 
@@ -94,8 +95,10 @@ export const bookingDtoSchema = z.object({
   source: bookingSourceSchema,
   locale: localeSchema,
   notes: z.string().nullable(),
-  /** Staff member who took the booking. */
+  /** Staff member who took the booking, last changed it, cancelled it. */
   operatorName: z.string().nullable(),
+  modifiedByOperatorName: z.string().nullable(),
+  cancelledByOperatorName: z.string().nullable(),
   confirmationCode: z.string(),
   /** Tables assigned on the floor plan (empty without one). */
   tables: z.array(bookingTableDtoSchema),
@@ -134,6 +137,8 @@ export type PublicBookingDto = z.infer<typeof publicBookingDtoSchema>;
 export const bookingActionInputSchema = z.object({
   action: bookingActionSchema,
   reason: z.string().trim().max(500).optional(),
+  /** Who is acting; required to cancel from the dashboard once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
 });
 export type BookingActionInput = z.infer<typeof bookingActionInputSchema>;
 
@@ -143,6 +148,9 @@ export const updateBookingInputSchema = z.object({
   partySize: partySizeSchema.optional(),
   areaId: idSchema.nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  /** Who is making the change; required from dashboard users once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
+  /** Correct who took the booking (owners and managers only). */
   operatorName: operatorNameSchema.nullable().optional(),
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),

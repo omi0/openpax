@@ -17,6 +17,7 @@ import type { AppContext, AppEnv } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 import { jsonBody, jsonResponse, restaurantIdParam, slugParam } from "../../lib/openapi.js";
 import { findRestaurantById, findRestaurantBySlug } from "../../lib/restaurant-lookup.js";
+import { assertOperatorName, requireOperator } from "../operators/index.js";
 import { syncPendingForBooking } from "../payments/index.js";
 import * as svc from "./service.js";
 
@@ -160,6 +161,7 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       const actor = c.get("actor");
       const canOverride =
         actor.type !== "guest" && actor.type !== "system" && actor.role !== "staff";
+      const operator = await requireOperator(ctx, c.get("restaurant"), actor, body.operator);
       const result = await svc.createBooking(ctx, c.get("restaurant"), {
         serviceId: body.serviceId,
         startsAt: new Date(body.startsAt),
@@ -178,8 +180,7 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         ignoreCapacity: body.ignoreCapacity && canOverride,
         seatNow: body.seatNow,
         notifyGuest: body.notifyGuest,
-        operatorName: body.operatorName ?? null,
-        requireOperator: actor.type === "user",
+        operatorName: operator?.name ?? null,
       });
       return c.json(svc.toBookingDto(result), 201);
     },
@@ -221,12 +222,20 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       const body = c.req.valid("json");
       const canOverride =
         (actor.type === "user" || actor.type === "api_key") && actor.role !== "staff";
+      const r = c.get("restaurant");
+      const operator = await requireOperator(ctx, r, actor, body.operator);
+      if (body.operatorName !== undefined) {
+        // who took the booking is corrected by owners and managers only
+        if (!canOverride) throw ApiError.forbidden("Only managers can correct who took a booking");
+        await assertOperatorName(ctx, r, body.operatorName);
+      }
       const result = await svc.updateBooking(
         ctx,
-        c.get("restaurant"),
+        r,
         c.req.valid("param").bookingId,
         { ...body, ignoreCapacity: body.ignoreCapacity && canOverride },
         actor,
+        operator?.name ?? null,
       );
       return c.json(svc.toBookingDto(result), 200);
     },
@@ -244,11 +253,18 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
     }),
     async (c) => {
       const body = c.req.valid("json");
-      const result = await svc.applyBookingAction(ctx, c.get("restaurant"), {
+      const r = c.get("restaurant");
+      // cancelling from the dashboard says who did it, like taking a booking
+      const operator =
+        body.action === "cancel"
+          ? await requireOperator(ctx, r, c.get("actor"), body.operator)
+          : null;
+      const result = await svc.applyBookingAction(ctx, r, {
         bookingId: c.req.valid("param").bookingId,
         action: body.action,
         actor: c.get("actor"),
         reason: body.reason ?? null,
+        operatorName: operator?.name ?? null,
       });
       return c.json(svc.toBookingDto(result), 200);
     },

@@ -235,7 +235,9 @@
     "ask": {
       "seat": "Confirm? Seat {{name}}",
       "complete": "Confirm? Close {{name}}'s table"
-    }
+    },
+    "modifiedBy": "Changed by",
+    "cancelledBy": "Cancelled by"
   },
   "services": {
     "title": "Services",
@@ -1116,13 +1118,30 @@
     "backTo": "After approving you will be sent back to {{host}}."
   },
   "operators": {
-    "title": "Staff names for bookings",
-    "hint": "Whoever takes a booking from the dashboard must pick their name from this list. Leave it empty to not ask.",
-    "empty": "No names: the dashboard does not ask who takes the booking.",
+    "title": "Staff and codes",
+    "hint": "Whoever takes, changes or cancels a booking from the dashboard picks their name and types their 6-digit code. With no names nothing is asked.",
+    "empty": "Nobody: the dashboard does not ask who is working.",
     "placeholder": "Name, e.g. Mark",
+    "pin": "Code (6 digits)",
     "add": "Add",
     "remove": "Remove {{name}}",
-    "duplicate": "This name is already listed."
+    "confirmRemove": "Remove {{name}}? Their name stays on bookings they took.",
+    "duplicate": "This name is already listed.",
+    "changePin": "Change code",
+    "newPin": "New code",
+    "pinChanged": "Code changed",
+    "whoIsTaking": "Who is taking the booking?",
+    "whoIsChanging": "Who is changing the booking?",
+    "whoIsCancelling": "Who is cancelling the booking?",
+    "typeCode": "{{name}}, type your code",
+    "code": "Code",
+    "back": "Back to names",
+    "erase": "Delete",
+    "wrongPin": "Wrong code, try again.",
+    "locked": "Too many wrong codes: try again in 5 minutes or ask a manager.",
+    "askAgain": "That code is no longer valid: pick your name again.",
+    "notMe": "Not me",
+    "correctHint": "Only owners and managers can correct it."
   },
   "meetings": {
     "hostFallback": "the chef",

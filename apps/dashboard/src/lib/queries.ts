@@ -20,6 +20,7 @@ import type {
   NotificationLogDto,
   NotificationSettingDto,
   NotificationTemplateDto,
+  OperatorDto,
   PaymentConfigDto,
   ProviderConfigDto,
   ProviderDescriptorDto,
@@ -375,4 +376,10 @@ export const meetingsQuery = (id: string, from: string, to: string) =>
     queryKey: ["restaurant", id, "meetings", "list", from, to],
     queryFn: () =>
       api.get<MeetingListItemDto[]>(`/api/v1/restaurants/${id}/meetings`, { from, to }),
+  });
+
+export const operatorsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "operators"],
+    queryFn: () => api.get<OperatorDto[]>(`/api/v1/restaurants/${id}/operators`),
   });

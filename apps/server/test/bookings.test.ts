@@ -4,6 +4,7 @@ import {
   api,
   createFixture,
   createTestApp,
+  type Fixture,
   FRIDAY,
   guestBooking,
   romeInstant,
@@ -553,7 +554,7 @@ describe("bookings created after an instant", () => {
 });
 
 describe("booking operators", () => {
-  const policy = (fx: { restaurantId: string }) => `/api/v1/restaurants/${fx.restaurantId}/policy`;
+  const ops = (fx: { restaurantId: string }) => `/api/v1/restaurants/${fx.restaurantId}/operators`;
   const phoneBooking = (fx: { serviceId: string }, extra: Record<string, unknown> = {}) => ({
     serviceId: fx.serviceId,
     startsAt: romeInstant(FRIDAY, "20:00"),
@@ -562,8 +563,19 @@ describe("booking operators", () => {
     source: "phone",
     ...extra,
   });
+  const addOperator = async (fx: Fixture, name: string, pin: string) => {
+    const res = await api<{ id: string; name: string }>(
+      t,
+      "POST",
+      ops(fx),
+      { name, pin },
+      fx.session,
+    );
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    return res.body;
+  };
 
-  it("does not ask for an operator while the list is empty", async () => {
+  it("does not ask for an operator while there are none", async () => {
     const fx = await createFixture(t);
     const res = await api<{ operatorName: string | null }>(
       t,
@@ -576,17 +588,20 @@ describe("booking operators", () => {
     expect(res.body.operatorName).toBeNull();
   });
 
-  it("makes dashboard users pick a listed name and keeps it on the booking", async () => {
+  it("makes dashboard users give their name and code to take, change and cancel", async () => {
     const fx = await createFixture(t);
-    const set = await api<{ operators: string[] }>(
+    const marco = await addOperator(fx, "Marco", "123456");
+    const giulia = await addOperator(fx, "Giulia", "654321");
+
+    const list = await api<Array<{ id: string; name: string; pin?: string }>>(
       t,
-      "PUT",
-      policy(fx),
-      { operators: ["Marco", "Giulia"] },
+      "GET",
+      ops(fx),
+      undefined,
       fx.session,
     );
-    expect(set.status).toBe(200);
-    expect(set.body.operators).toEqual(["Marco", "Giulia"]);
+    expect(list.body.map((o) => o.name).sort()).toEqual(["Giulia", "Marco"]);
+    expect(list.body.every((o) => o.pin === undefined)).toBe(true);
 
     const missing = await api<{ code: string }>(
       t,
@@ -598,66 +613,103 @@ describe("booking operators", () => {
     expect(missing.status).toBe(400);
     expect(missing.body.code).toBe("operator_required");
 
-    const unknown = await api<{ code: string }>(
+    const wrong = await api<{ code: string }>(
       t,
       "POST",
       bookings(fx),
-      phoneBooking(fx, { operatorName: "Luca" }),
+      phoneBooking(fx, { operator: { id: marco.id, pin: "000000" } }),
       fx.session,
     );
-    expect(unknown.status).toBe(400);
-    expect(unknown.body.code).toBe("unknown_operator");
+    expect(wrong.status).toBe(400);
+    expect(wrong.body.code).toBe("wrong_pin");
 
     const staff = await addMember(t, fx, "staff");
-    const created = await api<{ id: string; operatorName: string | null; createdAt: string }>(
+    const created = await api<{ id: string; operatorName: string | null }>(
       t,
       "POST",
       bookings(fx),
-      phoneBooking(fx, { operatorName: "Giulia" }),
+      phoneBooking(fx, { operator: { id: marco.id, pin: "123456" } }),
       staff,
     );
     expect(created.status).toBe(201);
-    expect(created.body.operatorName).toBe("Giulia");
-    expect(created.body.createdAt).toBeTruthy();
+    expect(created.body.operatorName).toBe("Marco");
+    const one = `${bookings(fx)}/${created.body.id}`;
 
-    const fixed = await api<{ operatorName: string | null }>(
+    const noOp = await api<{ code: string }>(t, "PATCH", one, { partySize: 3 }, staff);
+    expect(noOp.body.code).toBe("operator_required");
+    const changed = await api<{ partySize: number; modifiedByOperatorName: string | null }>(
       t,
       "PATCH",
-      `${bookings(fx)}/${created.body.id}`,
-      { operatorName: "Marco" },
+      one,
+      { partySize: 3, operator: { id: giulia.id, pin: "654321" } },
       staff,
     );
-    expect(fixed.status).toBe(200);
-    expect(fixed.body.operatorName).toBe("Marco");
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ partySize: 3, modifiedByOperatorName: "Giulia" });
 
-    const badFix = await api<{ code: string }>(
+    const staffFix = await api(
       t,
       "PATCH",
-      `${bookings(fx)}/${created.body.id}`,
-      { operatorName: "Luca" },
+      one,
+      { operatorName: "Giulia", operator: { id: giulia.id, pin: "654321" } },
       staff,
     );
-    expect(badFix.status).toBe(400);
-    expect(badFix.body.code).toBe("unknown_operator");
+    expect(staffFix.status).toBe(403);
+    const managerFix = await api<{ operatorName: string | null }>(
+      t,
+      "PATCH",
+      one,
+      { operatorName: "Giulia", operator: { id: marco.id, pin: "123456" } },
+      fx.session,
+    );
+    expect(managerFix.status).toBe(200);
+    expect(managerFix.body.operatorName).toBe("Giulia");
+
+    const cancelNoOp = await api<{ code: string }>(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "cancel" },
+      staff,
+    );
+    expect(cancelNoOp.body.code).toBe("operator_required");
+    const cancelled = await api<{ status: string; cancelledByOperatorName: string | null }>(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "cancel", operator: { id: marco.id, pin: "123456" } },
+      staff,
+    );
+    expect(cancelled.body).toMatchObject({ status: "cancelled", cancelledByOperatorName: "Marco" });
   });
 
-  it("lets only managers change the list, and refuses duplicates", async () => {
+  it("locks an operator after five wrong codes and lets only managers edit the list", async () => {
     const fx = await createFixture(t);
+    const marco = await addOperator(fx, "Marco", "123456");
+    const verify = (pin: string) =>
+      api<{ code: string }>(t, "POST", `${ops(fx)}/${marco.id}/verify`, { pin }, fx.session);
+    expect((await verify("123456")).status).toBe(204);
+    for (let i = 0; i < 5; i += 1) expect((await verify("111111")).status).toBe(400);
+    const locked = await verify("123456");
+    expect(locked.status).toBe(429);
+    expect(locked.body.code).toBe("operator_locked");
+
+    const reset = await api(t, "PATCH", `${ops(fx)}/${marco.id}`, { pin: "222222" }, fx.session);
+    expect(reset.status).toBe(200);
+    expect((await verify("222222")).status).toBe(204);
+
     const staff = await addMember(t, fx, "staff");
-    const read = await api<{ operators: string[] }>(t, "GET", policy(fx), undefined, staff);
-    expect(read.status).toBe(200);
-    expect(read.body.operators).toEqual([]);
-
-    const denied = await api(t, "PUT", policy(fx), { operators: ["Marco"] }, staff);
+    const denied = await api(t, "POST", ops(fx), { name: "Luca", pin: "333333" }, staff);
     expect(denied.status).toBe(403);
-
-    const dup = await api(t, "PUT", policy(fx), { operators: ["Marco", "Marco"] }, fx.session);
-    expect(dup.status).toBe(400);
+    const dup = await api(t, "POST", ops(fx), { name: "marco", pin: "333333" }, fx.session);
+    expect(dup.status).toBe(409);
+    const shortPin = await api(t, "POST", ops(fx), { name: "Luca", pin: "123" }, fx.session);
+    expect(shortPin.status).toBe(400);
   });
 
   it("never asks guests booking online", async () => {
     const fx = await createFixture(t);
-    await api(t, "PUT", policy(fx), { operators: ["Marco"] }, fx.session);
+    await addOperator(fx, "Marco", "123456");
     const res = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
     expect(res.status).toBe(201);
   });
@@ -741,19 +793,5 @@ describe("undoing a completion when the room filled up", () => {
     const reopened = await act(first.body.id, "reopen");
     expect(reopened.status).toBe(409);
     expect(reopened.body.code).toBe("slot_unavailable");
-  });
-});
-
-describe("operator names", () => {
-  it("treats names that differ only by case as duplicates", async () => {
-    const fx = await createFixture(t);
-    const res = await api(
-      t,
-      "PUT",
-      `/api/v1/restaurants/${fx.restaurantId}/policy`,
-      { operators: ["Marco", "marco"] },
-      fx.session,
-    );
-    expect(res.status).toBe(400);
   });
 });

@@ -40,6 +40,7 @@ import {
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
+import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
 import { defaultExceptionInput, ExceptionForm } from "@/components/schedule-forms";
 import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
@@ -61,13 +62,14 @@ import {
   useToast,
 } from "@/components/ui";
 import { WaitlistPanel } from "@/components/waitlist-panel";
-import { api } from "@/lib/api";
+import { ApiClientError, api } from "@/lib/api";
 import {
   areasQuery,
   bookingsQuery,
   capacityRulesQuery,
   exceptionsQuery,
   meQuery,
+  operatorsQuery,
   restaurantQuery,
   servicesQuery,
   tablesQuery,
@@ -107,6 +109,10 @@ function TodayPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<BookingDto | null>(null);
   const [cancelling, setCancelling] = useState<BookingDto | null>(null);
+  // with operators, cancelling asks who is doing it (name + code) before the reason
+  const [cancelGate, setCancelGate] = useState<BookingDto | null>(null);
+  const [cancelOperator, setCancelOperator] = useState<VerifiedOperator | null>(null);
+  const operators = useQuery(operatorsQuery(restaurantId));
   const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
   const [view, setView] = useState<"list" | "floor">("list");
@@ -136,21 +142,39 @@ function TodayPage() {
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
   const act = useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: BookingAction; reason?: string }) =>
+    mutationFn: ({
+      id,
+      action,
+      reason,
+      operator,
+    }: {
+      id: string;
+      action: BookingAction;
+      reason?: string;
+      operator?: VerifiedOperator | null;
+    }) =>
       api.post<BookingDto>(`/api/v1/restaurants/${restaurantId}/bookings/${id}/actions`, {
         action,
         ...(reason ? { reason } : {}),
+        ...(operator ? { operator: { id: operator.id, pin: operator.pin } } : {}),
       }),
     onSuccess: async (_b, vars) => {
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] });
       setCancelling(null);
+      setCancelOperator(null);
       setReason("");
       toast.success(t(`today.done.${vars.action}`));
     },
-    onError: () => toast.error(t("app.error")),
+    onError: (e) =>
+      toast.error(
+        e instanceof ApiClientError && (e.code === "wrong_pin" || e.code === "operator_locked")
+          ? t("operators.askAgain")
+          : t("app.error"),
+      ),
   });
   const run = async (b: BookingDto, action: BookingAction) => {
-    if (action === "cancel") return setCancelling(b);
+    if (action === "cancel")
+      return (operators.data?.length ?? 0) > 0 ? setCancelGate(b) : setCancelling(b);
     // a stray tap on "seat" or "complete" is easy during service: ask first
     if (
       (action === "seat" || action === "complete") &&
@@ -409,6 +433,18 @@ function TodayPage() {
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}
       />
+      <OperatorGate
+        restaurantId={restaurantId}
+        operators={operators.data ?? []}
+        open={cancelGate !== null}
+        title={t("operators.whoIsCancelling")}
+        onCancel={() => setCancelGate(null)}
+        onVerified={(op) => {
+          setCancelOperator(op);
+          setCancelling(cancelGate);
+          setCancelGate(null);
+        }}
+      />
       <Dialog
         open={cancelling !== null}
         onClose={() => setCancelling(null)}
@@ -428,7 +464,12 @@ function TodayPage() {
               loading={act.isPending}
               onClick={() =>
                 cancelling &&
-                act.mutate({ id: cancelling.id, action: "cancel", reason: reason.trim() })
+                act.mutate({
+                  id: cancelling.id,
+                  action: "cancel",
+                  reason: reason.trim(),
+                  operator: cancelOperator,
+                })
               }
             >
               {t("today.cancelConfirm")}
