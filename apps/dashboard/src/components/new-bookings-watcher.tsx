@@ -88,6 +88,8 @@ export function NewBookingsWatcher({
     <Dialog
       open
       onClose={seen}
+      // only Seen / Open the day close it: a stray tap must not hide a booking
+      persistent
       size="md"
       title={
         <span className={cn(cancelled && "text-red-700")}>
