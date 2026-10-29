@@ -261,6 +261,11 @@ function BookingsPage() {
                           {b.operatorName
                             ? ` · ${t("today.operatorTaken", { name: b.operatorName })}`
                             : null}
+                          {b.cancelledByOperatorName ? (
+                            <span className="font-medium text-red-700">
+                              {` · ${t("today.cancelledByName", { name: b.cancelledByOperatorName })}`}
+                            </span>
+                          ) : null}
                         </span>
                       </p>
                       {b.notes ? (

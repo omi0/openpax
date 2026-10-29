@@ -234,10 +234,12 @@
     "operatorTakenAt": "Taken on",
     "ask": {
       "seat": "Confirm? Seat {{name}}",
-      "complete": "Confirm? Close {{name}}'s table"
+      "complete": "Confirm? Close {{name}}'s table",
+      "reopen": "Confirm? Reopen {{name}}'s booking"
     },
     "modifiedBy": "Changed by",
-    "cancelledBy": "Cancelled by"
+    "cancelledBy": "Cancelled by",
+    "cancelledByName": "cancelled by {{name}}"
   },
   "services": {
     "title": "Services",

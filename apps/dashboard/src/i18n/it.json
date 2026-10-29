@@ -234,10 +234,12 @@
     "operatorTakenAt": "Presa il",
     "ask": {
       "seat": "Confermi? {{name}} al tavolo",
-      "complete": "Confermi? Concludere il tavolo di {{name}}"
+      "complete": "Confermi? Concludere il tavolo di {{name}}",
+      "reopen": "Confermi? Riaprire la prenotazione di {{name}}"
     },
     "modifiedBy": "Modificata da",
-    "cancelledBy": "Annullata da"
+    "cancelledBy": "Annullata da",
+    "cancelledByName": "annullata da {{name}}"
   },
   "services": {
     "title": "Servizi",
