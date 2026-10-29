@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -13,8 +14,8 @@ export interface SlotOption {
 }
 
 /**
- * Time slots as tappable chips, grouped by service when there is more than
- * one. Unavailable slots are greyed out; managers may still pick them when
+ * Time slots as tappable chips. With more than one service (lunch, dinner...)
+ * a row of tabs shows one service at a time. Unavailable slots are greyed out; managers may still pick them when
  * `allowUnavailable` is set (the API then needs ignoreCapacity).
  */
 export function SlotPicker({
@@ -33,6 +34,7 @@ export function SlotPicker({
   emptyLabel: string;
 }) {
   const { t } = useTranslation();
+  const [tab, setTab] = useState<string | null>(null);
   if (options.length === 0)
     return (
       <p className="rounded-xl border border-dashed border-stone-300 px-3 py-4 text-center text-sm text-stone-500">
@@ -45,15 +47,36 @@ export function SlotPicker({
           .map((s) => ({ service: s, options: options.filter((o) => o.serviceId === s.id) }))
           .filter((g) => g.options.length > 0)
       : [{ service: null, options }];
+  // the chosen tab, else the service of the selected slot, else the first one
+  const shown =
+    groups.find((g) => g.service?.id === tab) ??
+    groups.find((g) => g.options.some((o) => o.key === value)) ??
+    groups[0];
   return (
     <div className="space-y-3">
-      {groups.map((g) => (
+      {groups.length > 1 ? (
+        <div className="flex flex-wrap gap-1.5" role="tablist">
+          {groups.map((g) => (
+            <button
+              key={g.service?.id}
+              type="button"
+              role="tab"
+              aria-selected={g === shown}
+              onClick={() => setTab(g.service?.id ?? null)}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                g === shown
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-stone-300 bg-white text-stone-700 hover:border-brand-400",
+              )}
+            >
+              {g.service?.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {(shown ? [shown] : []).map((g) => (
         <div key={g.service?.id ?? "all"}>
-          {g.service ? (
-            <p className="mb-1.5 text-[13px] font-semibold text-stone-500 uppercase tracking-wide">
-              {g.service.name}
-            </p>
-          ) : null}
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
             {g.options.map((o) => {
               const selected = o.key === value;
