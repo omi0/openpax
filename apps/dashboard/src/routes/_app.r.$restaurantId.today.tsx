@@ -1,8 +1,9 @@
-import type { BookingAction } from "@openpax/core";
+import { type BookingAction, weekdayOf } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
   ScheduleExceptionDto,
+  ServiceDto,
   UpsertAreaInput,
   UpsertScheduleExceptionInput,
 } from "@openpax/shared";
@@ -189,8 +190,18 @@ function TodayPage() {
     act.mutate({ id: b.id, action });
   };
 
-  const items = bookings.data?.items ?? [];
-  const selectedBooking = items.find((b) => b.id === selected) ?? null;
+  const allItems = bookings.data?.items ?? [];
+  const selectedBooking = allItems.find((b) => b.id === selected) ?? null;
+  // one service at a time (lunch, aperitivo, dinner), so the printout is only that one
+  const services = useQuery(servicesQuery(restaurantId));
+  const activeServices = (services.data ?? [])
+    .filter((s) => s.active)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const [fascia, setFascia] = useState<string>("all");
+  const chosen = activeServices.find((s) => s.id === fascia) ?? null;
+  const items = chosen
+    ? allItems.filter((b) => inService(b, chosen, activeServices, date, restaurant.timezone))
+    : allItems;
   const active = items.filter((b) => ACTIVE_STATUSES.has(b.status));
   const covers = active.reduce((n, b) => n + b.partySize, 0);
   const seatedNow = items.filter((b) => b.status === "seated").length;
@@ -218,6 +229,7 @@ function TodayPage() {
         <div className="min-w-0">
           <h1 className="text-[22px] font-semibold tracking-tight capitalize md:text-2xl">
             {date === today ? t("today.title") : longDate}
+            {chosen ? ` · ${chosen.name}` : null}
           </h1>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-stone-500 tabular-nums">
             {date === today ? <span className="capitalize">{longDate}</span> : null}
@@ -297,6 +309,28 @@ function TodayPage() {
       </div>
 
       <DayStrip date={date} today={today} closedDays={closedDays} onChange={setDate} />
+
+      {activeServices.length > 1 ? (
+        <div className="mt-3 flex flex-wrap gap-2 print:hidden" role="tablist">
+          {[{ id: "all", name: t("today.allServices") }, ...activeServices].map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={fascia === s.id}
+              onClick={() => setFascia(s.id)}
+              className={cn(
+                "min-h-11 rounded-full border px-5 text-[15px] font-semibold transition-colors",
+                fascia === s.id
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-stone-300 bg-white text-stone-700 hover:border-brand-400",
+              )}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-4 print:hidden">
         <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
@@ -1126,4 +1160,31 @@ function RoomsDialog({
       </ul>
     </Dialog>
   );
+}
+
+/**
+ * A booking belongs to a service tab when it was booked on it, or, for a
+ * service switched off since (an old catch-all one), when its time falls in
+ * the tab's hours that day.
+ */
+function inService(
+  b: BookingDto,
+  s: ServiceDto,
+  active: ServiceDto[],
+  date: string,
+  timeZone: string,
+): boolean {
+  if (b.serviceId === s.id) return true;
+  if (active.some((x) => x.id === b.serviceId)) return false;
+  const [h, m] = formatTime(b.startsAt, timeZone, "it").split(":").map(Number);
+  const at = (h ?? 0) * 60 + (m ?? 0);
+  const toMin = (v: string) => {
+    const [hh, mm] = v.split(":").map(Number);
+    return (hh ?? 0) * 60 + (mm ?? 0);
+  };
+  return (s.weeklyHours[weekdayOf(date)] ?? []).some((w) => {
+    const start = toMin(w.start);
+    const end = toMin(w.end);
+    return end >= start ? at >= start && at <= end : at >= start || at <= end;
+  });
 }

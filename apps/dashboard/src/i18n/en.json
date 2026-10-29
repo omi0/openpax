@@ -239,7 +239,8 @@
     },
     "modifiedBy": "Changed by",
     "cancelledBy": "Cancelled by",
-    "cancelledByName": "cancelled by {{name}}"
+    "cancelledByName": "cancelled by {{name}}",
+    "allServices": "All"
   },
   "services": {
     "title": "Services",
