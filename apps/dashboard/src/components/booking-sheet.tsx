@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { MeetingSection } from "@/components/meeting-dialog";
 import {
   Avatar,
   Badge,
@@ -264,6 +265,8 @@ export function BookingSheet({
               <UserRound className="size-4" /> {t("today.viewProfile")}
             </Link>
           </div>
+
+          <MeetingSection restaurant={restaurant} booking={b} active={active} />
 
           <NotificationLog
             restaurantId={restaurant.id}

@@ -155,7 +155,6 @@ function CalendarPage() {
 
       <BookingFormDialog
         restaurant={restaurant}
-        date={days.includes(today) ? today : week}
         open={open}
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}

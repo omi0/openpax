@@ -92,6 +92,13 @@
       "when": 1793238940670,
       "tag": "0012_booking_operator",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793245687026,
+      "tag": "0013_booking_meeting",
+      "breakpoints": true
     }
   ]
 }

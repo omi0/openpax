@@ -62,6 +62,9 @@ export const smtpProvider = defineProvider({
       html: message.html,
       text: message.text,
       ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+      ...(message.calendar
+        ? { icalEvent: { method: message.calendar.method, content: message.calendar.ics } }
+        : {}),
     });
     return { providerMessageId: info.messageId };
   },

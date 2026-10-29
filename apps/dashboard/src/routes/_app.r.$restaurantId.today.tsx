@@ -392,7 +392,6 @@ function TodayPage() {
       ) : null}
       <BookingFormDialog
         restaurant={restaurant}
-        date={date}
         open={open}
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}

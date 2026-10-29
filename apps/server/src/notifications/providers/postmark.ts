@@ -1,5 +1,10 @@
-import { defineProvider } from "../provider.js";
+import { type CalendarInvite, calendarAttachment, defineProvider } from "../provider.js";
 import { errorText } from "./address.js";
+
+function postmarkAttachment(invite: CalendarInvite) {
+  const a = calendarAttachment(invite);
+  return { Name: a.filename, Content: a.base64, ContentType: a.contentType };
+}
 
 export const postmarkProvider = defineProvider({
   id: "postmark",
@@ -41,6 +46,7 @@ export const postmarkProvider = defineProvider({
         HtmlBody: message.html,
         TextBody: message.text,
         ...(message.replyTo ? { ReplyTo: message.replyTo } : {}),
+        ...(message.calendar ? { Attachments: [postmarkAttachment(message.calendar)] } : {}),
         ...(config.messageStream ? { MessageStream: config.messageStream } : {}),
       }),
     });

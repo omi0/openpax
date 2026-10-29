@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { idSchema, instantSchema, localDateSchema, localTimeSchema } from "./common.js";
+import {
+  emailSchema,
+  idSchema,
+  instantSchema,
+  localDateSchema,
+  localTimeSchema,
+} from "./common.js";
 import { timeWindowSchema, weekdaySchema, weeklyHoursSchema } from "./weekly-hours.js";
 
 export const upsertServiceInputSchema = z.object({
@@ -131,6 +137,13 @@ export const bookingPolicyDtoSchema = z.object({
     .array(z.string().trim().min(1).max(60))
     .max(30)
     .refine((names) => new Set(names).size === names.length, "Duplicate operator name"),
+  /** Groups from this size can book a planning meeting with the host; null = off. */
+  meetingMinPartySize: z.number().int().min(2).max(1000).nullable(),
+  /** Each window runs from the first meeting start to the end of the last meeting. */
+  meetingHours: weeklyHoursSchema,
+  meetingHostName: z.string().trim().max(80).nullable(),
+  /** Gets a calendar invite for every meeting; null = no invite. */
+  meetingHostEmail: emailSchema.nullable(),
 });
 export type BookingPolicyDto = z.infer<typeof bookingPolicyDtoSchema>;
 

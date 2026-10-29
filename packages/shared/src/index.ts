@@ -8,6 +8,7 @@ export * from "./schemas/common.js";
 export * from "./schemas/csv.js";
 export * from "./schemas/customer.js";
 export * from "./schemas/feedback.js";
+export * from "./schemas/meeting.js";
 export * from "./schemas/notifications.js";
 export * from "./schemas/payments.js";
 export * from "./schemas/restaurant.js";

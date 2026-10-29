@@ -1,4 +1,14 @@
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { WeeklyHours } from "@openpax/core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { organization } from "./auth.js";
 import { createdAt, id, updatedAt } from "./columns.js";
 
@@ -65,6 +75,13 @@ export const bookingPolicy = pgTable("booking_policy", {
   waitlistOfferMinutes: integer().notNull().default(120),
   /** Names staff pick from when taking a booking (one login shared by the whole team). */
   operators: text().array().notNull().default([]),
+  /** Groups from this size can book a planning meeting with the host (chef, manager); null = off. */
+  meetingMinPartySize: integer(),
+  /** When the host takes meetings; each window runs from the first start to the end of the last meeting. */
+  meetingHours: jsonb().$type<WeeklyHours>().notNull().default({}),
+  meetingHostName: text(),
+  /** Receives a calendar invite for every meeting; empty = no invite. */
+  meetingHostEmail: text(),
   updatedAt: updatedAt(),
 });
 

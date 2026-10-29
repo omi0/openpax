@@ -1,7 +1,8 @@
 import type { BookingDto, CreateStaffBookingInput, RestaurantDto } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { MeetingDialog } from "@/components/meeting-dialog";
 import { SlotPicker } from "@/components/slot-picker";
 import {
   Alert,
@@ -21,13 +22,11 @@ import { areasQuery, policyQuery, staffAvailabilityQuery } from "@/lib/queries";
 
 export function BookingFormDialog({
   restaurant,
-  date,
   open,
   onClose,
   canOverride,
 }: {
   restaurant: RestaurantDto;
-  date: string;
   open: boolean;
   onClose: () => void;
   canOverride: boolean;
@@ -37,18 +36,32 @@ export function BookingFormDialog({
   const queryClient = useQueryClient();
   const formId = useId();
   const [partySize, setPartySize] = useState(2);
-  const [day, setDay] = useState(date);
+  // no default day: whoever takes the booking must type the date the guest asked for
+  const [day, setDay] = useState("");
   const [slot, setSlot] = useState("");
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    setPartySize(2);
+    setDay("");
+    setSlot("");
+    setError(null);
+    setWantsMeeting(false);
+  }, [open]);
   // staff see every slot with room, without the online-only rules (notice, horizon, party size)
   const availability = useQuery({
     ...staffAvailabilityQuery(restaurant.id, day, partySize),
-    enabled: open,
+    enabled: open && day !== "",
   });
   const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
   const rooms = (areas.data ?? []).filter((a) => a.active);
   const policy = useQuery({ ...policyQuery(restaurant.id), enabled: open });
   const operators = policy.data?.operators ?? [];
+  const meetingFrom = policy.data?.meetingMinPartySize ?? null;
+  const canMeet = meetingFrom !== null && partySize >= meetingFrom;
+  const [wantsMeeting, setWantsMeeting] = useState(false);
+  // the booking just created, waiting for its meeting slot
+  const [meetingFor, setMeetingFor] = useState<BookingDto | null>(null);
 
   const create = useMutation({
     mutationFn: (body: CreateStaffBookingInput) =>
@@ -57,6 +70,7 @@ export function BookingFormDialog({
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurant.id, "bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["availability"] });
       toast.success(t("today.created", { name: b.customer.name }));
+      if (wantsMeeting && canMeet) setMeetingFor(b);
       onClose();
     },
     onError: (e) =>
@@ -100,125 +114,156 @@ export function BookingFormDialog({
   const services = availability.data?.services ?? [];
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={t("today.newBooking")}
-      size="lg"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            {t("app.cancel")}
-          </Button>
-          <Button type="submit" form={formId} loading={create.isPending} disabled={!slot}>
-            {t("today.form.create")}
-          </Button>
-        </>
-      }
-    >
-      <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("today.form.date")}>
-          <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} required />
-        </Field>
-        <Field label={t("today.form.party")}>
-          <Stepper
-            value={partySize}
-            onChange={setPartySize}
-            min={1}
-            max={100}
-            ariaLabel={t("today.form.party")}
-          />
-        </Field>
-        <div className="sm:col-span-2">
-          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("today.form.slot")}</p>
-          {availability.isLoading ? (
-            <div className="flex justify-center py-4">
-              <Spinner />
-            </div>
-          ) : (
-            <SlotPicker
-              options={slots.map((s) => ({
-                key: `${s.serviceId}|${s.startsAt}`,
-                serviceId: s.serviceId,
-                label: s.startLocal,
-                available: s.available,
-                reason: s.reason,
-              }))}
-              services={services}
-              value={slot}
-              onChange={setSlot}
-              allowUnavailable={canOverride}
-              emptyLabel={t("today.form.noSlots")}
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title={t("today.newBooking")}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              {t("app.cancel")}
+            </Button>
+            <Button type="submit" form={formId} loading={create.isPending} disabled={!slot}>
+              {t("today.form.create")}
+            </Button>
+          </>
+        }
+      >
+        <form id={formId} onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("today.form.date")}>
+            <Input
+              type="date"
+              value={day}
+              onChange={(e) => {
+                setDay(e.target.value);
+                setSlot("");
+              }}
+              required
             />
-          )}
-        </div>
-        <Field label={t("today.form.name")} className="sm:col-span-2" required>
-          <Input name="name" required autoComplete="off" />
-        </Field>
-        <Field label={t("today.form.phone")}>
-          <Input name="phone" type="tel" inputMode="tel" autoComplete="off" />
-        </Field>
-        <Field label={t("today.form.email")}>
-          <Input name="email" type="email" inputMode="email" autoComplete="off" />
-        </Field>
-        {operators.length > 0 ? (
-          <Field label={t("today.form.operator")} required>
-            <Select name="operatorName" defaultValue="" required>
-              <option value="" disabled>
-                {t("today.form.operatorChoose")}
-              </option>
-              {operators.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </Select>
           </Field>
-        ) : null}
-        <Field label={t("today.form.source")}>
-          <Select name="source" defaultValue="phone">
-            <option value="phone">{t("today.source.phone")}</option>
-            <option value="walk_in">{t("today.source.walk_in")}</option>
-            <option value="manual">{t("today.source.manual")}</option>
-          </Select>
-        </Field>
-        {rooms.length > 0 ? (
-          <Field label={t("today.form.room")}>
-            <Select name="areaId" defaultValue="">
-              <option value="">{t("today.form.anyRoom")}</option>
-              {rooms.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
-        <Field label={t("today.form.notes")} className="sm:col-span-2">
-          <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
-        </Field>
-        <div className="space-y-3 sm:col-span-2">
-          <Checkbox
-            name="notifyGuest"
-            defaultChecked
-            label={t("today.form.notifyGuest")}
-            description={t("today.form.notifyGuestHint")}
-          />
-          <Checkbox name="seatNow" label={t("today.form.seatNow")} />
-          {canOverride ? (
-            <Checkbox
-              name="ignoreCapacity"
-              label={t("today.form.ignoreCapacity")}
-              description={t("today.form.ignoreCapacityHint")}
+          <Field label={t("today.form.party")}>
+            <Stepper
+              value={partySize}
+              onChange={setPartySize}
+              min={1}
+              max={100}
+              ariaLabel={t("today.form.party")}
             />
-          ) : null}
-        </div>
-        {error ? (
+          </Field>
           <div className="sm:col-span-2">
-            <Alert>{error}</Alert>
+            <p className="mb-1.5 text-sm font-medium text-stone-700">{t("today.form.slot")}</p>
+            {day === "" ? (
+              <p className="text-sm text-stone-500">{t("today.form.pickDateFirst")}</p>
+            ) : availability.isLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            ) : (
+              <SlotPicker
+                options={slots.map((s) => ({
+                  key: `${s.serviceId}|${s.startsAt}`,
+                  serviceId: s.serviceId,
+                  label: s.startLocal,
+                  available: s.available,
+                  reason: s.reason,
+                }))}
+                services={services}
+                value={slot}
+                onChange={setSlot}
+                allowUnavailable={canOverride}
+                emptyLabel={t("today.form.noSlots")}
+              />
+            )}
           </div>
-        ) : null}
-      </form>
-    </Dialog>
+          <Field label={t("today.form.name")} className="sm:col-span-2" required>
+            <Input name="name" required autoComplete="off" />
+          </Field>
+          <Field label={t("today.form.phone")}>
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="off" />
+          </Field>
+          <Field label={t("today.form.email")}>
+            <Input name="email" type="email" inputMode="email" autoComplete="off" />
+          </Field>
+          {operators.length > 0 ? (
+            <Field label={t("today.form.operator")} required>
+              <Select name="operatorName" defaultValue="" required>
+                <option value="" disabled>
+                  {t("today.form.operatorChoose")}
+                </option>
+                {operators.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+          <Field label={t("today.form.source")}>
+            <Select name="source" defaultValue="phone">
+              <option value="phone">{t("today.source.phone")}</option>
+              <option value="walk_in">{t("today.source.walk_in")}</option>
+              <option value="manual">{t("today.source.manual")}</option>
+            </Select>
+          </Field>
+          {rooms.length > 0 ? (
+            <Field label={t("today.form.room")}>
+              <Select name="areaId" defaultValue="">
+                <option value="">{t("today.form.anyRoom")}</option>
+                {rooms.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+          <Field label={t("today.form.notes")} className="sm:col-span-2">
+            <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
+          </Field>
+          <div className="space-y-3 sm:col-span-2">
+            <Checkbox
+              name="notifyGuest"
+              defaultChecked
+              label={t("today.form.notifyGuest")}
+              description={t("today.form.notifyGuestHint")}
+            />
+            <Checkbox name="seatNow" label={t("today.form.seatNow")} />
+            {canMeet ? (
+              <Checkbox
+                checked={wantsMeeting}
+                onChange={(e) => setWantsMeeting(e.target.checked)}
+                label={t("meetings.wants", {
+                  host: policy.data?.meetingHostName || t("meetings.hostFallback"),
+                })}
+                description={t("meetings.wantsHint")}
+              />
+            ) : null}
+            {canOverride ? (
+              <Checkbox
+                name="ignoreCapacity"
+                label={t("today.form.ignoreCapacity")}
+                description={t("today.form.ignoreCapacityHint")}
+              />
+            ) : null}
+          </div>
+          {error ? (
+            <div className="sm:col-span-2">
+              <Alert>{error}</Alert>
+            </div>
+          ) : null}
+        </form>
+      </Dialog>
+      {meetingFor ? (
+        <MeetingDialog
+          restaurant={restaurant}
+          booking={meetingFor}
+          current={null}
+          open
+          onClose={() => setMeetingFor(null)}
+        />
+      ) : null}
+    </>
   );
 }

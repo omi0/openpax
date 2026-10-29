@@ -32,7 +32,8 @@
     "switchRestaurant": "Cambia ristorante",
     "confirm": "Conferma",
     "actions": "Azioni",
-    "newOnlineBooking": "Nuova prenotazione online: {{name}}, {{guests}}, {{when}}"
+    "newOnlineBooking": "Nuova prenotazione online: {{name}}, {{guests}}, {{when}}",
+    "meetings": "Appuntamenti chef"
   },
   "auth": {
     "login": "Accedi",
@@ -158,7 +159,8 @@
       "operator": "Chi la sta prendendo?",
       "operatorChoose": "Scegli il tuo nome…",
       "operatorRequired": "Scegli chi sta prendendo la prenotazione.",
-      "unknownOperator": "Questo nome non è più nell'elenco dello staff. Scegline un altro."
+      "unknownOperator": "Questo nome non è più nell'elenco dello staff. Scegline un altro.",
+      "pickDateFirst": "Scegli prima la data che chiede il cliente."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -297,7 +299,9 @@
       "waitlist.offered": "Tavolo offerto dalla lista d'attesa",
       "booking.payment_required": "Caparra richiesta per confermare",
       "booking.feedback_request": "Richiesta di feedback dopo la visita",
-      "booking.feedback_received": "Feedback ricevuto"
+      "booking.feedback_received": "Feedback ricevuto",
+      "meeting_invite": "invito appuntamento chef",
+      "meeting_cancel": "appuntamento chef annullato"
     },
     "audience": {
       "guest": "Ospite",
@@ -1115,5 +1119,43 @@
     "add": "Aggiungi",
     "remove": "Togli {{name}}",
     "duplicate": "Questo nome c'è già."
+  },
+  "meetings": {
+    "hostFallback": "lo chef",
+    "title": "Appuntamenti con {{host}}",
+    "pageHint": "Gli incontri dei prossimi 60 giorni per organizzare gli eventi dei gruppi.",
+    "empty": "Nessun appuntamento in programma",
+    "off": "Gli appuntamenti sono spenti: attivali in Impostazioni → Team.",
+    "emptyHint": "Si fissano dalla prenotazione di un gruppo da {{count}} persone in su.",
+    "forEvent": "evento {{count}} persone · {{when}}",
+    "openBookings": "Vai alle prenotazioni",
+    "book": "Appuntamento con {{host}}",
+    "move": "Sposta l'appuntamento con {{host}}",
+    "confirm": "Fissa appuntamento",
+    "currently": "Adesso è fissato per {{when}}.",
+    "day": "Giorno dell'appuntamento",
+    "pickDay": "Scegli il giorno che va bene al cliente.",
+    "closedDay": "Quel giorno il ristorante è chiuso.",
+    "noSlots": "Quel giorno {{host}} non ha orari liberi. Prova un altro giorno.",
+    "taken": "Qualcuno ha appena preso quell'orario. Scegline un altro.",
+    "saved": "Appuntamento con {{host}} fissato: {{when}}",
+    "with": "Appuntamento con {{host}}:",
+    "none": "Nessun appuntamento con {{host}}.",
+    "bookShort": "Fissa appuntamento",
+    "moveShort": "Sposta",
+    "cancelShort": "Annulla appuntamento",
+    "confirmCancel": "Annullare l'appuntamento con {{host}}?",
+    "cancelled": "Appuntamento annullato",
+    "wants": "Vogliono parlare con {{host}} per il menu",
+    "wantsHint": "Dopo aver salvato scegli giorno e ora dell'appuntamento.",
+    "settingsTitle": "Appuntamenti con lo chef",
+    "settingsHint": "I gruppi grandi possono fissare un incontro di 30 minuti per decidere il menu. Lo chef riceve l'invito sul suo calendario.",
+    "minParty": "Gruppi da (persone)",
+    "minPartyHint": "Vuoto = appuntamenti spenti.",
+    "hostName": "Nome dello chef",
+    "hostEmail": "Email dello chef",
+    "hostEmailHint": "Riceve l'invito per ogni appuntamento. Vuota = nessun invito.",
+    "hours": "Quando è disponibile",
+    "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti)."
   }
 }
