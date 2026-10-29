@@ -662,3 +662,54 @@ describe("booking operators", () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe("undoing a completion", () => {
+  it("reopens a table closed by mistake as confirmed, without telling the guest", async () => {
+    const fx = await createFixture(t);
+    await api(
+      t,
+      "PUT",
+      `/api/v1/restaurants/${fx.restaurantId}/notification-providers/email`,
+      {
+        providerId: "test-email",
+        config: { apiKey: "secret-key-1234", from: "T <t@example.com>" },
+      },
+      fx.session,
+    );
+    const created = await api<{ id: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "19:30"),
+        partySize: 2,
+        customer: { name: "Sara Gialli", email: "sara@example.com" },
+        source: "phone",
+      },
+      fx.session,
+    );
+    const action = (a: string) =>
+      api<{ status: string; customer: { visitCount: number } }>(
+        t,
+        "POST",
+        `${bookings(fx)}/${created.body.id}/actions`,
+        { action: a },
+        fx.session,
+      );
+    await action("seat");
+    await action("complete");
+    await t.processEvents();
+    const before = t.sentEmails.filter((e) => e.to === "sara@example.com").length;
+
+    const reopened = await action("reopen");
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.status).toBe("confirmed");
+    expect(reopened.body.customer.visitCount).toBe(0);
+    await t.processEvents();
+    expect(t.sentEmails.filter((e) => e.to === "sara@example.com")).toHaveLength(before);
+
+    const seatedAgain = await action("seat");
+    expect(seatedAgain.body.customer.visitCount).toBe(1);
+  });
+});

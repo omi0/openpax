@@ -231,7 +231,11 @@
     "blockNoSlots": "Nessun orario in questo giorno.",
     "operatorLabel": "Presa da",
     "operatorTaken": "presa da {{name}}",
-    "operatorTakenAt": "Presa il"
+    "operatorTakenAt": "Presa il",
+    "ask": {
+      "seat": "Confermi? {{name}} al tavolo",
+      "complete": "Confermi? Concludere il tavolo di {{name}}"
+    }
   },
   "services": {
     "title": "Servizi",

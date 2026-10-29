@@ -231,7 +231,11 @@
     "blockNoSlots": "No times on this day.",
     "operatorLabel": "Taken by",
     "operatorTaken": "taken by {{name}}",
-    "operatorTakenAt": "Taken on"
+    "operatorTakenAt": "Taken on",
+    "ask": {
+      "seat": "Confirm? Seat {{name}}",
+      "complete": "Confirm? Close {{name}}'s table"
+    }
   },
   "services": {
     "title": "Services",

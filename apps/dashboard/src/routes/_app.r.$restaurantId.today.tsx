@@ -57,6 +57,7 @@ import {
   StatusMark,
   Switch,
   Textarea,
+  useConfirm,
   useToast,
 } from "@/components/ui";
 import { WaitlistPanel } from "@/components/waitlist-panel";
@@ -95,6 +96,7 @@ function TodayPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const { data: restaurant } = useSuspenseQuery(restaurantQuery(restaurantId));
   const { data: me } = useSuspenseQuery(meQuery());
   const role = me.restaurants.find((r) => r.id === restaurantId)?.role ?? "staff";
@@ -147,9 +149,20 @@ function TodayPage() {
     },
     onError: () => toast.error(t("app.error")),
   });
-  const run = (b: BookingDto, action: BookingAction) => {
-    if (action === "cancel") setCancelling(b);
-    else act.mutate({ id: b.id, action });
+  const run = async (b: BookingDto, action: BookingAction) => {
+    if (action === "cancel") return setCancelling(b);
+    // a stray tap on "seat" or "complete" is easy during service: ask first
+    if (
+      (action === "seat" || action === "complete") &&
+      !(await confirm({
+        title: t(`today.ask.${action}`, { name: b.customer.name }),
+        confirmLabel: t("app.yes"),
+        cancelLabel: t("app.no"),
+        tone: "primary",
+      }))
+    )
+      return;
+    act.mutate({ id: b.id, action });
   };
 
   const items = bookings.data?.items ?? [];

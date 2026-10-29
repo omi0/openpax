@@ -58,7 +58,7 @@ export const actionsFor: Record<string, BookingAction[]> = {
   pending: ["confirm", "cancel"],
   confirmed: ["seat", "no_show", "cancel"],
   seated: ["complete", "cancel"],
-  completed: [],
+  completed: ["reopen"],
   cancelled: ["reopen"],
   no_show: ["reopen"],
 };

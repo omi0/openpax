@@ -623,7 +623,10 @@ export async function applyBookingAction(
     const next = transition(row.status, p.action);
 
     let floor: AvailabilityInput | null = null;
-    if (p.action === "reopen") {
+    // a table closed by mistake keeps its tables and needs no capacity check:
+    // the guests are still there
+    const undoComplete = p.action === "reopen" && row.status === "completed";
+    if (p.action === "reopen" && !undoComplete) {
       // Re-check capacity before letting a cancelled booking back in: another
       // party may have taken its covers, its table or its room meanwhile.
       await lockServiceDates(tx, r.id, [row.serviceDate]);
@@ -653,7 +656,7 @@ export async function applyBookingAction(
         ...(p.action === "reopen" ? { cancelledAt: null, cancellationReason: null } : {}),
       })
       .where(eq(booking.id, row.id));
-    if (p.action === "reopen") {
+    if (p.action === "reopen" && !undoComplete) {
       // its old tables may be taken now: seat it again on what is free
       await assignTables(tx, row.id, floor, {
         startsAt: row.startsAt,
@@ -678,6 +681,12 @@ export async function applyBookingAction(
         .update(customer)
         .set({ cancelCount: sql`${customer.cancelCount} + 1` })
         .where(eq(customer.id, row.customerId));
+    } else if (undoComplete) {
+      // back before "seat": the visit is counted again when they are seated
+      await tx
+        .update(customer)
+        .set({ visitCount: sql`greatest(${customer.visitCount} - 1, 0)` })
+        .where(eq(customer.id, row.customerId));
     } else if (p.action === "reopen") {
       // Reopening says the cancellation or no-show was a mistake: take the mark off the guest.
       await tx
@@ -691,7 +700,8 @@ export async function applyBookingAction(
     }
 
     const base = { restaurantId: r.id, aggregateType: "booking", aggregateId: row.id } as const;
-    switch (p.action) {
+    // undoing a completion is internal: the guest is not sent a new confirmation
+    switch (undoComplete ? null : p.action) {
       case "confirm":
       case "reopen":
         await emitEvent(tx, {
