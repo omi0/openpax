@@ -353,9 +353,15 @@ function TodayPage() {
 
       {view === "floor" && tables.data ? (
         <FloorView
+          // switching service moves the plan to that service's time
+          key={fascia}
           tables={tables.data}
           areas={areas.data ?? []}
-          bookings={items}
+          bookings={allItems}
+          shown={items}
+          serviceStart={
+            chosen ? ((chosen.weeklyHours[weekdayOf(date)] ?? [])[0]?.start ?? null) : null
+          }
           timezone={restaurant.timezone}
           date={date}
           today={today}
@@ -963,6 +969,8 @@ function FloorView({
   tables,
   areas,
   bookings,
+  shown,
+  serviceStart,
   timezone,
   date,
   today,
@@ -970,7 +978,12 @@ function FloorView({
 }: {
   tables: Parameters<typeof FloorPlan>[0]["tables"];
   areas: Parameters<typeof FloorPlan>[0]["areas"];
+  /** Every booking of the day: who sits at a table at the chosen time. */
   bookings: BookingDto[];
+  /** The bookings of the chosen service: where the plan starts, who still needs a table. */
+  shown: BookingDto[];
+  /** Opening time of the chosen service that day; null = the whole day. */
+  serviceStart: string | null;
   timezone: string;
   date: string;
   today: string;
@@ -983,8 +996,16 @@ function FloorView({
     minute: "2-digit",
     hourCycle: "h23",
   }).format(new Date());
-  const firstStart = bookings[0] ? formatTime(bookings[0].startsAt, timezone, "en-GB") : "20:00";
-  const [time, setTime] = useState(date === today ? nowLocal : firstStart);
+  const first = shown.find((b) => ACTIVE_STATUSES.has(b.status)) ?? shown[0];
+  const firstStart = first
+    ? formatTime(first.startsAt, timezone, "en-GB")
+    : (serviceStart ?? "20:00");
+  // today, "now" while it falls in the chosen service; otherwise its first arrival
+  const nowInService =
+    serviceStart === null ||
+    (nowLocal >= serviceStart &&
+      shown.some((b) => formatTime(b.endsAt, timezone, "en-GB") > nowLocal));
+  const [time, setTime] = useState(date === today && nowInService ? nowLocal : firstStart);
   // the chosen wall-clock time on that date, as an instant, via the bookings' own offsets
   const probe = (() => {
     const [h, m] = time.split(":").map(Number);
@@ -1001,7 +1022,7 @@ function FloorView({
         new Date(b.startsAt).getTime() <= probe &&
         new Date(b.endsAt).getTime() > probe,
     ) ?? null;
-  const unassigned = bookings.filter((b) => ACTIVE_STATUSES.has(b.status) && b.tables.length === 0);
+  const unassigned = shown.filter((b) => ACTIVE_STATUSES.has(b.status) && b.tables.length === 0);
   const closedRooms = new Set(areas.filter((a) => !a.active).map((a) => a.id));
   const statusOf = (table: (typeof tables)[number]): TableStatus => {
     if (!table.active || (table.areaId !== null && closedRooms.has(table.areaId)))
