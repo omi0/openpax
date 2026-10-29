@@ -237,3 +237,115 @@ describe("host meetings", () => {
     expect(t.sentEmails.slice(before).some((e) => e.calendar)).toBe(false);
   });
 });
+
+describe("host meetings, edge cases", () => {
+  it("refuses a meeting after the event", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const res = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base(fx)}/bookings`,
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 25,
+        customer: { name: "Evento Stesso Giorno", phone: "+39 340 4444444" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    const ok = await schedule(fx, res.body.id, "17:00");
+    expect(ok.status).toBe(200);
+
+    const late = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base(fx)}/bookings`,
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant("2026-06-11", "20:00"),
+        partySize: 25,
+        customer: { name: "Evento Prima", phone: "+39 340 5555555" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    const after = await schedule(fx, late.body.id, "15:00");
+    expect(after.status).toBe(400);
+    expect(after.body.code).toBe("meeting_after_event");
+  });
+
+  it("sends the host an updated invite when the event changes", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const bookingId = await groupBooking(fx);
+    await schedule(fx, bookingId, "15:00");
+    await t.processEvents();
+    const before = hostEmails().length;
+    const moved = await api(
+      t,
+      "PATCH",
+      `${base(fx)}/bookings/${bookingId}`,
+      { partySize: 30, ignoreCapacity: true, notifyGuest: false },
+      fx.session,
+    );
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+    await t.processEvents();
+    const update = hostEmails().slice(before);
+    expect(update).toHaveLength(1);
+    expect(update[0]?.calendar?.ics).toContain("SEQUENCE:1");
+    expect(update[0]?.subject).toContain("30");
+  });
+
+  it("blocks slots that overlap a booked meeting when windows overlap", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    await api(
+      t,
+      "PUT",
+      `${base(fx)}/policy`,
+      {
+        meetingHours: {
+          fri: [
+            { start: "15:00", end: "16:00" },
+            { start: "15:15", end: "16:00" },
+            { start: "15:00", end: "16:00" },
+          ],
+        },
+      },
+      fx.session,
+    );
+    const day = await slotsOn(fx, FRIDAY);
+    expect(day.body.slots.map((s) => s.startLocal)).toEqual(["15:00", "15:15", "15:30"]);
+    const bookingId = await groupBooking(fx);
+    expect((await schedule(fx, bookingId, "15:00")).status).toBe(200);
+    const after = await slotsOn(fx, FRIDAY);
+    expect(after.body.slots.map((s) => [s.startLocal, s.available])).toEqual([
+      ["15:00", false],
+      ["15:15", false],
+      ["15:30", true],
+    ]);
+  });
+
+  it("books a slot after midnight from the previous day's window", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    await api(
+      t,
+      "PUT",
+      `${base(fx)}/policy`,
+      { meetingHours: { thu: [{ start: "23:30", end: "00:30" }] } },
+      fx.session,
+    );
+    const thu = await slotsOn(fx, "2026-06-11");
+    expect(thu.body.slots.map((s) => s.startLocal)).toEqual(["23:30", "00:00"]);
+    const bookingId = await groupBooking(fx);
+    const res = await schedule(fx, bookingId, "00:00");
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+  });
+});

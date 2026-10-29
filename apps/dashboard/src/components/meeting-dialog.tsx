@@ -15,7 +15,7 @@ import {
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
 import { bookingMeetingQuery, meetingSlotsQuery, policyQuery } from "@/lib/queries";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, todayLocal } from "@/lib/utils";
 
 /** Pick one of the host's free 30-minute slots for a group booking (or move the current one). */
 export function MeetingDialog({
@@ -69,7 +69,9 @@ export function MeetingDialog({
         await queryClient.invalidateQueries({
           queryKey: ["restaurant", restaurant.id, "meetings"],
         });
-      } else setError(e instanceof ApiClientError ? e.message : t("app.error"));
+      } else if (e instanceof ApiClientError && e.code === "meeting_after_event")
+        setError(t("meetings.afterEvent"));
+      else setError(e instanceof ApiClientError ? e.message : t("app.error"));
     },
   });
 
@@ -103,6 +105,8 @@ export function MeetingDialog({
           <Input
             type="date"
             value={day}
+            min={todayLocal(restaurant.timezone)}
+            max={booking.serviceDate}
             onChange={(e) => {
               setDay(e.target.value);
               setSlot("");

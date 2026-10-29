@@ -25,20 +25,29 @@ export function MeetingSettingsCard({
   const [hostEmail, setHostEmail] = useState("");
   const [hours, setHours] = useState<BookingPolicyDto["meetingHours"]>({});
   const [error, setError] = useState<string | null>(null);
+  // unsaved edits win over cache updates (the operators card saves the same policy)
+  const [dirty, setDirty] = useState(false);
+  const edit =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      setDirty(true);
+      set(v);
+    };
   useEffect(() => {
     const p = policy.data;
-    if (!p) return;
+    if (!p || dirty) return;
     setMinParty(p.meetingMinPartySize === null ? "" : String(p.meetingMinPartySize));
     setHostName(p.meetingHostName ?? "");
     setHostEmail(p.meetingHostEmail ?? "");
     setHours(p.meetingHours);
-  }, [policy.data]);
+  }, [policy.data, dirty]);
 
   const save = useMutation({
     mutationFn: (body: UpdateBookingPolicyInput) =>
       api.put<BookingPolicyDto>(`/api/v1/restaurants/${restaurantId}/policy`, body),
     onSuccess: (updated) => {
       queryClient.setQueryData(policyQuery(restaurantId).queryKey, updated);
+      setDirty(false);
       toast.success(t("app.saved"));
     },
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
@@ -72,19 +81,27 @@ export function MeetingSettingsCard({
               min={2}
               max={1000}
               value={minParty}
-              onChange={(e) => setMinParty(e.target.value)}
+              onChange={(e) => edit(setMinParty)(e.target.value)}
             />
           </Field>
           <Field label={t("meetings.hostName")}>
-            <Input value={hostName} maxLength={80} onChange={(e) => setHostName(e.target.value)} />
+            <Input
+              value={hostName}
+              maxLength={80}
+              onChange={(e) => edit(setHostName)(e.target.value)}
+            />
           </Field>
           <Field label={t("meetings.hostEmail")} hint={t("meetings.hostEmailHint")}>
-            <Input type="email" value={hostEmail} onChange={(e) => setHostEmail(e.target.value)} />
+            <Input
+              type="email"
+              value={hostEmail}
+              onChange={(e) => edit(setHostEmail)(e.target.value)}
+            />
           </Field>
           <div className="sm:col-span-3">
             <p className="mb-1.5 text-sm font-medium text-stone-700">{t("meetings.hours")}</p>
             <p className="mb-2 text-[13px] text-stone-500">{t("meetings.hoursHint")}</p>
-            <WeeklyHoursEditor value={hours} onChange={setHours} />
+            <WeeklyHoursEditor value={hours} onChange={edit(setHours)} />
           </div>
         </fieldset>
         {error ? <Alert>{error}</Alert> : null}

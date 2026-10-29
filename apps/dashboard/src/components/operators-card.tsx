@@ -30,6 +30,7 @@ export function OperatorsCard({
     onSuccess: (updated) => {
       queryClient.setQueryData(policyQuery(restaurantId).queryKey, updated);
       setName("");
+      setError(null);
     },
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });

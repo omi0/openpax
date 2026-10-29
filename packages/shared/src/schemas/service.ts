@@ -136,7 +136,10 @@ export const bookingPolicyDtoSchema = z.object({
   operators: z
     .array(z.string().trim().min(1).max(60))
     .max(30)
-    .refine((names) => new Set(names).size === names.length, "Duplicate operator name"),
+    .refine(
+      (names) => new Set(names.map((n) => n.toLowerCase())).size === names.length,
+      "Duplicate operator name",
+    ),
   /** Groups from this size can book a planning meeting with the host; null = off. */
   meetingMinPartySize: z.number().int().min(2).max(1000).nullable(),
   /** Each window runs from the first meeting start to the end of the last meeting. */

@@ -18,7 +18,7 @@ import {
   type MeetingSlotsDto,
   type ScheduleMeetingInput,
 } from "@openpax/shared";
-import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt, lte, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -26,6 +26,8 @@ import { ApiError } from "../../lib/errors.js";
 import { uniqueViolation } from "../../lib/locks.js";
 
 type MeetingRow = typeof bookingMeeting.$inferSelect;
+
+const MEETING_MS = MEETING_MINUTES * 60_000;
 
 export function toMeetingDto(m: MeetingRow): MeetingDto {
   return {
@@ -37,7 +39,9 @@ export function toMeetingDto(m: MeetingRow): MeetingDto {
   };
 }
 
-async function loadPolicy(db: DbOrTx, restaurantId: string) {
+type PolicyRow = typeof bookingPolicy.$inferSelect;
+
+async function loadPolicy(db: DbOrTx, restaurantId: string): Promise<PolicyRow> {
   const [policy] = await db
     .select()
     .from(bookingPolicy)
@@ -53,7 +57,12 @@ async function closedOn(db: DbOrTx, restaurantId: string, date: LocalDate): Prom
     .select()
     .from(scheduleException)
     .where(
-      and(eq(scheduleException.restaurantId, restaurantId), isNull(scheduleException.serviceId)),
+      and(
+        eq(scheduleException.restaurantId, restaurantId),
+        isNull(scheduleException.serviceId),
+        lte(scheduleException.date, date),
+        gte(sql`coalesce(${scheduleException.endDate}, ${scheduleException.date})`, date),
+      ),
     );
   const latest = rows
     .filter((e) => exceptionCoversDate(e, date))
@@ -64,7 +73,8 @@ async function closedOn(db: DbOrTx, restaurantId: string, date: LocalDate): Prom
 /**
  * The host's slots on a date: every MEETING_MINUTES from the start of each
  * window, as long as the meeting is over by the window's end. Taken and past
- * slots stay in the list as unavailable; `ignoreMeetingId` frees the slot of
+ * slots stay in the list as unavailable, and so does any slot overlapping a
+ * booked meeting (windows may overlap); `ignoreMeetingId` frees the slot of
  * the meeting being moved.
  */
 export async function meetingSlots(
@@ -73,8 +83,9 @@ export async function meetingSlots(
   r: RestaurantRow,
   date: LocalDate,
   ignoreMeetingId?: string,
+  loadedPolicy?: PolicyRow,
 ): Promise<MeetingSlotsDto> {
-  const policy = await loadPolicy(db, r.id);
+  const policy = loadedPolicy ?? (await loadPolicy(db, r.id));
   if (await closedOn(db, r.id, date)) return { date, closed: true, slots: [] };
   const windows = policy.meetingHours[weekdayOf(date)] ?? [];
   const taken = await db
@@ -84,28 +95,31 @@ export async function meetingSlots(
       and(
         eq(bookingMeeting.restaurantId, r.id),
         isNull(bookingMeeting.cancelledAt),
-        gte(bookingMeeting.startsAt, localToInstant(date, 0, r.timezone)),
+        gte(
+          bookingMeeting.startsAt,
+          new Date(localToInstant(date, 0, r.timezone).getTime() - MEETING_MS),
+        ),
         lt(bookingMeeting.startsAt, localToInstant(addDaysToLocalDate(date, 2), 0, r.timezone)),
       ),
     );
-  const busy = new Set(
-    taken.filter((m) => m.id !== ignoreMeetingId).map((m) => m.startsAt.getTime()),
-  );
+  const busy = taken.filter((m) => m.id !== ignoreMeetingId).map((m) => m.startsAt.getTime());
   const now = ctx.now().getTime();
-  const slots = windows
-    .flatMap((w) => {
+  const starts = new Set(
+    windows.flatMap((w) => {
       const { startMin, endMin } = windowToMinutes(w);
-      const starts: number[] = [];
-      for (let m = startMin; m + MEETING_MINUTES <= endMin; m += MEETING_MINUTES) starts.push(m);
-      return starts;
-    })
+      const list: number[] = [];
+      for (let m = startMin; m + MEETING_MINUTES <= endMin; m += MEETING_MINUTES) list.push(m);
+      return list;
+    }),
+  );
+  const slots = [...starts]
     .sort((a, b) => a - b)
     .map((minutes) => {
-      const at = localToInstant(date, minutes, r.timezone);
+      const at = localToInstant(date, minutes, r.timezone).getTime();
       return {
-        startsAt: at.toISOString(),
+        startsAt: new Date(at).toISOString(),
         startLocal: formatMinutesOfDay(minutes),
-        available: at.getTime() > now && !busy.has(at.getTime()),
+        available: at > now && !busy.some((b) => b < at + MEETING_MS && b + MEETING_MS > at),
       };
     });
   return { date, closed: false, slots };
@@ -190,16 +204,31 @@ export async function scheduleMeeting(
           "Meetings are only for groups from the configured size",
         );
 
+      if (startsAt.getTime() + MEETING_MS > b.startsAt.getTime())
+        throw ApiError.badRequest(
+          "meeting_after_event",
+          "The meeting must be over before the event starts",
+        );
+
+      // one host: meetings of the restaurant are booked one at a time
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${r.id}), hashtext('booking_meeting'))`,
+      );
       const current = await activeMeeting(tx, r.id, b.id);
       if (current && current.startsAt.getTime() === startsAt.getTime())
         return toMeetingDto(current);
+      // after midnight a slot may belong to the previous day's window
       const { date } = instantToLocal(startsAt, r.timezone);
-      const day = await meetingSlots(ctx, tx, r, date, current?.id);
-      const slot = day.slots.find((s) => new Date(s.startsAt).getTime() === startsAt.getTime());
+      let slot: MeetingSlotsDto["slots"][number] | undefined;
+      for (const day of [date, addDaysToLocalDate(date, -1)]) {
+        const list = await meetingSlots(ctx, tx, r, day, current?.id, policy);
+        slot = list.slots.find((s) => new Date(s.startsAt).getTime() === startsAt.getTime());
+        if (slot) break;
+      }
       if (!slot) throw ApiError.badRequest("meeting_not_a_slot", "The host is not available then");
       if (!slot.available) throw ApiError.conflict("meeting_slot_taken", "This slot is taken");
 
-      const endsAt = new Date(startsAt.getTime() + MEETING_MINUTES * 60_000);
+      const endsAt = new Date(startsAt.getTime() + MEETING_MS);
       const [row] = current
         ? await tx
             .update(bookingMeeting)
@@ -288,5 +317,29 @@ export async function cancelMeetingOfBooking(
     const row = await activeMeeting(tx, restaurantId, bookingId);
     if (row)
       await cancelRow(tx, { id: restaurantId }, row, { type: "system", id: null }, ctx.now());
+  });
+}
+
+/**
+ * The event booking changed (time, size, notes): send the host the invite
+ * again so the description is current. No-op without a live meeting.
+ */
+export async function refreshMeetingOfBooking(
+  ctx: AppContext,
+  restaurantId: string,
+  bookingId: string,
+): Promise<void> {
+  await ctx.db.transaction(async (tx) => {
+    const row = await activeMeeting(tx, restaurantId, bookingId);
+    if (!row) return;
+    const sequence = row.sequence + 1;
+    await tx.update(bookingMeeting).set({ sequence }).where(eq(bookingMeeting.id, row.id));
+    await emitEvent(tx, {
+      type: "meeting.scheduled",
+      restaurantId,
+      aggregateType: "booking",
+      aggregateId: bookingId,
+      payload: { meetingId: row.id, bookingId, sequence },
+    });
   });
 }

@@ -13,7 +13,7 @@ import type { NotificationProvider } from "../../notifications/provider.js";
 import { parseAddress } from "../../notifications/providers/address.js";
 import { resolveProvider } from "../notifications/index.js";
 import { buildIcs, googleCalendarLink, type IcsEvent } from "./ics.js";
-import { cancelMeetingOfBooking } from "./service.js";
+import { cancelMeetingOfBooking, refreshMeetingOfBooking } from "./service.js";
 
 type Kind = "scheduled" | "cancelled";
 
@@ -85,6 +85,14 @@ export const meetingEventHandlers = [
         kind: "cancelled",
         dedupeKey: `meeting:${event.id}`,
       });
+    },
+  }),
+  defineEventHandler({
+    type: "booking.modified",
+    handle: async (event, ctx) => {
+      const relevant = ["startsAt", "partySize", "serviceId", "notes"];
+      if (event.restaurantId && event.payload.changes.some((c) => relevant.includes(c)))
+        await refreshMeetingOfBooking(ctx, event.restaurantId, event.payload.bookingId);
     },
   }),
   defineEventHandler({

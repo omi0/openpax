@@ -623,12 +623,11 @@ export async function applyBookingAction(
     const next = transition(row.status, p.action);
 
     let floor: AvailabilityInput | null = null;
-    // a table closed by mistake keeps its tables and needs no capacity check:
-    // the guests are still there
+    // a completed booking freed its covers and tables like a cancelled one
     const undoComplete = p.action === "reopen" && row.status === "completed";
-    if (p.action === "reopen" && !undoComplete) {
-      // Re-check capacity before letting a cancelled booking back in: another
-      // party may have taken its covers, its table or its room meanwhile.
+    if (p.action === "reopen") {
+      // Re-check capacity before letting a cancelled or completed booking back
+      // in: another party may have taken its covers, its table or its room meanwhile.
       await lockServiceDates(tx, r.id, [row.serviceDate]);
       const loaded = await loadAvailabilityInput(tx, ctx, r, {
         date: row.serviceDate,
@@ -656,7 +655,7 @@ export async function applyBookingAction(
         ...(p.action === "reopen" ? { cancelledAt: null, cancellationReason: null } : {}),
       })
       .where(eq(booking.id, row.id));
-    if (p.action === "reopen" && !undoComplete) {
+    if (p.action === "reopen") {
       // its old tables may be taken now: seat it again on what is free
       await assignTables(tx, row.id, floor, {
         startsAt: row.startsAt,

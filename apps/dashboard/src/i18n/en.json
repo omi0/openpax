@@ -1160,6 +1160,7 @@
     "hostEmail": "Chef's email",
     "hostEmailHint": "Gets an invite for every meeting. Empty = no invite.",
     "hours": "When they are free",
-    "hoursHint": "Each window runs from the start of the first meeting to the end of the last (e.g. 15:00–17:30 = 5 meetings)."
+    "hoursHint": "Each window runs from the start of the first meeting to the end of the last (e.g. 15:00–17:30 = 5 meetings).",
+    "afterEvent": "The meeting must be before the event. Pick an earlier day."
   }
 }

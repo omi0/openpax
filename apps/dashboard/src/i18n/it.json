@@ -1160,6 +1160,7 @@
     "hostEmail": "Email dello chef",
     "hostEmailHint": "Riceve l'invito per ogni appuntamento. Vuota = nessun invito.",
     "hours": "Quando è disponibile",
-    "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti)."
+    "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti).",
+    "afterEvent": "L'appuntamento deve essere prima dell'evento. Scegli un giorno prima."
   }
 }

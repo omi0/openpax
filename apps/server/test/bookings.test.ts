@@ -713,3 +713,47 @@ describe("undoing a completion", () => {
     expect(seatedAgain.body.customer.visitCount).toBe(1);
   });
 });
+
+describe("undoing a completion when the room filled up", () => {
+  it("refuses to reopen a completed booking whose covers were given away", async () => {
+    const fx = await createFixture(t, { maxCoversPerSlot: 4 });
+    const take = (name: string) =>
+      api<{ id: string; code?: string }>(
+        t,
+        "POST",
+        bookings(fx),
+        {
+          serviceId: fx.serviceId,
+          startsAt: romeInstant(FRIDAY, "19:30"),
+          partySize: 4,
+          customer: { name, phone: "+39 340 3333333" },
+          source: "walk_in",
+        },
+        fx.session,
+      );
+    const first = await take("Primo Tavolo");
+    const act = (id: string, action: string) =>
+      api<{ code?: string }>(t, "POST", `${bookings(fx)}/${id}/actions`, { action }, fx.session);
+    await act(first.body.id, "seat");
+    await act(first.body.id, "complete");
+    const second = await take("Secondo Tavolo");
+    expect(second.status).toBe(201);
+    const reopened = await act(first.body.id, "reopen");
+    expect(reopened.status).toBe(409);
+    expect(reopened.body.code).toBe("slot_unavailable");
+  });
+});
+
+describe("operator names", () => {
+  it("treats names that differ only by case as duplicates", async () => {
+    const fx = await createFixture(t);
+    const res = await api(
+      t,
+      "PUT",
+      `/api/v1/restaurants/${fx.restaurantId}/policy`,
+      { operators: ["Marco", "marco"] },
+      fx.session,
+    );
+    expect(res.status).toBe(400);
+  });
+});
