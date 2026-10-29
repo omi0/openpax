@@ -22,6 +22,14 @@ export type MeetingSlotsDto = z.infer<typeof meetingSlotsDtoSchema>;
 
 export const meetingSlotsQuerySchema = z.object({ date: localDateSchema });
 
+export const meetingDaysQuerySchema = z.object({ from: localDateSchema, to: localDateSchema });
+
+/** How many free slots the host has each day, for greying out full days in a calendar. */
+export const meetingDaysDtoSchema = z.object({
+  days: z.array(z.object({ date: localDateSchema, closed: z.boolean(), free: z.number().int() })),
+});
+export type MeetingDaysDto = z.infer<typeof meetingDaysDtoSchema>;
+
 export const meetingDtoSchema = z.object({
   id: idSchema,
   bookingId: idSchema,

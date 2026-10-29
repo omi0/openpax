@@ -13,6 +13,7 @@ import type {
   CustomerTagDto,
   FeedbackDto,
   FeedbackSummaryDto,
+  MeetingDaysDto,
   MeetingDto,
   MeetingListItemDto,
   MeetingSlotsDto,
@@ -382,4 +383,10 @@ export const operatorsQuery = (id: string) =>
   queryOptions({
     queryKey: ["restaurant", id, "operators"],
     queryFn: () => api.get<OperatorDto[]>(`/api/v1/restaurants/${id}/operators`),
+  });
+
+export const meetingDaysQuery = (id: string, from: string, to: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "days", from, to],
+    queryFn: () => api.get<MeetingDaysDto>(`/api/v1/restaurants/${id}/meetings/days`, { from, to }),
   });

@@ -13,6 +13,7 @@ import type { DbOrTx } from "@openpax/db";
 import { booking, bookingMeeting, bookingPolicy, customer, scheduleException } from "@openpax/db";
 import {
   MEETING_MINUTES,
+  type MeetingDaysDto,
   type MeetingDto,
   type MeetingListItemDto,
   type MeetingSlotsDto,
@@ -51,23 +52,47 @@ async function loadPolicy(db: DbOrTx, restaurantId: string): Promise<PolicyRow> 
   return policy;
 }
 
-/** A restaurant-wide closure covers the day (the latest-starting exception wins, as for services). */
-async function closedOn(db: DbOrTx, restaurantId: string, date: LocalDate): Promise<boolean> {
-  const rows = await db
+type ClosureRow = typeof scheduleException.$inferSelect;
+
+/** Restaurant-wide closures overlapping [from, to]. */
+async function loadClosures(db: DbOrTx, restaurantId: string, from: LocalDate, to: LocalDate) {
+  return db
     .select()
     .from(scheduleException)
     .where(
       and(
         eq(scheduleException.restaurantId, restaurantId),
         isNull(scheduleException.serviceId),
-        lte(scheduleException.date, date),
-        gte(sql`coalesce(${scheduleException.endDate}, ${scheduleException.date})`, date),
+        lte(scheduleException.date, to),
+        gte(sql`coalesce(${scheduleException.endDate}, ${scheduleException.date})`, from),
       ),
     );
-  const latest = rows
+}
+
+/** A closure covers the day (the latest-starting exception wins, as for services). */
+function closedOn(closures: ClosureRow[], date: LocalDate): boolean {
+  const latest = closures
     .filter((e) => exceptionCoversDate(e, date))
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0];
   return latest?.closed ?? false;
+}
+
+/** Live meetings starting from just before `from` to the end of the day after `to`. */
+async function loadTaken(db: DbOrTx, r: RestaurantRow, from: LocalDate, to: LocalDate) {
+  return db
+    .select({ id: bookingMeeting.id, startsAt: bookingMeeting.startsAt })
+    .from(bookingMeeting)
+    .where(
+      and(
+        eq(bookingMeeting.restaurantId, r.id),
+        isNull(bookingMeeting.cancelledAt),
+        gte(
+          bookingMeeting.startsAt,
+          new Date(localToInstant(from, 0, r.timezone).getTime() - MEETING_MS),
+        ),
+        lt(bookingMeeting.startsAt, localToInstant(addDaysToLocalDate(to, 2), 0, r.timezone)),
+      ),
+    );
 }
 
 /**
@@ -77,33 +102,18 @@ async function closedOn(db: DbOrTx, restaurantId: string, date: LocalDate): Prom
  * booked meeting (windows may overlap); `ignoreMeetingId` frees the slot of
  * the meeting being moved.
  */
-export async function meetingSlots(
-  ctx: AppContext,
-  db: DbOrTx,
+function computeSlots(
+  policy: PolicyRow,
+  closures: ClosureRow[],
+  taken: Array<{ id: string; startsAt: Date }>,
   r: RestaurantRow,
   date: LocalDate,
+  now: number,
   ignoreMeetingId?: string,
-  loadedPolicy?: PolicyRow,
-): Promise<MeetingSlotsDto> {
-  const policy = loadedPolicy ?? (await loadPolicy(db, r.id));
-  if (await closedOn(db, r.id, date)) return { date, closed: true, slots: [] };
+): MeetingSlotsDto {
+  if (closedOn(closures, date)) return { date, closed: true, slots: [] };
   const windows = policy.meetingHours[weekdayOf(date)] ?? [];
-  const taken = await db
-    .select({ id: bookingMeeting.id, startsAt: bookingMeeting.startsAt })
-    .from(bookingMeeting)
-    .where(
-      and(
-        eq(bookingMeeting.restaurantId, r.id),
-        isNull(bookingMeeting.cancelledAt),
-        gte(
-          bookingMeeting.startsAt,
-          new Date(localToInstant(date, 0, r.timezone).getTime() - MEETING_MS),
-        ),
-        lt(bookingMeeting.startsAt, localToInstant(addDaysToLocalDate(date, 2), 0, r.timezone)),
-      ),
-    );
   const busy = taken.filter((m) => m.id !== ignoreMeetingId).map((m) => m.startsAt.getTime());
-  const now = ctx.now().getTime();
   const starts = new Set(
     windows.flatMap((w) => {
       const { startMin, endMin } = windowToMinutes(w);
@@ -123,6 +133,42 @@ export async function meetingSlots(
       };
     });
   return { date, closed: false, slots };
+}
+
+export async function meetingSlots(
+  ctx: AppContext,
+  db: DbOrTx,
+  r: RestaurantRow,
+  date: LocalDate,
+  ignoreMeetingId?: string,
+  loadedPolicy?: PolicyRow,
+): Promise<MeetingSlotsDto> {
+  const policy = loadedPolicy ?? (await loadPolicy(db, r.id));
+  const [closures, taken] = await Promise.all([
+    loadClosures(db, r.id, date, date),
+    loadTaken(db, r, date, date),
+  ]);
+  return computeSlots(policy, closures, taken, r, date, ctx.now().getTime(), ignoreMeetingId);
+}
+
+/** Free slots per day between two dates, for a month calendar (at most 62 days). */
+export async function meetingDays(
+  ctx: AppContext,
+  r: RestaurantRow,
+  q: { from: LocalDate; to: LocalDate },
+): Promise<MeetingDaysDto> {
+  const policy = await loadPolicy(ctx.db, r.id);
+  const [closures, taken] = await Promise.all([
+    loadClosures(ctx.db, r.id, q.from, q.to),
+    loadTaken(ctx.db, r, q.from, q.to),
+  ]);
+  const now = ctx.now().getTime();
+  const days: MeetingDaysDto["days"] = [];
+  for (let d = q.from, i = 0; d <= q.to && i < 62; d = addDaysToLocalDate(d, 1), i += 1) {
+    const day = computeSlots(policy, closures, taken, r, d, now);
+    days.push({ date: d, closed: day.closed, free: day.slots.filter((s) => s.available).length });
+  }
+  return { days };
 }
 
 async function activeMeeting(db: DbOrTx, restaurantId: string, bookingId: string) {

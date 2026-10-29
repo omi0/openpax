@@ -2,6 +2,8 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import {
   listMeetingsQuerySchema,
+  meetingDaysDtoSchema,
+  meetingDaysQuerySchema,
   meetingDtoSchema,
   meetingListItemDtoSchema,
   meetingSlotsDtoSchema,
@@ -33,6 +35,18 @@ export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
         await svc.meetingSlots(ctx, ctx.db, c.get("restaurant"), c.req.valid("query").date),
         200,
       ),
+  );
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: `${base}/days`,
+      tags,
+      summary: "Free meeting slots per day between two dates (at most 62 days)",
+      middleware: [requireRestaurant(ctx, { booking: ["read"] })] as const,
+      request: { params: restaurantIdParam, query: meetingDaysQuerySchema },
+      responses: { 200: jsonResponse(meetingDaysDtoSchema, "Days") },
+    }),
+    async (c) => c.json(await svc.meetingDays(ctx, c.get("restaurant"), c.req.valid("query")), 200),
   );
   app.openapi(
     createRoute({

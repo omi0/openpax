@@ -1,21 +1,17 @@
 import type { BookingDto, MeetingDto, RestaurantDto } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChefHat } from "lucide-react";
+import { ChefHat, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Alert,
-  Button,
-  Dialog,
-  Field,
-  Input,
-  Spinner,
-  useConfirm,
-  useToast,
-} from "@/components/ui";
+import { Alert, Button, Dialog, Spinner, useConfirm, useToast } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { bookingMeetingQuery, meetingSlotsQuery, policyQuery } from "@/lib/queries";
-import { cn, formatDateTime, todayLocal } from "@/lib/utils";
+import {
+  bookingMeetingQuery,
+  meetingDaysQuery,
+  meetingSlotsQuery,
+  policyQuery,
+} from "@/lib/queries";
+import { addDays, cn, formatDateTime, todayLocal } from "@/lib/utils";
 
 /** Pick one of the host's free 30-minute slots for a group booking (or move the current one). */
 export function MeetingDialog({
@@ -101,19 +97,19 @@ export function MeetingDialog({
             })}
           </p>
         ) : null}
-        <Field label={t("meetings.day")} required>
-          <Input
-            type="date"
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-stone-700">{t("meetings.day")}</p>
+          <MeetingCalendar
+            restaurantId={restaurant.id}
+            today={todayLocal(restaurant.timezone)}
+            last={booking.serviceDate}
             value={day}
-            min={todayLocal(restaurant.timezone)}
-            max={booking.serviceDate}
-            onChange={(e) => {
-              setDay(e.target.value);
+            onChange={(d) => {
+              setDay(d);
               setSlot("");
             }}
-            required
           />
-        </Field>
+        </div>
         {day === "" ? (
           <p className="text-sm text-stone-500">{t("meetings.pickDay")}</p>
         ) : slots.isLoading ? (
@@ -230,6 +226,115 @@ export function MeetingSection({
         open={open}
         onClose={() => setOpen(false)}
       />
+    </div>
+  );
+}
+
+const monthStart = (date: string) => `${date.slice(0, 7)}-01`;
+const shiftMonth = (first: string, by: number) => {
+  const [y, m] = first.split("-").map(Number);
+  return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1 + by, 1)).toISOString().slice(0, 10);
+};
+
+/**
+ * Month calendar for the host's meetings: only days with a free slot, from
+ * today to the event day, can be tapped; the others are greyed out.
+ */
+function MeetingCalendar({
+  restaurantId,
+  today,
+  last,
+  value,
+  onChange,
+}: {
+  restaurantId: string;
+  today: string;
+  /** The event day: the meeting has to come before it. */
+  last: string;
+  value: string;
+  onChange: (date: string) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [month, setMonth] = useState(monthStart(today));
+  const end = addDays(shiftMonth(month, 1), -1);
+  const days = useQuery(meetingDaysQuery(restaurantId, month, end));
+  const free = new Map((days.data?.days ?? []).map((d) => [d.date, d.free]));
+  // Monday-first grid: blank cells before the 1st
+  const lead = (new Date(`${month}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const dates: string[] = [];
+  for (let d = month; d <= end; d = addDays(d, 1)) dates.push(d);
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Intl.DateTimeFormat(i18n.language, { weekday: "short", timeZone: "UTC" }).format(
+      new Date(Date.UTC(2024, 0, 1 + i)),
+    ),
+  );
+  const title = new Intl.DateTimeFormat(i18n.language, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}T12:00:00Z`));
+
+  return (
+    <div className="rounded-xl border border-stone-200 p-2">
+      <div className="mb-2 flex items-center justify-between">
+        <button
+          type="button"
+          aria-label={t("meetings.prevMonth")}
+          disabled={month <= monthStart(today)}
+          onClick={() => setMonth(shiftMonth(month, -1))}
+          className="flex size-12 items-center justify-center rounded-xl hover:bg-stone-100 disabled:opacity-30"
+        >
+          <ChevronLeft className="size-6" />
+        </button>
+        <span className="text-[15px] font-semibold capitalize">{title}</span>
+        <button
+          type="button"
+          aria-label={t("meetings.nextMonth")}
+          disabled={end >= last}
+          onClick={() => setMonth(shiftMonth(month, 1))}
+          className="flex size-12 items-center justify-center rounded-xl hover:bg-stone-100 disabled:opacity-30"
+        >
+          <ChevronRight className="size-6" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {weekdays.map((w) => (
+          <span key={w} className="py-1 text-xs font-semibold uppercase text-stone-500">
+            {w}
+          </span>
+        ))}
+        {Array.from({ length: lead }, (_, i) => (
+          <span key={`lead-${dates[0]}-${i}`} />
+        ))}
+        {dates.map((d) => {
+          const open = d >= today && d <= last && (free.get(d) ?? 0) > 0;
+          const selected = d === value;
+          return (
+            <button
+              key={d}
+              type="button"
+              disabled={!open}
+              aria-pressed={selected}
+              onClick={() => onChange(d)}
+              className={cn(
+                "flex h-12 items-center justify-center rounded-xl text-[15px] font-semibold tabular-nums",
+                selected
+                  ? "bg-brand-600 text-white"
+                  : open
+                    ? "border border-stone-300 bg-white text-stone-900 hover:border-brand-400"
+                    : "cursor-not-allowed bg-stone-100 text-stone-300",
+              )}
+            >
+              {Number(d.slice(8))}
+            </button>
+          );
+        })}
+      </div>
+      {days.isLoading ? (
+        <div className="flex justify-center py-2">
+          <Spinner />
+        </div>
+      ) : null}
     </div>
   );
 }

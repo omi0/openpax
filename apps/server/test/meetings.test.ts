@@ -349,3 +349,32 @@ describe("host meetings, edge cases", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
   });
 });
+
+describe("host meeting calendar", () => {
+  it("counts free slots per day: zero on days off, closures and full days", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    await api(
+      t,
+      "POST",
+      `${base(fx)}/schedule-exceptions`,
+      { date: "2026-06-19", closed: true, reason: "Holiday" },
+      fx.session,
+    );
+    const bookingId = await groupBooking(fx);
+    await schedule(fx, bookingId, "15:00");
+    const res = await api<{ days: Array<{ date: string; closed: boolean; free: number }> }>(
+      t,
+      "GET",
+      `${base(fx)}/meetings/days?from=2026-06-11&to=2026-06-19`,
+      undefined,
+      fx.session,
+    );
+    expect(res.status).toBe(200);
+    const byDate = Object.fromEntries(res.body.days.map((d) => [d.date, d]));
+    expect(res.body.days).toHaveLength(9);
+    expect(byDate["2026-06-11"]?.free).toBe(0); // Thursday: no hours
+    expect(byDate[FRIDAY]?.free).toBe(4); // five slots, one taken
+    expect(byDate["2026-06-19"]).toMatchObject({ closed: true, free: 0 });
+  });
+});

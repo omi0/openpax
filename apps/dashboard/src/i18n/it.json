@@ -1157,7 +1157,7 @@
     "confirm": "Fissa appuntamento",
     "currently": "Adesso è fissato per {{when}}.",
     "day": "Giorno dell'appuntamento",
-    "pickDay": "Scegli il giorno che va bene al cliente.",
+    "pickDay": "Tocca un giorno libero: quelli grigi sono pieni o lo chef non c'è.",
     "closedDay": "Quel giorno il ristorante è chiuso.",
     "noSlots": "Quel giorno {{host}} non ha orari liberi. Prova un altro giorno.",
     "taken": "Qualcuno ha appena preso quell'orario. Scegline un altro.",
@@ -1180,6 +1180,8 @@
     "hostEmailHint": "Riceve l'invito per ogni appuntamento. Vuota = nessun invito.",
     "hours": "Quando è disponibile",
     "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti).",
-    "afterEvent": "L'appuntamento deve essere prima dell'evento. Scegli un giorno prima."
+    "afterEvent": "L'appuntamento deve essere prima dell'evento. Scegli un giorno prima.",
+    "prevMonth": "Mese prima",
+    "nextMonth": "Mese dopo"
   }
 }

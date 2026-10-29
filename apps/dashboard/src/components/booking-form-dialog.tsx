@@ -206,8 +206,8 @@ export function BookingFormDialog({
           <Field label={t("today.form.name")} className="sm:col-span-2" required>
             <Input name="name" required autoComplete="off" />
           </Field>
-          <Field label={t("today.form.phone")}>
-            <Input name="phone" type="tel" inputMode="tel" autoComplete="off" />
+          <Field label={t("today.form.phone")} required>
+            <Input name="phone" type="tel" inputMode="tel" autoComplete="off" required />
           </Field>
           <Field label={t("today.form.email")}>
             <Input name="email" type="email" inputMode="email" autoComplete="off" />
