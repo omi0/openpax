@@ -649,7 +649,8 @@
     "all": "Tutte",
     "period": "Periodo",
     "hint": "Cerca e sfoglia tutte le prenotazioni, passate e future.",
-    "emptyFiltered": "Prova un'altra ricerca o azzera i filtri."
+    "emptyFiltered": "Prova un'altra ricerca o azzera i filtri.",
+    "recent": "Ultime prese"
   },
   "templates": {
     "hint": "Riscrivi ogni messaggio con parole tue. I segnaposto tra doppie graffe vengono sostituiti all'invio; la tabella con i dettagli e il pulsante di gestione restano.",

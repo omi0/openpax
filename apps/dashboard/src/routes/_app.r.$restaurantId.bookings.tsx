@@ -19,13 +19,14 @@ import {
   StatusBadge,
 } from "@/components/ui";
 import { bookingsSearchQuery, restaurantQuery } from "@/lib/queries";
-import { cn, formatDate, formatTime, todayLocal } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, formatTime, todayLocal } from "@/lib/utils";
 
 interface BookingsSearch {
   q?: string;
   status?: string;
   from?: string;
   to?: string;
+  recent?: boolean;
   page?: number;
 }
 
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/_app/r/$restaurantId/bookings")({
       : {}),
     ...(isDate(search.from) ? { from: search.from } : {}),
     ...(isDate(search.to) ? { to: search.to } : {}),
+    ...(search.recent === true ? { recent: true } : {}),
     ...(typeof search.page === "number" && search.page > 1 ? { page: search.page } : {}),
   }),
   component: BookingsPage,
@@ -62,6 +64,7 @@ function BookingsPage() {
       status: search.status,
       from: search.from,
       to: search.to,
+      recent: search.recent,
       page: search.page ?? 1,
     }),
   );
@@ -70,7 +73,8 @@ function BookingsPage() {
     void navigate({
       search: (prev) => {
         const next = { ...prev, ...patch };
-        for (const k of ["q", "status", "from", "to"] as const) if (!next[k]) delete next[k];
+        for (const k of ["q", "status", "from", "to", "recent"] as const)
+          if (!next[k]) delete next[k];
         if (!next.page || next.page <= 1) delete next.page;
         return next;
       },
@@ -88,8 +92,14 @@ function BookingsPage() {
   const page = search.page ?? 1;
   const upcoming = search.from === today && !search.to;
   const past = search.to === today && !search.from;
-  const period: "all" | "upcoming" | "past" = upcoming ? "upcoming" : past ? "past" : "all";
-  const filtered = !!(search.q || search.status || search.from || search.to);
+  const period: "all" | "upcoming" | "past" | "recent" = search.recent
+    ? "recent"
+    : upcoming
+      ? "upcoming"
+      : past
+        ? "past"
+        : "all";
+  const filtered = !!(search.q || search.status || search.from || search.to || search.recent);
 
   return (
     <div>
@@ -127,14 +137,17 @@ function BookingsPage() {
             value={period}
             onChange={(v) =>
               update(
-                v === "upcoming"
-                  ? { from: today, to: "", page: 1 }
-                  : v === "past"
-                    ? { from: "", to: today, page: 1 }
-                    : { from: "", to: "", page: 1 },
+                v === "recent"
+                  ? { from: "", to: "", recent: true, page: 1 }
+                  : v === "upcoming"
+                    ? { from: today, to: "", recent: false, page: 1 }
+                    : v === "past"
+                      ? { from: "", to: today, recent: false, page: 1 }
+                      : { from: "", to: "", recent: false, page: 1 },
               )
             }
             options={[
+              { value: "recent", label: t("bookings.recent") },
               { value: "all", label: t("bookings.all") },
               { value: "upcoming", label: t("bookings.upcoming") },
               { value: "past", label: t("bookings.past") },
@@ -178,7 +191,7 @@ function BookingsPage() {
               variant="ghost"
               onClick={() => {
                 setTerm("");
-                update({ q: "", status: "", from: "", to: "", page: 1 });
+                update({ q: "", status: "", from: "", to: "", recent: false, page: 1 });
               }}
             >
               {t("bookings.clear")}
@@ -256,6 +269,11 @@ function BookingsPage() {
                         <span className="md:hidden">
                           {t("today.guests", { count: b.partySize })} · {b.serviceName}
                         </span>
+                        {search.recent ? (
+                          <span className="font-medium text-stone-700">
+                            {`${t("today.operatorTakenAt")} ${formatDateTime(b.createdAt, restaurant.timezone, i18n.language)}`}
+                          </span>
+                        ) : null}
                         <span className="text-stone-400">
                           {t(`today.source.${b.source}`)}
                           {b.operatorName

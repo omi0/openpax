@@ -174,5 +174,7 @@ export const listBookingsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(100).optional(),
   /** Chronological by default; "desc" for history views. */
   order: z.enum(["asc", "desc"]).default("asc"),
+  /** "created" = latest taken or received first, whatever the visit date. */
+  sort: z.enum(["visit", "created"]).optional(),
 });
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;

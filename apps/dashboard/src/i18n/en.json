@@ -649,7 +649,8 @@
     "all": "All",
     "period": "Period",
     "hint": "Search and browse every booking, past and future.",
-    "emptyFiltered": "Try another search or clear the filters."
+    "emptyFiltered": "Try another search or clear the filters.",
+    "recent": "Latest taken"
   },
   "templates": {
     "hint": "Rewrite any message in your own words. Placeholders in double braces are replaced when the message goes out; the booking details table and the manage button stay.",

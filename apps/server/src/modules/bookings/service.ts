@@ -218,8 +218,12 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
       .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
       .where(where)
       .orderBy(
-        q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
-        desc(booking.createdAt),
+        ...(q.sort === "created"
+          ? [desc(booking.createdAt)]
+          : [
+              q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
+              desc(booking.createdAt),
+            ]),
       )
       .limit(q.pageSize)
       .offset((q.page - 1) * q.pageSize),

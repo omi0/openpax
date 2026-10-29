@@ -550,6 +550,20 @@ describe("bookings created after an instant", () => {
       fx.session,
     );
     expect(none.body.total).toBe(0);
+
+    // history: the latest taken first, whatever the time of the visit
+    const names = async (query: string) =>
+      (
+        await api<{ items: Array<{ customer: { name: string } }> }>(
+          t,
+          "GET",
+          `${bookings(fx)}${query}`,
+          undefined,
+          fx.session,
+        )
+      ).body.items.map((x) => x.customer.name);
+    expect(await names("")).toEqual(["Mario Rossi", "Lucia Bianchi"]);
+    expect(await names("?sort=created")).toEqual(["Lucia Bianchi", "Mario Rossi"]);
   });
 });
 

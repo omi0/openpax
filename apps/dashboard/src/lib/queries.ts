@@ -171,6 +171,8 @@ export interface BookingsSearchParams {
   status?: string;
   from?: string;
   to?: string;
+  /** Latest taken or received first. */
+  recent?: boolean;
   page?: number;
 }
 
@@ -184,10 +186,13 @@ export const bookingsSearchQuery = (id: string, params: BookingsSearchParams) =>
         from: params.from || undefined,
         to: params.to || undefined,
         order: params.from && !params.to ? "asc" : "desc",
+        sort: params.recent ? "created" : undefined,
         page: params.page,
         pageSize: 50,
       }),
     placeholderData: (prev) => prev,
+    // the history picks up online bookings as they arrive
+    refetchInterval: params.recent ? 30_000 : false,
   });
 
 /** Slots as staff see them: only real capacity, none of the online-only rules. */
