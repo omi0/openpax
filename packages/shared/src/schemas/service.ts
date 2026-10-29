@@ -126,6 +126,11 @@ export const bookingPolicyDtoSchema = z.object({
     .int()
     .min(15)
     .max(60 * 24 * 7),
+  /** Names staff pick from when taking a booking; empty = not asked. */
+  operators: z
+    .array(z.string().trim().min(1).max(60))
+    .max(30)
+    .refine((names) => new Set(names).size === names.length, "Duplicate operator name"),
 });
 export type BookingPolicyDto = z.infer<typeof bookingPolicyDtoSchema>;
 

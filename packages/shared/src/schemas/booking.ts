@@ -14,6 +14,7 @@ import { bookingPaymentDtoSchema, publicPaymentDtoSchema } from "./payments.js";
 import { bookingTableDtoSchema } from "./tables.js";
 
 export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
+export const operatorNameSchema = z.string().trim().min(1).max(60);
 export const bookingSourceSchema = z.enum(BOOKING_SOURCES);
 export const bookingActionSchema = z.enum(BOOKING_ACTIONS);
 
@@ -62,6 +63,8 @@ export const createStaffBookingInputSchema = z.object({
   /** Staff may override capacity (e.g. squeeze in regulars). */
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),
+  /** Who took it; required from dashboard users when the restaurant has an operator list. */
+  operatorName: operatorNameSchema.optional(),
 });
 export type CreateStaffBookingInput = z.infer<typeof createStaffBookingInputSchema>;
 
@@ -91,6 +94,8 @@ export const bookingDtoSchema = z.object({
   source: bookingSourceSchema,
   locale: localeSchema,
   notes: z.string().nullable(),
+  /** Staff member who took the booking. */
+  operatorName: z.string().nullable(),
   confirmationCode: z.string(),
   /** Tables assigned on the floor plan (empty without one). */
   tables: z.array(bookingTableDtoSchema),
@@ -138,6 +143,7 @@ export const updateBookingInputSchema = z.object({
   partySize: partySizeSchema.optional(),
   areaId: idSchema.nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  operatorName: operatorNameSchema.nullable().optional(),
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),
 });

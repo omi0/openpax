@@ -90,6 +90,7 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     source: x.booking.source,
     locale: x.booking.locale as BookingDto["locale"],
     notes: x.booking.notes,
+    operatorName: x.booking.operatorName,
     confirmationCode: x.booking.confirmationCode,
     tables: x.tables,
     payment: x.payment ? toPaymentDto(x.payment) : null,
@@ -272,6 +273,10 @@ export interface CreateBookingParams {
   seatNow?: boolean;
   /** false = do not send the guest the confirmation (default true). */
   notifyGuest?: boolean;
+  /** Staff member who took the booking. */
+  operatorName?: string | null;
+  /** Dashboard users must pick a name when the restaurant has an operator list. */
+  requireOperator?: boolean;
   requirePhone?: boolean;
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
@@ -290,6 +295,21 @@ export interface CreateBookingParams {
    */
   onLocked?: (tx: DbOrTx, booking: { id: string }) => Promise<void>;
   onCreated?: (tx: DbOrTx, booking: { id: string; startsAt: Date }) => Promise<void>;
+}
+
+/**
+ * The operator must come from the restaurant's list. With `required`, a
+ * missing name is refused too; an empty list turns the whole check off.
+ */
+function assertOperator(operators: string[], name: string | null | undefined, required: boolean) {
+  if (operators.length === 0) return;
+  if (!name) {
+    if (required)
+      throw ApiError.badRequest("operator_required", "Choose who is taking the booking");
+    return;
+  }
+  if (!operators.includes(name))
+    throw ApiError.badRequest("unknown_operator", "This name is not in the operator list");
 }
 
 /** Reasons that mean "there is no room": the only ones that stop staff from reopening a booking. */
@@ -479,6 +499,7 @@ async function insertBookingLocked(
     .where(eq(bookingPolicy.restaurantId, r.id))
     .limit(1);
   if (!policy) throw ApiError.notFound("Booking policy");
+  assertOperator(policy.operators, p.operatorName, p.requireOperator ?? false);
 
   let status: BookingStatus;
   if (p.imported) status = p.imported.status;
@@ -511,6 +532,7 @@ async function insertBookingLocked(
       manageToken: newToken(),
       idempotencyKey: p.idempotencyKey ?? null,
       createdByUserId: p.actor.type === "user" ? p.actor.id : null,
+      operatorName: p.operatorName ?? null,
       ...(p.imported?.createdAt ? { createdAt: p.imported.createdAt } : {}),
     })
     .returning();
@@ -813,6 +835,15 @@ export async function updateBooking(
       if (areaId !== row.areaId) changes.push("areaId");
     }
     if (input.notes !== undefined && input.notes !== row.notes) changes.push("notes");
+    if (input.operatorName !== undefined && input.operatorName !== row.operatorName) {
+      const [policy] = await tx
+        .select({ operators: bookingPolicy.operators })
+        .from(bookingPolicy)
+        .where(eq(bookingPolicy.restaurantId, r.id))
+        .limit(1);
+      assertOperator(policy?.operators ?? [], input.operatorName, false);
+      changes.push("operatorName");
+    }
     if (changes.length === 0) return;
 
     await tx
@@ -825,6 +856,7 @@ export async function updateBooking(
         serviceId,
         areaId,
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        ...(input.operatorName !== undefined ? { operatorName: input.operatorName } : {}),
       })
       .where(eq(booking.id, row.id));
     if (timingChanged) {
@@ -842,17 +874,19 @@ export async function updateBooking(
         before.every((b) => after.some((a) => a.tableId === b.tableId));
       if (!same) changes.push("tables");
     }
-    await emitEvent(tx, {
-      type: "booking.modified",
-      restaurantId: r.id,
-      aggregateType: "booking",
-      aggregateId: row.id,
-      payload: {
-        bookingId: row.id,
-        changes,
-        ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
-      },
-    });
+    // Fixing who took the booking is internal: no event, so nobody gets notified.
+    if (changes.some((c) => c !== "operatorName"))
+      await emitEvent(tx, {
+        type: "booking.modified",
+        restaurantId: r.id,
+        aggregateType: "booking",
+        aggregateId: row.id,
+        payload: {
+          bookingId: row.id,
+          changes,
+          ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
+        },
+      });
     await writeAudit(tx, {
       restaurantId: r.id,
       actor,

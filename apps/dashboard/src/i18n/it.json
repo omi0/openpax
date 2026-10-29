@@ -154,7 +154,11 @@
       "notifyChange": "Avvisa l'ospite della modifica",
       "notifyChangeHint": "Via email o SMS, come impostato in Notifiche.",
       "room": "Sala",
-      "anyRoom": "Qualsiasi sala"
+      "anyRoom": "Qualsiasi sala",
+      "operator": "Chi la sta prendendo?",
+      "operatorChoose": "Scegli il tuo nome…",
+      "operatorRequired": "Scegli chi sta prendendo la prenotazione.",
+      "unknownOperator": "Questo nome non è più nell'elenco dello staff. Scegline un altro."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -222,7 +226,10 @@
     "blockedTimes": "Orari bloccati online",
     "blockChange": "Modifica",
     "blockRuleName": "Bloccato da Oggi",
-    "blockNoSlots": "Nessun orario in questo giorno."
+    "blockNoSlots": "Nessun orario in questo giorno.",
+    "operatorLabel": "Presa da",
+    "operatorTaken": "presa da {{name}}",
+    "operatorTakenAt": "Presa il"
   },
   "services": {
     "title": "Servizi",
@@ -1099,5 +1106,14 @@
     "switchAccount": "Accedi con un altro account",
     "failed": "Non è stato possibile completare il collegamento. Riprova dall'assistente.",
     "backTo": "Dopo l'approvazione tornerai su {{host}}."
+  },
+  "operators": {
+    "title": "Nomi dello staff per le prenotazioni",
+    "hint": "Chi prende una prenotazione dal gestionale deve scegliere il suo nome da questo elenco. Lascialo vuoto per non chiederlo.",
+    "empty": "Nessun nome: il gestionale non chiede chi prende la prenotazione.",
+    "placeholder": "Nome, es. Marco",
+    "add": "Aggiungi",
+    "remove": "Togli {{name}}",
+    "duplicate": "Questo nome c'è già."
   }
 }

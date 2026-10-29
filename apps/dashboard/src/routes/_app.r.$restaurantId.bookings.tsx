@@ -256,7 +256,12 @@ function BookingsPage() {
                         <span className="md:hidden">
                           {t("today.guests", { count: b.partySize })} · {b.serviceName}
                         </span>
-                        <span className="text-stone-400">{t(`today.source.${b.source}`)}</span>
+                        <span className="text-stone-400">
+                          {t(`today.source.${b.source}`)}
+                          {b.operatorName
+                            ? ` · ${t("today.operatorTaken", { name: b.operatorName })}`
+                            : null}
+                        </span>
                       </p>
                       {b.notes ? (
                         <p className="mt-0.5 flex items-start gap-1 text-[13px] text-amber-900">

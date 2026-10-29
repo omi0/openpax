@@ -85,6 +85,13 @@
       "when": 1789839978865,
       "tag": "0011_widget_contact_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793238940670,
+      "tag": "0012_booking_operator",
+      "breakpoints": true
     }
   ]
 }

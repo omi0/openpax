@@ -9,6 +9,7 @@ import {
   CalendarX,
   CheckCheck,
   CircleCheck,
+  Clock,
   Copy,
   DoorOpen,
   LayoutGrid,
@@ -18,6 +19,7 @@ import {
   Send,
   StickyNote,
   Undo2,
+  UserPen,
   UserRound,
   Users,
   UserX,
@@ -36,7 +38,7 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { areasQuery, bookingNotificationsQuery } from "@/lib/queries";
-import { cn, formatDate, formatTime } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, formatTime } from "@/lib/utils";
 
 export const ACTIVE_STATUSES = new Set(["pending", "confirmed", "seated"]);
 
@@ -233,6 +235,16 @@ export function BookingSheet({
             ) : null}
             <Row icon={<Copy />} label={t("today.code")}>
               <span className="font-mono tracking-wider">{b.confirmationCode}</span>
+            </Row>
+            {b.operatorName ? (
+              <Row icon={<UserPen />} label={t("today.operatorLabel")}>
+                {b.operatorName}
+              </Row>
+            ) : null}
+            <Row icon={<Clock />} label={t("today.operatorTakenAt")}>
+              <span className="capitalize tabular-nums">
+                {formatDateTime(b.createdAt, restaurant.timezone, i18n.language)}
+              </span>
             </Row>
           </dl>
 

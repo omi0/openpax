@@ -154,7 +154,11 @@
       "notifyChange": "Tell the guest about the change",
       "notifyChangeHint": "By email or SMS, as set under Notifications.",
       "room": "Room",
-      "anyRoom": "Any room"
+      "anyRoom": "Any room",
+      "operator": "Who is taking it?",
+      "operatorChoose": "Pick your name…",
+      "operatorRequired": "Choose who is taking the booking.",
+      "unknownOperator": "This name is no longer in the staff list. Pick another one."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -222,7 +226,10 @@
     "blockedTimes": "Times blocked online",
     "blockChange": "Change",
     "blockRuleName": "Blocked from Today",
-    "blockNoSlots": "No times on this day."
+    "blockNoSlots": "No times on this day.",
+    "operatorLabel": "Taken by",
+    "operatorTaken": "taken by {{name}}",
+    "operatorTakenAt": "Taken on"
   },
   "services": {
     "title": "Services",
@@ -1099,5 +1106,14 @@
     "switchAccount": "Log in with another account",
     "failed": "Could not complete the connection. Try again from the assistant.",
     "backTo": "After approving you will be sent back to {{host}}."
+  },
+  "operators": {
+    "title": "Staff names for bookings",
+    "hint": "Whoever takes a booking from the dashboard must pick their name from this list. Leave it empty to not ask.",
+    "empty": "No names: the dashboard does not ask who takes the booking.",
+    "placeholder": "Name, e.g. Mark",
+    "add": "Add",
+    "remove": "Remove {{name}}",
+    "duplicate": "This name is already listed."
   }
 }

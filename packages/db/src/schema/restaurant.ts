@@ -63,6 +63,8 @@ export const bookingPolicy = pgTable("booking_policy", {
   waitlistAutoOffer: boolean().notNull().default(true),
   /** How long a guest has to accept an offered table. */
   waitlistOfferMinutes: integer().notNull().default(120),
+  /** Names staff pick from when taking a booking (one login shared by the whole team). */
+  operators: text().array().notNull().default([]),
   updatedAt: updatedAt(),
 });
 

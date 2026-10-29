@@ -86,6 +86,7 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
     waitlistEnabled: row.waitlistEnabled,
     waitlistAutoOffer: row.waitlistAutoOffer,
     waitlistOfferMinutes: row.waitlistOfferMinutes,
+    operators: row.operators,
   };
 }
 

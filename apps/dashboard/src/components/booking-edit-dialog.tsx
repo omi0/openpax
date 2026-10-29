@@ -17,7 +17,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { areasQuery, staffAvailabilityQuery } from "@/lib/queries";
+import { areasQuery, policyQuery, staffAvailabilityQuery } from "@/lib/queries";
 import { formatTime } from "@/lib/utils";
 
 const at = (iso: string) => new Date(iso).getTime();
@@ -44,6 +44,7 @@ export function BookingEditDialog({
   const [slot, setSlot] = useState(`${booking.serviceId}|${at(booking.startsAt)}`);
   const [notes, setNotes] = useState(booking.notes ?? "");
   const [areaId, setAreaId] = useState<string | null>(booking.areaId);
+  const [operatorName, setOperatorName] = useState(booking.operatorName ?? "");
   const [ignoreCapacity, setIgnoreCapacity] = useState(false);
   const [notifyGuest, setNotifyGuest] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +55,13 @@ export function BookingEditDialog({
   const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
   // open rooms, plus the booking's own room even when it is closed for now
   const rooms = (areas.data ?? []).filter((a) => a.active || a.id === booking.areaId);
+  const policy = useQuery({ ...policyQuery(restaurant.id), enabled: open });
+  // the list, plus the booking's own name even when it was removed since
+  const listed = policy.data?.operators ?? [];
+  const operators =
+    booking.operatorName && !listed.includes(booking.operatorName)
+      ? [booking.operatorName, ...listed]
+      : listed;
 
   const update = useMutation({
     mutationFn: (body: UpdateBookingInput) =>
@@ -73,6 +81,8 @@ export function BookingEditDialog({
             }),
           }),
         );
+      else if (e instanceof ApiClientError && e.code === "unknown_operator")
+        setError(t("today.form.unknownOperator"));
       else setError(e instanceof ApiClientError ? e.message : t("app.error"));
     },
   });
@@ -113,6 +123,7 @@ export function BookingEditDialog({
     const trimmed = notes.trim();
     if (trimmed !== (booking.notes ?? "")) body.notes = trimmed || null;
     if (areaId !== booking.areaId) body.areaId = areaId;
+    if (operatorName !== (booking.operatorName ?? "")) body.operatorName = operatorName || null;
     if (Object.keys(body).length === 2) {
       setError(t("today.form.noChanges"));
       return;
@@ -176,6 +187,18 @@ export function BookingEditDialog({
               {rooms.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
+        {operators.length > 0 ? (
+          <Field label={t("today.form.operator")}>
+            <Select value={operatorName} onChange={(e) => setOperatorName(e.target.value)}>
+              <option value="">{t("today.form.operatorChoose")}</option>
+              {operators.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
             </Select>

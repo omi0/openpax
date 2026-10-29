@@ -17,7 +17,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { areasQuery, staffAvailabilityQuery } from "@/lib/queries";
+import { areasQuery, policyQuery, staffAvailabilityQuery } from "@/lib/queries";
 
 export function BookingFormDialog({
   restaurant,
@@ -47,6 +47,8 @@ export function BookingFormDialog({
   });
   const areas = useQuery({ ...areasQuery(restaurant.id), enabled: open });
   const rooms = (areas.data ?? []).filter((a) => a.active);
+  const policy = useQuery({ ...policyQuery(restaurant.id), enabled: open });
+  const operators = policy.data?.operators ?? [];
 
   const create = useMutation({
     mutationFn: (body: CreateStaffBookingInput) =>
@@ -57,8 +59,17 @@ export function BookingFormDialog({
       toast.success(t("today.created", { name: b.customer.name }));
       onClose();
     },
-    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
+    onError: (e) =>
+      setError(operatorError(e) ?? (e instanceof ApiClientError ? e.message : t("app.error"))),
   });
+  const operatorError = (e: unknown) =>
+    e instanceof ApiClientError && (e.code === "operator_required" || e.code === "unknown_operator")
+      ? t(
+          e.code === "operator_required"
+            ? "today.form.operatorRequired"
+            : "today.form.unknownOperator",
+        )
+      : null;
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,6 +92,7 @@ export function BookingFormDialog({
       seatNow: f.get("seatNow") === "on",
       ignoreCapacity: f.get("ignoreCapacity") === "on",
       notifyGuest: f.get("notifyGuest") === "on",
+      operatorName: String(f.get("operatorName") || "") || undefined,
     });
   };
 
@@ -149,6 +161,20 @@ export function BookingFormDialog({
         <Field label={t("today.form.email")}>
           <Input name="email" type="email" inputMode="email" autoComplete="off" />
         </Field>
+        {operators.length > 0 ? (
+          <Field label={t("today.form.operator")} required>
+            <Select name="operatorName" defaultValue="" required>
+              <option value="" disabled>
+                {t("today.form.operatorChoose")}
+              </option>
+              {operators.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label={t("today.form.source")}>
           <Select name="source" defaultValue="phone">
             <option value="phone">{t("today.source.phone")}</option>

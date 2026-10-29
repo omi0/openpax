@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  addMember,
   api,
   createFixture,
   createTestApp,
@@ -548,5 +549,116 @@ describe("bookings created after an instant", () => {
       fx.session,
     );
     expect(none.body.total).toBe(0);
+  });
+});
+
+describe("booking operators", () => {
+  const policy = (fx: { restaurantId: string }) => `/api/v1/restaurants/${fx.restaurantId}/policy`;
+  const phoneBooking = (fx: { serviceId: string }, extra: Record<string, unknown> = {}) => ({
+    serviceId: fx.serviceId,
+    startsAt: romeInstant(FRIDAY, "20:00"),
+    partySize: 2,
+    customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+    source: "phone",
+    ...extra,
+  });
+
+  it("does not ask for an operator while the list is empty", async () => {
+    const fx = await createFixture(t);
+    const res = await api<{ operatorName: string | null }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx),
+      fx.session,
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.operatorName).toBeNull();
+  });
+
+  it("makes dashboard users pick a listed name and keeps it on the booking", async () => {
+    const fx = await createFixture(t);
+    const set = await api<{ operators: string[] }>(
+      t,
+      "PUT",
+      policy(fx),
+      { operators: ["Marco", "Giulia"] },
+      fx.session,
+    );
+    expect(set.status).toBe(200);
+    expect(set.body.operators).toEqual(["Marco", "Giulia"]);
+
+    const missing = await api<{ code: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx),
+      fx.session,
+    );
+    expect(missing.status).toBe(400);
+    expect(missing.body.code).toBe("operator_required");
+
+    const unknown = await api<{ code: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx, { operatorName: "Luca" }),
+      fx.session,
+    );
+    expect(unknown.status).toBe(400);
+    expect(unknown.body.code).toBe("unknown_operator");
+
+    const staff = await addMember(t, fx, "staff");
+    const created = await api<{ id: string; operatorName: string | null; createdAt: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx, { operatorName: "Giulia" }),
+      staff,
+    );
+    expect(created.status).toBe(201);
+    expect(created.body.operatorName).toBe("Giulia");
+    expect(created.body.createdAt).toBeTruthy();
+
+    const fixed = await api<{ operatorName: string | null }>(
+      t,
+      "PATCH",
+      `${bookings(fx)}/${created.body.id}`,
+      { operatorName: "Marco" },
+      staff,
+    );
+    expect(fixed.status).toBe(200);
+    expect(fixed.body.operatorName).toBe("Marco");
+
+    const badFix = await api<{ code: string }>(
+      t,
+      "PATCH",
+      `${bookings(fx)}/${created.body.id}`,
+      { operatorName: "Luca" },
+      staff,
+    );
+    expect(badFix.status).toBe(400);
+    expect(badFix.body.code).toBe("unknown_operator");
+  });
+
+  it("lets only managers change the list, and refuses duplicates", async () => {
+    const fx = await createFixture(t);
+    const staff = await addMember(t, fx, "staff");
+    const read = await api<{ operators: string[] }>(t, "GET", policy(fx), undefined, staff);
+    expect(read.status).toBe(200);
+    expect(read.body.operators).toEqual([]);
+
+    const denied = await api(t, "PUT", policy(fx), { operators: ["Marco"] }, staff);
+    expect(denied.status).toBe(403);
+
+    const dup = await api(t, "PUT", policy(fx), { operators: ["Marco", "Marco"] }, fx.session);
+    expect(dup.status).toBe(400);
+  });
+
+  it("never asks guests booking online", async () => {
+    const fx = await createFixture(t);
+    await api(t, "PUT", policy(fx), { operators: ["Marco"] }, fx.session);
+    const res = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(res.status).toBe(201);
   });
 });
