@@ -7,6 +7,8 @@ import {
   createPublicBookingInputSchema,
   createStaffBookingInputSchema,
   listBookingsQuerySchema,
+  onlineActivityDtoSchema,
+  onlineActivityQuerySchema,
   paginatedSchema,
   publicBookingDtoSchema,
   updateBookingInputSchema,
@@ -145,6 +147,23 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
     }),
     async (c) =>
       c.json(await svc.listBookings(ctx, c.get("restaurant"), c.req.valid("query")), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/restaurants/{restaurantId}/bookings/online-activity",
+      tags,
+      summary: "New online bookings and guest cancellations since a moment",
+      middleware: [requireRestaurant(ctx, { booking: ["read"] })] as const,
+      request: { params: restaurantIdParam, query: onlineActivityQuerySchema },
+      responses: { 200: jsonResponse(onlineActivityDtoSchema, "What came in from outside") },
+    }),
+    async (c) =>
+      c.json(
+        await svc.onlineActivity(ctx, c.get("restaurant"), new Date(c.req.valid("query").since)),
+        200,
+      ),
   );
 
   app.openapi(

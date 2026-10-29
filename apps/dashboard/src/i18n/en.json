@@ -32,8 +32,15 @@
     "switchRestaurant": "Switch restaurant",
     "confirm": "Confirm",
     "actions": "Actions",
-    "newOnlineBooking": "New online booking: {{name}}, {{guests}}, {{when}}",
-    "meetings": "Chef meetings"
+    "meetings": "Chef meetings",
+    "onlineAlert": {
+      "created": "New booking from the website",
+      "cancelled": "Booking cancelled by the guest",
+      "count": "{{current}} of {{total}}",
+      "seen": "Seen",
+      "openDay": "Open the day",
+      "reason": "Reason: {{reason}}"
+    }
   },
   "auth": {
     "login": "Log in",

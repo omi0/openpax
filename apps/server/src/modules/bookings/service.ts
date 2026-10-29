@@ -16,6 +16,7 @@ import {
 } from "@openpax/core";
 import type { DbOrTx } from "@openpax/db";
 import {
+  auditLog,
   booking,
   bookingPayment,
   bookingPolicy,
@@ -26,6 +27,7 @@ import {
 import type {
   BookingDto,
   ListBookingsQuery,
+  OnlineActivityDto,
   PublicBookingDto,
   UpdateBookingInput,
 } from "@openpax/shared";
@@ -138,12 +140,9 @@ export function toPublicBookingDto(
 
 // ---------- lookups
 
-export async function getBookingWithRelations(
-  db: DbOrTx,
-  restaurantId: string,
-  bookingId: string,
-): Promise<BookingWithRelations> {
-  const [row] = await db
+/** A booking with its guest, service name, tables and payment, ready for toBookingDto. */
+const withRelations = (db: DbOrTx) =>
+  db
     .select({
       booking,
       customer,
@@ -154,7 +153,14 @@ export async function getBookingWithRelations(
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
-    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
+    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id));
+
+export async function getBookingWithRelations(
+  db: DbOrTx,
+  restaurantId: string,
+  bookingId: string,
+): Promise<BookingWithRelations> {
+  const [row] = await withRelations(db)
     .where(and(eq(booking.id, bookingId), eq(booking.restaurantId, restaurantId)))
     .limit(1);
   if (!row) throw ApiError.notFound("Booking");
@@ -165,22 +171,82 @@ export async function getBookingByToken(
   ctx: AppContext,
   token: string,
 ): Promise<BookingWithRelations> {
-  const [row] = await ctx.db
-    .select({
-      booking,
-      customer,
-      serviceName: service.name,
-      tables: bookingTablesJson,
-      payment: bookingPayment,
-    })
-    .from(booking)
-    .innerJoin(customer, eq(customer.id, booking.customerId))
-    .innerJoin(service, eq(service.id, booking.serviceId))
-    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
-    .where(eq(booking.manageToken, token))
-    .limit(1);
+  const [row] = await withRelations(ctx.db).where(eq(booking.manageToken, token)).limit(1);
   if (!row) throw ApiError.notFound("Booking");
   return row;
+}
+
+/** Sources nobody at the desk typed in themselves. */
+const ONLINE_SOURCES = ["widget", "api", "assistant"] as const;
+const ACTIVITY_LIMIT = 50;
+
+/**
+ * New online bookings and cancellations made by guests since `since`, oldest
+ * first, so the desk is told about each one even when nobody is watching.
+ */
+export async function onlineActivity(
+  ctx: AppContext,
+  r: RestaurantRow,
+  since: Date,
+): Promise<OnlineActivityDto> {
+  const [created, cancelled] = await Promise.all([
+    ctx.db
+      .select({ id: booking.id, at: booking.createdAt })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.restaurantId, r.id),
+          inArray(booking.source, [...ONLINE_SOURCES]),
+          gt(booking.createdAt, since),
+        ),
+      )
+      .orderBy(asc(booking.createdAt))
+      .limit(ACTIVITY_LIMIT),
+    ctx.db
+      .select({ id: auditLog.entityId, at: auditLog.createdAt, data: auditLog.data })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.restaurantId, r.id),
+          eq(auditLog.action, "booking.cancel"),
+          eq(auditLog.actorType, "guest"),
+          gt(auditLog.createdAt, since),
+        ),
+      )
+      .orderBy(asc(auditLog.createdAt))
+      .limit(ACTIVITY_LIMIT),
+  ]);
+  const events = [
+    ...created.map((e) => ({ kind: "created" as const, id: e.id, at: e.at, reason: null })),
+    ...cancelled.flatMap((e) =>
+      e.id
+        ? [
+            {
+              kind: "cancelled" as const,
+              id: e.id,
+              at: e.at,
+              reason: typeof e.data?.reason === "string" ? e.data.reason : null,
+            },
+          ]
+        : [],
+    ),
+  ]
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, ACTIVITY_LIMIT);
+  const ids = [...new Set(events.map((e) => e.id))];
+  const rows =
+    ids.length === 0
+      ? []
+      : await withRelations(ctx.db).where(
+          and(eq(booking.restaurantId, r.id), inArray(booking.id, ids)),
+        );
+  const byId = new Map(rows.map((x) => [x.booking.id, toBookingDto(x)]));
+  return {
+    items: events.flatMap((e) => {
+      const b = byId.get(e.id);
+      return b ? [{ kind: e.kind, at: e.at.toISOString(), booking: b, reason: e.reason }] : [];
+    }),
+  };
 }
 
 export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBookingsQuery) {

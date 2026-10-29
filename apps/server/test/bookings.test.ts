@@ -565,6 +565,63 @@ describe("bookings created after an instant", () => {
     expect(await names("")).toEqual(["Mario Rossi", "Lucia Bianchi"]);
     expect(await names("?sort=created")).toEqual(["Lucia Bianchi", "Mario Rossi"]);
   });
+
+  it("reports new online bookings and guest cancellations, not the staff's own", async () => {
+    const fx = await createFixture(t);
+    const since = new Date(Date.now() - 1000).toISOString();
+    const activity = async (from = since) =>
+      (
+        await api<{
+          items: Array<{
+            kind: string;
+            reason: string | null;
+            booking: { customer: { name: string } };
+          }>;
+        }>(
+          t,
+          "GET",
+          `${bookings(fx)}/online-activity?since=${encodeURIComponent(from)}`,
+          undefined,
+          fx.session,
+        )
+      ).body.items.map(
+        (x) => `${x.kind}:${x.booking.customer.name}${x.reason ? `:${x.reason}` : ""}`,
+      );
+
+    const online = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(online.status).toBe(201);
+    const phone = await api<{ id: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "21:00"),
+        partySize: 2,
+        customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+        source: "phone",
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    expect(phone.status).toBe(201);
+    const token = online.body.manageUrl.split("/").pop() ?? "";
+    expect(
+      (await api(t, "POST", `/api/public/v1/bookings/${token}/cancel`, { reason: "Influenza" }))
+        .status,
+    ).toBe(200);
+    const byStaff = await api(
+      t,
+      "POST",
+      `${bookings(fx)}/${phone.body.id}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    expect(byStaff.status).toBe(200);
+
+    expect(await activity()).toEqual(["created:Mario Rossi", "cancelled:Mario Rossi:Influenza"]);
+    expect(await activity(new Date(Date.now() + 60_000).toISOString())).toEqual([]);
+  });
 });
 
 describe("booking operators", () => {

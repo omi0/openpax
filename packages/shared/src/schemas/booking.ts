@@ -176,3 +176,18 @@ export const listBookingsQuerySchema = paginationQuerySchema.extend({
   sort: z.enum(["visit", "created"]).optional(),
 });
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;
+
+/** What came in from outside since `since`: new online bookings, cancellations by guests. */
+export const onlineActivityQuerySchema = z.object({ since: instantSchema });
+export const onlineActivityDtoSchema = z.object({
+  items: z.array(
+    z.object({
+      kind: z.enum(["created", "cancelled"]),
+      at: instantSchema,
+      booking: bookingDtoSchema,
+      /** The guest's reason, for a cancellation. */
+      reason: z.string().nullable(),
+    }),
+  ),
+});
+export type OnlineActivityDto = z.infer<typeof onlineActivityDtoSchema>;

@@ -32,8 +32,15 @@
     "switchRestaurant": "Cambia ristorante",
     "confirm": "Conferma",
     "actions": "Azioni",
-    "newOnlineBooking": "Nuova prenotazione online: {{name}}, {{guests}}, {{when}}",
-    "meetings": "Appuntamenti chef"
+    "meetings": "Appuntamenti chef",
+    "onlineAlert": {
+      "created": "Nuova prenotazione dal sito",
+      "cancelled": "Prenotazione annullata dal cliente",
+      "count": "{{current}} di {{total}}",
+      "seen": "Visto",
+      "openDay": "Apri il giorno",
+      "reason": "Motivo: {{reason}}"
+    }
   },
   "auth": {
     "login": "Accedi",
