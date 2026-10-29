@@ -160,7 +160,14 @@
       "operatorChoose": "Pick your name…",
       "operatorRequired": "Choose who is taking the booking.",
       "unknownOperator": "This name is no longer in the staff list. Pick another one.",
-      "pickDateFirst": "Pick the date the guest asked for first."
+      "pickDateFirst": "Pick the date the guest asked for first.",
+      "table": "Table",
+      "tableAuto": "Automatic",
+      "tablePick": "I'll choose",
+      "tablePickHint": "Tap the tables the guest asked for. Grey tables are taken at that time.",
+      "tableSeats_one": "{{count}} seat for {{guests}} guests",
+      "tableSeats_other": "{{count}} seats for {{guests}} guests",
+      "tableTaken": "One of the chosen tables is taken at that time. Pick another."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",

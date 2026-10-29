@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { MeetingDialog } from "@/components/meeting-dialog";
 import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
 import { SlotPicker } from "@/components/slot-picker";
+import { TablePicker } from "@/components/table-picker";
 import {
   Alert,
   Button,
@@ -40,12 +41,15 @@ export function BookingFormDialog({
   // no default day: whoever takes the booking must type the date the guest asked for
   const [day, setDay] = useState("");
   const [slot, setSlot] = useState("");
+  // null = automatic; otherwise the tables the guest asked for
+  const [tableIds, setTableIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!open) return;
     setPartySize(2);
     setDay("");
     setSlot("");
+    setTableIds(null);
     setError(null);
     setWantsMeeting(false);
     setOperator(null);
@@ -90,6 +94,7 @@ export function BookingFormDialog({
       setOperator(null);
       return t("operators.askAgain");
     }
+    if (e.code === "table_taken") return t("today.form.tableTaken");
     return e.code === "operator_required" ? t("today.form.operatorRequired") : null;
   };
 
@@ -115,6 +120,7 @@ export function BookingFormDialog({
       ignoreCapacity: f.get("ignoreCapacity") === "on",
       notifyGuest: f.get("notifyGuest") === "on",
       operator: operator ? { id: operator.id, pin: operator.pin } : undefined,
+      tableIds: tableIds && tableIds.length > 0 ? tableIds : undefined,
     });
   };
 
@@ -231,6 +237,16 @@ export function BookingFormDialog({
               </Select>
             </Field>
           ) : null}
+          <div className="sm:col-span-2">
+            <TablePicker
+              restaurantId={restaurant.id}
+              date={day}
+              slot={slots.find((s) => `${s.serviceId}|${s.startsAt}` === slot) ?? null}
+              partySize={partySize}
+              value={tableIds}
+              onChange={setTableIds}
+            />
+          </div>
           <Field label={t("today.form.notes")} className="sm:col-span-2">
             <Textarea name="notes" placeholder={t("today.form.notesPlaceholder")} />
           </Field>

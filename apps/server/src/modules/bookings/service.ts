@@ -7,6 +7,7 @@ import {
   type BookingSource,
   type BookingStatus,
   findTableAssignment,
+  freeTables,
   instantToLocal,
   isActiveStatus,
   SlotUnavailableError,
@@ -242,10 +243,25 @@ async function assignTables(
   bookingId: string,
   input: AvailabilityInput | null,
   req: { startsAt: Date; endsAt: Date; partySize: number; areaId: string | null },
+  /** Tables the guest asked for: used as they are, if free. */
+  requested?: readonly string[],
 ): Promise<void> {
   await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
   if (!input?.tables || input.tables.length === 0) return;
   const usable = usableTables(input.tables, input.rooms);
+  if (requested && requested.length > 0) {
+    const ids = new Set(requested);
+    const free = new Set(freeTables(usable, input.tableLoads ?? [], req).map((t) => t.id));
+    const known = input.tables.filter((t) => ids.has(t.id));
+    if (known.length !== ids.size) throw ApiError.notFound("Table");
+    const taken = known.filter((t) => !free.has(t.id));
+    if (taken.length > 0)
+      throw ApiError.conflict("table_taken", "A chosen table is taken at that time", {
+        tables: taken.map((t) => t.name),
+      });
+    await tx.insert(bookingTable).values(known.map((t) => ({ bookingId, tableId: t.id })));
+    return;
+  }
   const chosen = findTableAssignment(usable, input.tableLoads ?? [], req);
   if (!chosen) return; // staff override: stays unassigned, visible on the floor plan
   await tx.insert(bookingTable).values(chosen.map((t) => ({ bookingId, tableId: t.id })));
@@ -277,6 +293,8 @@ export interface CreateBookingParams {
   notifyGuest?: boolean;
   /** Staff member who took the booking (checked by the caller). */
   operatorName?: string | null;
+  /** Tables the guest asked for; absent = picked automatically. */
+  tableIds?: readonly string[];
   requirePhone?: boolean;
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
@@ -521,12 +539,13 @@ async function insertBookingLocked(
     })
     .returning();
   if (!row) throw new Error("booking insert failed");
-  await assignTables(tx, row.id, floor, {
-    startsAt: p.startsAt,
-    endsAt,
-    partySize: p.partySize,
-    areaId: p.areaId ?? null,
-  });
+  await assignTables(
+    tx,
+    row.id,
+    floor,
+    { startsAt: p.startsAt, endsAt, partySize: p.partySize, areaId: p.areaId ?? null },
+    p.tableIds,
+  );
 
   if (status === "seated" || (p.imported && status === "completed")) {
     await tx

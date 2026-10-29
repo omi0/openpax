@@ -389,4 +389,44 @@ describe("tables and auto-assignment", () => {
     ).toBe(204);
     expect(await links()).toEqual({ "1": 0, "2": 0, "26": 0 });
   });
+  it("seats a new booking at the tables the guest asked for, if they are free", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const add = async (name: string, sortOrder: number) =>
+      (
+        await api<{ id: string }>(
+          t,
+          "POST",
+          `${base}/tables`,
+          { name, maxCovers: 2, sortOrder },
+          fx.session,
+        )
+      ).body.id;
+    await add("A", 1);
+    const oven1 = await add("1", 2);
+    const oven2 = await add("2", 3);
+    const staffBooking = (tableIds: string[], name: string, partySize: number) =>
+      api<Booking & { code?: string; tables?: unknown }>(
+        t,
+        "POST",
+        `${base}/bookings`,
+        {
+          serviceId: fx.serviceId,
+          startsAt: romeInstant(FRIDAY, "20:00"),
+          partySize,
+          customer: { name, phone: "+39 333 1234567" },
+          tableIds,
+          notifyGuest: false,
+        },
+        fx.session,
+      );
+    const near = await staffBooking([oven1, oven2], "Forno", 4);
+    expect(near.status, JSON.stringify(near.body)).toBe(201);
+    expect(near.body.tables.map((x) => x.name).sort()).toEqual(["1", "2"]);
+
+    // table A is still free, so the slot is open, but the guest wants 2
+    const again = await staffBooking([oven2], "Altro", 2);
+    expect(again.status).toBe(409);
+    expect(again.body.code).toBe("table_taken");
+  });
 });
