@@ -31,6 +31,10 @@ export const diningTable = pgTable(
     height: real().notNull().default(10),
     /** May be pushed together with another joinable table of the same area. */
     joinable: boolean().notNull().default(true),
+    /** Tables it can be pushed against; kept symmetric by the server. */
+    joinWith: uuid().array().notNull().default([]),
+    /** Extra guests at the head when alone or at the end of a joined row. */
+    headSeats: integer().notNull().default(0),
     active: boolean().notNull().default(true),
     sortOrder: integer().notNull().default(0),
     createdAt: createdAt(),

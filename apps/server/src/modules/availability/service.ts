@@ -57,6 +57,8 @@ export function tableToDef(row: TableRow): TableDef {
     minCovers: row.minCovers,
     maxCovers: row.maxCovers,
     joinable: row.joinable,
+    joinWith: row.joinWith,
+    headSeats: row.headSeats,
     active: row.active,
     sortOrder: row.sortOrder,
   };

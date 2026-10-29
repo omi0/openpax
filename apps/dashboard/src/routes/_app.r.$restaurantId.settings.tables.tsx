@@ -45,6 +45,8 @@ const blank = (count: number, roomId: string | null): UpsertTableInput => ({
   width: 10,
   height: 10,
   joinable: true,
+  joinWith: [],
+  headSeats: 0,
   active: true,
   sortOrder: count,
 });
@@ -60,6 +62,8 @@ const toInput = (t: TableDto): UpsertTableInput => ({
   width: t.width,
   height: t.height,
   joinable: t.joinable,
+  joinWith: t.joinWith,
+  headSeats: t.headSeats,
   active: t.active,
   sortOrder: t.sortOrder,
 });
@@ -174,11 +178,23 @@ function TablesPage() {
                 <div className="min-w-0 flex-1 basis-40">
                   <p className="text-[15px] font-semibold">
                     {t("tables.seats", { min: x.minCovers, max: x.maxCovers })}
+                    {x.headSeats > 0
+                      ? ` · ${t("tables.headSeatsShort", { count: x.headSeats })}`
+                      : ""}
                   </p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-stone-500">
                     <span>{areaName(x.areaId)}</span>
                     <Badge size="sm">{t(`tables.shapes.${x.shape}`)}</Badge>
-                    {x.joinable ? (
+                    {x.joinable && x.joinWith.length > 0 ? (
+                      <Badge size="sm" tone="brand">
+                        {t("tables.joinsWithShort", {
+                          names: tables
+                            .filter((o) => x.joinWith.includes(o.id))
+                            .map((o) => o.name)
+                            .join(", "),
+                        })}
+                      </Badge>
+                    ) : x.joinable ? (
                       <Badge size="sm" tone="brand">
                         {t("tables.joinable")}
                       </Badge>
@@ -235,6 +251,7 @@ function TablesPage() {
               : toInput(editing)
           }
           areas={areas}
+          tables={tables}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             await invalidate();
@@ -251,6 +268,7 @@ function TableDialog({
   table,
   initial,
   areas,
+  tables,
   onClose,
   onSaved,
 }: {
@@ -258,6 +276,7 @@ function TableDialog({
   table: TableDto | null;
   initial: UpsertTableInput;
   areas: Array<{ id: string; name: string }>;
+  tables: TableDto[];
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
@@ -278,8 +297,15 @@ function TableDialog({
     setError(null);
     save.mutate(v);
   };
+  // only tables of the same room can be pushed together
+  const neighbours = tables.filter((o) => o.id !== table?.id && o.areaId === v.areaId);
+  const toggleLink = (id: string) =>
+    setV({
+      ...v,
+      joinWith: v.joinWith.includes(id) ? v.joinWith.filter((x) => x !== id) : [...v.joinWith, id],
+    });
   const num =
-    (key: "minCovers" | "maxCovers" | "sortOrder" | "width" | "height") =>
+    (key: "minCovers" | "maxCovers" | "headSeats" | "sortOrder" | "width" | "height") =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setV({ ...v, [key]: Number(e.target.value) });
 
@@ -306,7 +332,7 @@ function TableDialog({
         <Field label={t("tables.area")}>
           <Select
             value={v.areaId ?? ""}
-            onChange={(e) => setV({ ...v, areaId: e.target.value || null })}
+            onChange={(e) => setV({ ...v, areaId: e.target.value || null, joinWith: [] })}
           >
             <option value="">{t("tables.noArea")}</option>
             {areas.map((a) => (
@@ -334,6 +360,16 @@ function TableDialog({
             max={100}
             value={v.maxCovers}
             onChange={num("maxCovers")}
+          />
+        </Field>
+        <Field label={t("tables.headSeats")} hint={t("tables.headSeatsHint")}>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={4}
+            value={v.headSeats}
+            onChange={num("headSeats")}
           />
         </Field>
         <Field label={t("tables.shape")}>
@@ -385,6 +421,33 @@ function TableDialog({
             label={t("tables.joinable")}
             description={t("tables.joinableHint")}
           />
+          {v.joinable && neighbours.length > 0 ? (
+            <div>
+              <p className="text-sm font-medium text-stone-700">{t("tables.joinsWith")}</p>
+              <p className="mb-2 text-sm text-stone-500">{t("tables.joinsWithHint")}</p>
+              <div className="flex flex-wrap gap-2">
+                {neighbours.map((o) => {
+                  const on = v.joinWith.includes(o.id);
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleLink(o.id)}
+                      className={cn(
+                        "h-12 min-w-12 rounded-xl border-2 px-3 text-base font-semibold tabular-nums",
+                        on
+                          ? "border-brand-600 bg-brand-600 text-white"
+                          : "border-stone-300 bg-white text-stone-800 hover:border-brand-400",
+                      )}
+                    >
+                      {o.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
           <Switch
             checked={v.active}
             onChange={(active) => setV({ ...v, active })}

@@ -330,4 +330,63 @@ describe("tables and auto-assignment", () => {
     expect(squeezed.status).toBe(201);
     expect(squeezed.body.tables).toEqual([]);
   });
+  it("keeps table links both ways, only within a room, and drops them with the table", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const room = async (name: string) =>
+      (await api<{ id: string }>(t, "POST", `${base}/areas`, { name }, fx.session)).body.id;
+    const upstairs = await room("Sopra");
+    const downstairs = await room("Sotto");
+    const add = async (name: string, areaId: string, joinWith: string[] = []) => {
+      const res = await api<{ id: string; joinWith: string[] }>(
+        t,
+        "POST",
+        `${base}/tables`,
+        { name, areaId, maxCovers: 2, joinWith, headSeats: 1 },
+        fx.session,
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(201);
+      return res.body;
+    };
+    const one = await add("1", upstairs);
+    const two = await add("2", upstairs, [one.id]);
+    const three = await add("3", upstairs, [two.id]);
+    const below = await add("26", downstairs);
+    const links = async () => {
+      const res = await api<Array<{ name: string; joinWith: string[]; headSeats: number }>>(
+        t,
+        "GET",
+        `${base}/tables`,
+        undefined,
+        fx.session,
+      );
+      return Object.fromEntries(res.body.map((x) => [x.name, x.joinWith.length]));
+    };
+    expect(await links()).toEqual({ "1": 1, "2": 2, "3": 1, "26": 0 });
+
+    const cross = await api(
+      t,
+      "PUT",
+      `${base}/tables/${one.id}`,
+      { name: "1", areaId: upstairs, maxCovers: 2, joinWith: [below.id] },
+      fx.session,
+    );
+    expect(cross.status).toBe(400);
+
+    // 1 no longer joins 2: 2 forgets 1 too
+    const cut = await api(
+      t,
+      "PUT",
+      `${base}/tables/${one.id}`,
+      { name: "1", areaId: upstairs, maxCovers: 2, joinWith: [] },
+      fx.session,
+    );
+    expect(cut.status).toBe(200);
+    expect(await links()).toEqual({ "1": 0, "2": 1, "3": 1, "26": 0 });
+
+    expect(
+      (await api(t, "DELETE", `${base}/tables/${three.id}`, undefined, fx.session)).status,
+    ).toBe(204);
+    expect(await links()).toEqual({ "1": 0, "2": 0, "26": 0 });
+  });
 });

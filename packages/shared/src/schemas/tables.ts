@@ -16,6 +16,10 @@ export const upsertTableInputSchema = z
     width: z.number().min(2).max(100).default(10),
     height: z.number().min(2).max(100).default(10),
     joinable: z.boolean().default(true),
+    /** Tables it can be pushed against (same room). */
+    joinWith: z.array(idSchema).max(30).default([]),
+    /** Extra guests at the head when alone or at the end of a joined row. */
+    headSeats: z.number().int().min(0).max(4).default(0),
     active: z.boolean().default(true),
     sortOrder: z.number().int().default(0),
   })
@@ -38,6 +42,8 @@ export const tableDtoSchema = z.object({
   width: z.number(),
   height: z.number(),
   joinable: z.boolean(),
+  joinWith: z.array(idSchema),
+  headSeats: z.number().int(),
   active: z.boolean(),
   sortOrder: z.number().int(),
   createdAt: instantSchema,
@@ -63,7 +69,7 @@ export type UpdateTablePositionsInput = z.infer<typeof updateTablePositionsInput
 
 /** Staff pick the tables of a booking by hand; empty = unassign. */
 export const assignTablesInputSchema = z.object({
-  tableIds: z.array(idSchema).max(6),
+  tableIds: z.array(idSchema).max(12),
   /** Seat the party even if a chosen table is taken at that time. */
   force: z.boolean().default(false),
 });

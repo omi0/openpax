@@ -1,3 +1,4 @@
+import { joinedCapacity, tableLinks } from "@openpax/core";
 import type { BookingDto, TableDto } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
@@ -56,7 +57,11 @@ export function TableAssignDialog({
     onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const active = tables.filter((x) => x.active);
-  const seats = active.filter((x) => chosen.has(x.id)).reduce((n, x) => n + x.maxCovers, 0);
+  // head seats count only where the plan allows them
+  const seats = joinedCapacity(
+    active.filter((x) => chosen.has(x.id)),
+    tableLinks(active),
+  ).max;
   const conflict = active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
   const toggle = (id: string) => {
     const next = new Set(chosen);
