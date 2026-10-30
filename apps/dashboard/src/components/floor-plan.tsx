@@ -1,5 +1,10 @@
 import type { AreaDto, TableDto } from "@openpax/shared";
-import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -161,6 +166,9 @@ export function FloorPlan({
             status.label && status.label.length > maxChars
               ? `${status.label.slice(0, maxChars - 1)}…`
               : status.label;
+          const title = status.title ?? `${table.name} · ${table.minCovers}–${table.maxCovers}`;
+          // picking tables (not dragging them) also works from the keyboard
+          const pickable = !onMove && onSelect !== undefined;
           return (
             // biome-ignore lint/a11y/noStaticElementInteractions: drag surface; the list below the plan exposes the same actions
             <g
@@ -171,11 +179,22 @@ export function FloorPlan({
               onClick={() => {
                 if (!onMove) onSelect?.(table);
               }}
+              {...(pickable
+                ? {
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-pressed": selected,
+                    "aria-label": status.title ? `${table.name}, ${status.title}` : title,
+                    onKeyDown: (e: ReactKeyboardEvent) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      onSelect?.(table);
+                    },
+                  }
+                : {})}
               className={cn(onMove ? "cursor-move" : onSelect ? "cursor-pointer" : "")}
             >
-              <title>
-                {status.title ?? `${table.name} · ${table.minCovers}–${table.maxCovers}`}
-              </title>
+              <title>{title}</title>
               {table.shape === "round" ? (
                 <ellipse
                   cx={cx}

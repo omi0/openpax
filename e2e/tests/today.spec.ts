@@ -53,6 +53,11 @@ test("Today lists the evening's bookings and reflects seat and cancel", async ({
 
   const mario = page.locator("li", { hasText: "Mario Rossi" });
   await mario.getByRole("button", { name: "Seat" }).click();
+  // seating asks a Yes / No first
+  await page
+    .getByRole("dialog", { name: /Seat Mario Rossi/ })
+    .getByRole("button", { name: "Yes" })
+    .click();
   await expect(page.getByText("Guest seated", { exact: true })).toBeVisible();
   await expect(mario.getByText("Seated")).toBeVisible();
 

@@ -107,5 +107,10 @@ test("owner onboards, guest books through the widget, booking appears on Today",
 
   // --- staff seats the guest from the row
   await page.getByRole("button", { name: "Seat" }).first().click();
+  // seating asks a Yes / No first
+  await page
+    .getByRole("dialog", { name: /Seat Mario Guest/ })
+    .getByRole("button", { name: "Yes" })
+    .click();
   await expect(page.getByText("Seated", { exact: true })).toBeVisible();
 });

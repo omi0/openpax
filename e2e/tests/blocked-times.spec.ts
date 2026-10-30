@@ -46,9 +46,10 @@ test("the owner blocks two evening times from Today, books by hand in a room and
   // an empty day offers "New booking" twice (header and empty state)
   await page.getByRole("button", { name: "New booking" }).first().click();
   const form = page.getByRole("dialog");
+  // the form starts without a date: staff pick the day the guest asked for
+  await form.getByLabel("Date").fill(date);
   await form.getByLabel("Guest name").fill("Giulia Neri");
-  // exact: the Source select's label also contains its "Phone" option
-  await form.getByLabel("Phone", { exact: true }).fill("+39 333 2223334");
+  await form.getByLabel("Phone").fill("+39 333 2223334");
   await form.getByLabel("Room").selectOption({ label: room });
   // the blocked time shows as full; the owner overrides the limit
   await form.getByRole("button", { name: new RegExp(`^${first}`) }).click();
@@ -83,7 +84,11 @@ test("the owner blocks two evening times from Today, books by hand in a room and
     },
   });
   expect(online.status(), await online.text()).toBe(201);
-  await expect(page.getByText(/New online booking: Marco Blu, 3 guests/)).toBeVisible({
-    timeout: 45_000,
-  });
+  const alert = page.getByRole("dialog", { name: "New booking from the website" });
+  await expect(alert).toBeVisible({ timeout: 45_000 });
+  await expect(alert).toContainText("Marco Blu");
+  await expect(alert).toContainText("3 guests");
+  // it stays until someone at the desk acknowledges it
+  await alert.getByRole("button", { name: "Seen" }).click();
+  await expect(alert).toHaveCount(0);
 });

@@ -45,12 +45,15 @@ export function NewBookingsWatcher({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // at most a day back: a screen left closed for a week should not open 50 popups
+  // a device that never acknowledged anything starts from now; otherwise at most
+  // a day back: a screen left closed for a week should not open 50 popups
   const since = useRef(
-    [readSeen(restaurantId), new Date(Date.now() - 86_400_000).toISOString()]
-      .filter((x): x is string => x !== null)
-      .sort()
-      .at(-1) ?? new Date().toISOString(),
+    (() => {
+      const seen = readSeen(restaurantId);
+      if (seen === null) return new Date().toISOString();
+      const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+      return seen > dayAgo ? seen : dayAgo;
+    })(),
   );
   const known = useRef(new Set<string>());
   const [queue, setQueue] = useState<Activity[]>([]);
