@@ -1,4 +1,4 @@
-import { compareServices } from "@openpax/core";
+import { sortServices } from "@openpax/core";
 import {
   area,
   bookingPolicy,
@@ -364,7 +364,7 @@ export async function updateRestaurant(
 export async function listServices(ctx: AppContext, restaurantId: string): Promise<ServiceDto[]> {
   const rows = await ctx.db.select().from(service).where(eq(service.restaurantId, restaurantId));
   // in the order of the day: lunch, aperitivo, dinner
-  return rows.sort(compareServices).map(toServiceDto);
+  return sortServices(rows).map(toServiceDto);
 }
 
 export async function createService(

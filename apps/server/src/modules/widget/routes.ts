@@ -1,7 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute } from "@hono/zod-openapi";
-import { compareServices } from "@openpax/core";
-import { area, bookingPolicy, service, widgetConfig } from "@openpax/db";
+import { area, bookingPolicy, widgetConfig } from "@openpax/db";
 import {
   type PublicWidgetConfigDto,
   publicWidgetConfigDtoSchema,
@@ -12,6 +11,7 @@ import type { AppContext, AppEnv } from "../../context.js";
 import { ApiError } from "../../lib/errors.js";
 import { jsonResponse, slugParam } from "../../lib/openapi.js";
 import { findRestaurantBySlug } from "../../lib/restaurant-lookup.js";
+import { listServices } from "../restaurants/service.js";
 
 export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
   app.openapi(
@@ -28,17 +28,8 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       const [[cfg], [policy], services, areas] = await Promise.all([
         ctx.db.select().from(widgetConfig).where(eq(widgetConfig.restaurantId, r.id)).limit(1),
         ctx.db.select().from(bookingPolicy).where(eq(bookingPolicy.restaurantId, r.id)).limit(1),
-        ctx.db
-          .select({
-            id: service.id,
-            name: service.name,
-            minPartySize: service.minPartySize,
-            maxPartySize: service.maxPartySize,
-            weeklyHours: service.weeklyHours,
-            sortOrder: service.sortOrder,
-          })
-          .from(service)
-          .where(and(eq(service.restaurantId, r.id), eq(service.active, true))),
+        // already in the order of the day: lunch, aperitivo, dinner
+        listServices(ctx, r.id),
         ctx.db
           .select({ id: area.id, name: area.name })
           .from(area)
@@ -69,9 +60,8 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           termsUrl: cfg.termsUrl,
           privacyUrl: cfg.privacyUrl,
         },
-        // in the order of the day: lunch, aperitivo, dinner
         services: services
-          .sort(compareServices)
+          .filter((x) => x.active)
           .map(({ id, name, minPartySize, maxPartySize }) => ({
             id,
             name,

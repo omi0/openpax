@@ -8,6 +8,7 @@ import {
   isLocalTime,
   localToInstant,
   parseLocalTime,
+  sortServices,
 } from "@openpax/core";
 import { area, booking, customer, service } from "@openpax/db";
 import {
@@ -399,11 +400,18 @@ export async function importBookings(
 ): Promise<ImportResultDto> {
   const { rows, header } = parseRows(text);
   requireColumns(header, ["date", "time", "guests", "name"]);
-  const services = await ctx.db
-    .select({ id: service.id, name: service.name, active: service.active })
-    .from(service)
-    .where(eq(service.restaurantId, r.id))
-    .orderBy(asc(service.sortOrder), asc(service.name));
+  const services = sortServices(
+    await ctx.db
+      .select({
+        id: service.id,
+        name: service.name,
+        active: service.active,
+        weeklyHours: service.weeklyHours,
+        sortOrder: service.sortOrder,
+      })
+      .from(service)
+      .where(eq(service.restaurantId, r.id)),
+  );
   const fallback = services.find((s) => s.active) ?? services[0];
   if (!fallback) throw ApiError.badRequest("no_service", "Create a service before importing");
   const rooms = await ctx.db

@@ -1,4 +1,4 @@
-import { compareServices } from "@openpax/core";
+import { sortServices } from "@openpax/core";
 import type { BookingDto, ScheduleExceptionDto } from "@openpax/shared";
 import { useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
+import { isGone } from "@/components/booking-sheet";
 import { Button, IconButton } from "@/components/ui";
 import {
   bookingsQuery,
@@ -73,7 +74,7 @@ function CalendarPage() {
     return {
       date,
       // cancelled and no-shows are only in Bookings and the guest's page
-      items: items.filter((b) => b.status !== "cancelled" && b.status !== "no_show"),
+      items: items.filter((b) => !isGone(b)),
       bookings: active.length,
       covers: active.reduce((n, b) => n + b.partySize, 0),
       // the exception that starts last wins, like the engine
@@ -86,7 +87,7 @@ function CalendarPage() {
   const weekBookings = byDay.reduce((n, d) => n + d.bookings, 0);
   const weekCovers = byDay.reduce((n, d) => n + d.covers, 0);
   const last = days[6] ?? week;
-  const sortedServices = [...services].sort(compareServices);
+  const sortedServices = sortServices(services);
 
   return (
     <div>

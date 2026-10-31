@@ -5,15 +5,16 @@ import {
   addDaysToLocalDate,
   type BookingLoad,
   type CapacityRuleDef,
-  compareServices,
   computeAvailability,
   type LocalDate,
   type RoomDef,
   resolveServiceWindows,
   type ScheduleExceptionDef,
   type ServiceDef,
+  sortServices,
   type TableDef,
   type TableLoad,
+  weekdayOf,
 } from "@openpax/core";
 import type { DbOrTx } from "@openpax/db";
 import {
@@ -104,12 +105,10 @@ export async function loadAvailabilityInput(
   params: LoadParams,
 ): Promise<LoadedAvailability> {
   // Sequential on purpose: this often runs inside a transaction (one connection).
-  const services = (
-    await db
-      .select()
-      .from(service)
-      .where(and(eq(service.restaurantId, r.id), eq(service.active, true)))
-  ).sort(compareServices);
+  const services = await db
+    .select()
+    .from(service)
+    .where(and(eq(service.restaurantId, r.id), eq(service.active, true)));
   const exceptions = await db
     .select()
     .from(scheduleException)
@@ -256,7 +255,11 @@ export function toAvailabilityResponse(
     timezone: r.timezone,
     closed: result.closed,
     reasons: result.reasons,
-    services: loaded.services.map((s) => ({ id: s.id, name: s.name })),
+    // in the order of that day: lunch, aperitivo, dinner
+    services: sortServices(loaded.services, weekdayOf(result.date)).map((s) => ({
+      id: s.id,
+      name: s.name,
+    })),
     slots: result.slots.map((s) => ({
       serviceId: s.serviceId,
       startsAt: s.startsAt.toISOString(),

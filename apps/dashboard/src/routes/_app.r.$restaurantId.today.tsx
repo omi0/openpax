@@ -1,4 +1,4 @@
-import { type BookingAction, compareServices, weekdayOf, windowToMinutes } from "@openpax/core";
+import { type BookingAction, sortServices, weekdayOf, windowToMinutes } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
@@ -38,6 +38,7 @@ import {
   actionIcons,
   actionsFor,
   BookingSheet,
+  isGone,
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
@@ -216,7 +217,11 @@ function TodayPage() {
   const selectedBooking = allItems.find((b) => b.id === selected) ?? null;
   // one service at a time (lunch, aperitivo, dinner), so the printout is only that one
   const services = useQuery(servicesQuery(restaurantId));
-  const activeServices = (services.data ?? []).filter((s) => s.active).sort(compareServices);
+  // in the order of this day: lunch, aperitivo, dinner
+  const activeServices = sortServices(
+    (services.data ?? []).filter((s) => s.active),
+    weekdayOf(date),
+  );
   const [fascia, setFascia] = useState<string>("all");
   const chosen = activeServices.find((s) => s.id === fascia) ?? null;
   const items = chosen
@@ -229,8 +234,9 @@ function TodayPage() {
 
   // cancelled and no-shows stay out of the list until someone asks for them
   const [showGone, setShowGone] = useState(false);
-  const gone = items.filter((b) => b.status === "cancelled" || b.status === "no_show");
-  const listed = items.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
+  const gone: BookingDto[] = [];
+  const listed: BookingDto[] = [];
+  for (const b of items) (isGone(b) ? gone : listed).push(b);
 
   // group by service, in order of first arrival
   const groups: Array<{ id: string; name: string; items: BookingDto[] }> = [];
@@ -397,7 +403,7 @@ function TodayPage() {
           tables={tables.data}
           areas={areas.data ?? []}
           bookings={allItems}
-          shown={items}
+          shown={listed}
           serviceStart={
             chosen ? ((chosen.weeklyHours[weekdayOf(date)] ?? [])[0]?.start ?? null) : null
           }
@@ -471,7 +477,8 @@ function TodayPage() {
             </div>
           ) : null}
           {showGone && gone.length > 0 ? (
-            <div className="mt-2 overflow-hidden rounded-lg border border-stone-200 bg-white">
+            // the printed service sheet never lists them
+            <div className="mt-2 overflow-hidden rounded-lg border border-stone-200 bg-white print:hidden">
               <ul className="divide-y divide-stone-100">{gone.map(row)}</ul>
             </div>
           ) : null}
