@@ -9,7 +9,6 @@ test("owner invites a colleague who signs up from the link and lands on Today", 
   const invitee = `giulia-${Date.now()}@example.com`;
 
   await page.goto(`/r/${owner.restaurantId}/settings/team`);
-  // exact: the chef card below has its own "Chef's email"
   await page.getByLabel("Email", { exact: true }).fill(invitee);
   await page.getByLabel("Role").selectOption("staff");
   await page.getByRole("button", { name: "Send invitation" }).click();

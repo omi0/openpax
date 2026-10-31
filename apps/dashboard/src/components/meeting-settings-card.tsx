@@ -17,7 +17,7 @@ import {
 import { ApiClientError, api } from "@/lib/api";
 import { meetingFeedQuery, policyQuery } from "@/lib/queries";
 
-/** Who meets large groups (the chef), their address for invites, and when they are free. */
+/** Who meets large groups (the chef), when they are free, and the link to their calendar. */
 export function MeetingSettingsCard({
   restaurantId,
   canManage,
@@ -31,7 +31,6 @@ export function MeetingSettingsCard({
   const policy = useQuery(policyQuery(restaurantId));
   const [minParty, setMinParty] = useState("");
   const [hostName, setHostName] = useState("");
-  const [hostEmail, setHostEmail] = useState("");
   const [hours, setHours] = useState<BookingPolicyDto["meetingHours"]>({});
   const [error, setError] = useState<string | null>(null);
   // unsaved edits win over cache updates (the operators card saves the same policy)
@@ -47,7 +46,6 @@ export function MeetingSettingsCard({
     if (!p || dirty) return;
     setMinParty(p.meetingMinPartySize === null ? "" : String(p.meetingMinPartySize));
     setHostName(p.meetingHostName ?? "");
-    setHostEmail(p.meetingHostEmail ?? "");
     setHours(p.meetingHours);
   }, [policy.data, dirty]);
 
@@ -68,7 +66,6 @@ export function MeetingSettingsCard({
     save.mutate({
       meetingMinPartySize: minParty === "" ? null : Number(minParty),
       meetingHostName: hostName.trim() || null,
-      meetingHostEmail: hostEmail.trim() || null,
       meetingHours: hours,
     });
   };
@@ -83,7 +80,7 @@ export function MeetingSettingsCard({
       description={t("meetings.settingsHint")}
     >
       <form onSubmit={submit} className="space-y-4">
-        <fieldset disabled={!canManage} className="grid gap-4 sm:grid-cols-3">
+        <fieldset disabled={!canManage} className="grid gap-4 sm:grid-cols-2">
           <Field label={t("meetings.minParty")} hint={t("meetings.minPartyHint")}>
             <Input
               type="number"
@@ -100,14 +97,7 @@ export function MeetingSettingsCard({
               onChange={(e) => edit(setHostName)(e.target.value)}
             />
           </Field>
-          <Field label={t("meetings.hostEmail")} hint={t("meetings.hostEmailHint")}>
-            <Input
-              type="email"
-              value={hostEmail}
-              onChange={(e) => edit(setHostEmail)(e.target.value)}
-            />
-          </Field>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <p className="mb-1.5 text-sm font-medium text-stone-700">{t("meetings.hours")}</p>
             <p className="mb-2 text-[13px] text-stone-500">{t("meetings.hoursHint")}</p>
             <WeeklyHoursEditor value={hours} onChange={edit(setHours)} />
