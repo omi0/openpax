@@ -62,13 +62,15 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   // --- go live: the embed snippet, then finish the guide and land on Today
   await expect(page.getByRole("heading", { name: "Go live", exact: true })).toBeVisible();
   const snippet = await page.locator("pre").first().textContent();
-  expect(snippet).toContain('data-restaurant="osteria-e2e"');
+  // a retry signs up the same name again, which gets a numbered slug
+  const slug = snippet?.match(/data-restaurant="(osteria-e2e(?:-\d+)?)"/)?.[1];
+  expect(slug).toBeTruthy();
   await page.getByRole("button", { name: "Finish setup" }).click();
   await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
 
   // --- guest books through the hosted widget page
   const guest = await page.context().newPage();
-  await guest.goto(`${baseURL}/book/osteria-e2e?lang=en`);
+  await guest.goto(`${baseURL}/book/${slug}?lang=en`);
   await expect(guest.getByRole("heading", { name: "Osteria E2E" })).toBeVisible();
   // pick the first enabled day that is not today (today may be past the last seating)
   const days = guest.locator(".cal button.open:not(:disabled)");
@@ -103,11 +105,13 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   expect(booking?.status).toBe("confirmed");
 
   await page.goto(`/r/${restaurantId}/today?date=${booking?.serviceDate}`);
-  await expect(page.getByText("Mario Guest")).toBeVisible();
+  // the row, not the website popup that can show the same name while it is open
+  const row = page.locator("li", { hasText: "Mario Guest" });
+  await expect(row).toBeVisible();
   await expect(page.getByText(slotTime, { exact: true })).toBeVisible();
 
   // --- the booking sheet shows the confirmation email as sent (may take a relay tick)
-  await page.getByText("Mario Guest").click();
+  await row.getByText("Mario Guest").click();
   await expect(page.getByText("sent").first()).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Escape");
 
