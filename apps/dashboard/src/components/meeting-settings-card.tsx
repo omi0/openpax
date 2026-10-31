@@ -1,12 +1,21 @@
-import type { BookingPolicyDto, UpdateBookingPolicyInput } from "@openpax/shared";
+import type { BookingPolicyDto, MeetingFeedDto, UpdateBookingPolicyInput } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChefHat } from "lucide-react";
+import { CalendarPlus, ChefHat, Copy, RefreshCw } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WeeklyHoursEditor } from "@/components/service-form";
-import { Alert, Button, Card, Field, Input, useToast } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  Field,
+  IconButton,
+  Input,
+  useConfirm,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { policyQuery } from "@/lib/queries";
+import { meetingFeedQuery, policyQuery } from "@/lib/queries";
 
 /** Who meets large groups (the chef), their address for invites, and when they are free. */
 export function MeetingSettingsCard({
@@ -111,6 +120,111 @@ export function MeetingSettingsCard({
           </Button>
         ) : null}
       </form>
+      {canManage ? <MeetingFeedSection restaurantId={restaurantId} /> : null}
     </Card>
+  );
+}
+
+/** A secret link the chef adds once to Google Calendar: every meeting shows up there, no email needed. */
+function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const path = `/api/v1/restaurants/${restaurantId}/meetings/feed`;
+  const feed = useQuery(meetingFeedQuery(restaurantId));
+  const change = useMutation({
+    mutationFn: (on: boolean) =>
+      on ? api.post<MeetingFeedDto>(path, {}) : api.delete<MeetingFeedDto>(path),
+    onSuccess: (updated) =>
+      queryClient.setQueryData(meetingFeedQuery(restaurantId).queryKey, updated),
+    onError: (e) => toast.error(e instanceof ApiClientError ? e.message : t("app.error")),
+  });
+  const url = feed.data?.url ?? null;
+
+  return (
+    <div className="mt-6 space-y-3 border-t border-stone-200 pt-5">
+      <div>
+        <p className="text-sm font-medium text-stone-700">{t("meetings.feedTitle")}</p>
+        <p className="mt-1 text-[13px] text-stone-500">{t("meetings.feedHint")}</p>
+      </div>
+      {url ? (
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={url}
+              readOnly
+              aria-label={t("meetings.feedLink")}
+              className="bg-stone-50 font-mono text-[13px] text-stone-600"
+            />
+            <IconButton
+              label={t("app.copy")}
+              variant="outline"
+              onClick={() => {
+                void navigator.clipboard?.writeText(url);
+                toast.success(t("app.copied"));
+              }}
+            >
+              <Copy />
+            </IconButton>
+          </div>
+          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-stone-600">
+            <li>{t("meetings.feedStep1")}</li>
+            <li>{t("meetings.feedStep2")}</li>
+            <li>{t("meetings.feedStep3")}</li>
+          </ol>
+          <p className="text-[13px] text-stone-500">{t("meetings.feedDelay")}</p>
+          <Alert tone="warning">{t("meetings.feedPrivate")}</Alert>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              icon={<RefreshCw />}
+              disabled={change.isPending}
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: t("meetings.feedRotate"),
+                    description: t("meetings.feedRotateConfirm"),
+                    confirmLabel: t("meetings.feedRotate"),
+                  })
+                )
+                  change.mutate(true);
+              }}
+            >
+              {t("meetings.feedRotate")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-stone-500 hover:text-red-700"
+              disabled={change.isPending}
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: t("meetings.feedOff"),
+                    description: t("meetings.feedOffConfirm"),
+                    confirmLabel: t("meetings.feedOff"),
+                  })
+                )
+                  change.mutate(false);
+              }}
+            >
+              {t("meetings.feedOff")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          variant="outline"
+          icon={<CalendarPlus />}
+          loading={change.isPending}
+          disabled={feed.isPending}
+          onClick={() => change.mutate(true)}
+        >
+          {t("meetings.feedCreate")}
+        </Button>
+      )}
+    </div>
   );
 }

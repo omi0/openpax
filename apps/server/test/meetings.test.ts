@@ -476,3 +476,63 @@ describe("host meeting calendar", () => {
     expect(byDate["2026-06-19"]).toMatchObject({ closed: true, free: 0 });
   });
 });
+
+describe("host calendar subscription", () => {
+  const feedPath = (url: string) => new URL(url).pathname;
+  const getFeed = (url: string) => api<string>(t, "GET", feedPath(url));
+  const setFeed = (fx: Fixture, method: "POST" | "DELETE", session = fx.session) =>
+    api<{ url: string | null }>(t, method, `${base(fx)}/meetings/feed`, undefined, session);
+
+  it("serves the live meetings behind a secret link that can be changed and turned off", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const off = await api<{ url: string | null }>(
+      t,
+      "GET",
+      `${base(fx)}/meetings/feed`,
+      undefined,
+      fx.session,
+    );
+    expect(off.body.url).toBeNull();
+
+    const on = await setFeed(fx, "POST");
+    expect(on.status).toBe(200);
+    const url = on.body.url ?? "";
+    expect(url).toMatch(/\/api\/public\/v1\/meetings\/feed\/[\w-]+\.ics$/);
+
+    const bookingId = await groupBooking(fx);
+    const meeting = await schedule(fx, bookingId, "15:30");
+    const other = await groupBooking(fx, 30, "21:00");
+    await schedule(fx, other, "16:00");
+    await api(t, "DELETE", `${base(fx)}/bookings/${other}/meeting`, undefined, fx.session);
+
+    const res = await t.app.request(feedPath(url));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/calendar");
+    const ics = await res.text();
+    expect(ics).toContain("METHOD:PUBLISH");
+    expect(ics).toContain(`UID:${meeting.body.id}@openpax`);
+    expect(ics).toContain("DTSTART:20260612T133000Z");
+    expect(ics).toContain("SUMMARY:Appuntamento con Laura Neri");
+    expect(ics).not.toContain("ATTENDEE");
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1); // the cancelled one is gone
+
+    const wrong = await getFeed(url.replace(/[\w-]+\.ics$/, `${"x".repeat(32)}.ics`));
+    expect(wrong.status).toBe(404);
+
+    const rotated = await setFeed(fx, "POST");
+    expect(rotated.body.url).not.toBe(url);
+    expect((await getFeed(url)).status).toBe(404);
+    expect((await getFeed(rotated.body.url ?? "")).status).toBe(200);
+
+    const disabled = await setFeed(fx, "DELETE");
+    expect(disabled.body.url).toBeNull();
+    expect((await getFeed(rotated.body.url ?? "")).status).toBe(404);
+  });
+
+  it("is only for those who manage the settings", async () => {
+    const fx = await createFixture(t);
+    const staff = await addMember(t, fx, "staff");
+    expect((await setFeed(fx, "POST", staff)).status).toBe(403);
+  });
+});

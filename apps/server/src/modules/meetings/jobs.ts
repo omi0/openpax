@@ -12,7 +12,7 @@ import { defineJob } from "../../jobs/queue.js";
 import type { NotificationProvider } from "../../notifications/provider.js";
 import { parseAddress } from "../../notifications/providers/address.js";
 import { resolveProvider } from "../notifications/index.js";
-import { buildIcs, googleCalendarLink, type IcsEvent } from "./ics.js";
+import { buildIcs, type FeedEvent, googleCalendarLink, type IcsEvent } from "./ics.js";
 import { cancelMeetingOfBooking, refreshMeetingOfBooking } from "./service.js";
 
 type Kind = "scheduled" | "cancelled";
@@ -65,6 +65,46 @@ const formatWhen = (d: Date, timeZone: string, locale: string) =>
     hourCycle: "h23",
     timeZone,
   }).format(d);
+
+export interface MeetingContext {
+  meeting: typeof bookingMeeting.$inferSelect;
+  booking: typeof booking.$inferSelect;
+  customer: typeof customer.$inferSelect;
+  restaurant: typeof restaurant.$inferSelect;
+}
+
+/** What the host reads about a meeting, in the invite and in the subscription calendar. */
+export function meetingEvent(row: MeetingContext, now: Date) {
+  const locale = row.restaurant.locale === "it" ? "it" : "en";
+  const c = COPY[locale];
+  const tz = row.restaurant.timezone;
+  const details: Array<[string, string]> = [
+    [c.when, formatWhen(row.meeting.startsAt, tz, locale)],
+    [c.guest, row.customer.name],
+    ...(row.customer.phone ? ([[c.phone, row.customer.phone]] as Array<[string, string]>) : []),
+    [
+      c.event,
+      `${formatWhen(row.booking.startsAt, tz, locale)} · ${c.people(row.booking.partySize)}`,
+    ],
+    ...(row.booking.notes ? ([[c.notes, row.booking.notes]] as Array<[string, string]>) : []),
+    [c.code, row.booking.confirmationCode],
+  ];
+  const event: FeedEvent = {
+    uid: `${row.meeting.id}@openpax`,
+    sequence: row.meeting.sequence,
+    startsAt: row.meeting.startsAt,
+    endsAt: row.meeting.endsAt,
+    stamp: now,
+    summary: c.summary(row.customer.name, row.booking.partySize),
+    description: details.map(([k, v]) => `${k}: ${v}`).join("\n"),
+    location: [row.restaurant.name, row.restaurant.address].filter(Boolean).join(", "),
+  };
+  return { copy: c, details, event };
+}
+
+/** Name of the host's subscription calendar. */
+export const feedName = (r: { name: string; locale: string }) =>
+  r.locale === "it" ? `${r.name} · Appuntamenti` : `${r.name} · Meetings`;
 
 export const meetingEventHandlers = [
   defineEventHandler({
@@ -165,31 +205,11 @@ export const meetingEmailJob = defineJob<{
       return;
     }
 
-    const locale = row.restaurant.locale === "it" ? "it" : "en";
-    const c = COPY[locale];
-    const tz = row.restaurant.timezone;
     const hostName = row.policy.meetingHostName ?? undefined;
-    const details: Array<[string, string]> = [
-      [c.when, formatWhen(row.meeting.startsAt, tz, locale)],
-      [c.guest, row.customer.name],
-      ...(row.customer.phone ? ([[c.phone, row.customer.phone]] as Array<[string, string]>) : []),
-      [
-        c.event,
-        `${formatWhen(row.booking.startsAt, tz, locale)} · ${c.people(row.booking.partySize)}`,
-      ],
-      ...(row.booking.notes ? ([[c.notes, row.booking.notes]] as Array<[string, string]>) : []),
-      [c.code, row.booking.confirmationCode],
-    ];
+    const { copy: c, details, event } = meetingEvent(row, ctx.now());
     const ics: IcsEvent = {
-      uid: `${row.meeting.id}@openpax`,
+      ...event,
       method: kind === "scheduled" ? "REQUEST" : "CANCEL",
-      sequence: row.meeting.sequence,
-      startsAt: row.meeting.startsAt,
-      endsAt: row.meeting.endsAt,
-      stamp: ctx.now(),
-      summary: c.summary(row.customer.name, row.booking.partySize),
-      description: details.map(([k, v]) => `${k}: ${v}`).join("\n"),
-      location: [row.restaurant.name, row.restaurant.address].filter(Boolean).join(", "),
       organizer: parseAddress(String(resolved.config.from ?? hostEmail)),
       attendee: { email: hostEmail, ...(hostName ? { name: hostName } : {}) },
     };

@@ -48,15 +48,20 @@ function fold(line: string): string {
   return parts.join("\r\n ");
 }
 
-export function buildIcs(e: IcsEvent): string {
-  const cancelled = e.method === "CANCEL";
-  const cn = (p: { name?: string }) => (p.name ? `;CN=${param(p.name)}` : "");
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//OpenPax//Meetings//EN",
-    "CALSCALE:GREGORIAN",
-    `METHOD:${e.method}`,
+const cn = (p: { name?: string }) => (p.name ? `;CN=${param(p.name)}` : "");
+
+const alarm = [
+  "BEGIN:VALARM",
+  "ACTION:DISPLAY",
+  "DESCRIPTION:Reminder",
+  "TRIGGER:-PT1H",
+  "END:VALARM",
+];
+
+export type FeedEvent = Omit<IcsEvent, "method" | "organizer" | "attendee">;
+
+function veventLines(e: FeedEvent, cancelled: boolean, people: string[]): string[] {
+  return [
     "BEGIN:VEVENT",
     `UID:${e.uid}`,
     `DTSTAMP:${utc(e.stamp)}`,
@@ -67,15 +72,52 @@ export function buildIcs(e: IcsEvent): string {
     `SUMMARY:${escapeText(e.summary)}`,
     `DESCRIPTION:${escapeText(e.description)}`,
     ...(e.location ? [`LOCATION:${escapeText(e.location)}`] : []),
-    `ORGANIZER${cn(e.organizer)}:mailto:${e.organizer.email}`,
-    `ATTENDEE${cn(e.attendee)};ROLE=REQ-PARTICIPANT;PARTSTAT=${cancelled ? "DECLINED" : "ACCEPTED"};RSVP=FALSE:mailto:${e.attendee.email}`,
-    ...(cancelled
-      ? []
-      : ["BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Reminder", "TRIGGER:-PT1H", "END:VALARM"]),
+    ...people,
+    ...(cancelled ? [] : alarm),
     "END:VEVENT",
-    "END:VCALENDAR",
   ];
-  return `${lines.map(fold).join("\r\n")}\r\n`;
+}
+
+const calendar = (head: string[], events: string[][]) =>
+  `${[
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//OpenPax//Meetings//EN",
+    "CALSCALE:GREGORIAN",
+    ...head,
+    ...events.flat(),
+    "END:VCALENDAR",
+  ]
+    .map(fold)
+    .join("\r\n")}\r\n`;
+
+export function buildIcs(e: IcsEvent): string {
+  const cancelled = e.method === "CANCEL";
+  return calendar(
+    [`METHOD:${e.method}`],
+    [
+      veventLines(e, cancelled, [
+        `ORGANIZER${cn(e.organizer)}:mailto:${e.organizer.email}`,
+        `ATTENDEE${cn(e.attendee)};ROLE=REQ-PARTICIPANT;PARTSTAT=${cancelled ? "DECLINED" : "ACCEPTED"};RSVP=FALSE:mailto:${e.attendee.email}`,
+      ]),
+    ],
+  );
+}
+
+/**
+ * The host's subscription calendar: every live meeting, read by the calendar
+ * app on its own schedule. Same UIDs as the invites, so the two never double up.
+ */
+export function buildFeed(events: FeedEvent[], name: string): string {
+  return calendar(
+    [
+      "METHOD:PUBLISH",
+      `X-WR-CALNAME:${escapeText(name)}`,
+      "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+      "X-PUBLISHED-TTL:PT1H",
+    ],
+    events.map((e) => veventLines(e, false, [])),
+  );
 }
 
 /** "Add to Google Calendar" link, for providers that cannot attach the invite. */

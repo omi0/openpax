@@ -1,0 +1,2 @@
+ALTER TABLE "booking_policy" ADD COLUMN "meeting_feed_token" text;--> statement-breakpoint
+ALTER TABLE "booking_policy" ADD CONSTRAINT "booking_policy_meetingFeedToken_unique" UNIQUE("meeting_feed_token");
