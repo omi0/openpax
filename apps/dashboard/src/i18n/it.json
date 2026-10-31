@@ -247,6 +247,10 @@
     "modifiedBy": "Modificata da",
     "cancelledBy": "Annullata da",
     "cancelledByName": "annullata da {{name}}",
+    "cancelReasonLabel": "Motivo annullamento",
+    "cancelReasonText": "Motivo: {{reason}}",
+    "showCancelled": "Mostra annullate e no-show ({{count}})",
+    "hideCancelled": "Nascondi annullate e no-show",
     "allServices": "Tutte",
     "tableTaken": "Uno dei tavoli scelti è occupato a quell'ora. Scegline un altro o spunta \"Assegna comunque\"."
   },

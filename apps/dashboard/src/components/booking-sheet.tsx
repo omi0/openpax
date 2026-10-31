@@ -14,6 +14,7 @@ import {
   DoorOpen,
   LayoutGrid,
   Mail,
+  MessageSquareText,
   Pencil,
   Phone,
   Send,
@@ -250,6 +251,11 @@ export function BookingSheet({
             {b.cancelledByOperatorName ? (
               <Row icon={<Ban />} label={t("today.cancelledBy")}>
                 {b.cancelledByOperatorName}
+              </Row>
+            ) : null}
+            {b.status === "cancelled" && b.cancellationReason ? (
+              <Row icon={<MessageSquareText />} label={t("today.cancelReasonLabel")}>
+                {b.cancellationReason}
               </Row>
             ) : null}
             <Row icon={<Clock />} label={t("today.operatorTakenAt")}>

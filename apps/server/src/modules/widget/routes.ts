@@ -1,5 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute } from "@hono/zod-openapi";
+import { compareServices } from "@openpax/core";
 import { area, bookingPolicy, service, widgetConfig } from "@openpax/db";
 import {
   type PublicWidgetConfigDto,
@@ -33,10 +34,11 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
             name: service.name,
             minPartySize: service.minPartySize,
             maxPartySize: service.maxPartySize,
+            weeklyHours: service.weeklyHours,
+            sortOrder: service.sortOrder,
           })
           .from(service)
-          .where(and(eq(service.restaurantId, r.id), eq(service.active, true)))
-          .orderBy(asc(service.sortOrder), asc(service.name)),
+          .where(and(eq(service.restaurantId, r.id), eq(service.active, true))),
         ctx.db
           .select({ id: area.id, name: area.name })
           .from(area)
@@ -67,7 +69,15 @@ export function widgetRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
           termsUrl: cfg.termsUrl,
           privacyUrl: cfg.privacyUrl,
         },
-        services,
+        // in the order of the day: lunch, aperitivo, dinner
+        services: services
+          .sort(compareServices)
+          .map(({ id, name, minPartySize, maxPartySize }) => ({
+            id,
+            name,
+            minPartySize,
+            maxPartySize,
+          })),
         areas,
         policy: {
           minPartySize: policy.minPartySize,

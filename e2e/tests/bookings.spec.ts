@@ -26,7 +26,13 @@ test("staff edit a booking, cancel with a reason, and find bookings by search", 
   await expect(page.getByRole("heading", { name: "Cancel booking" })).toBeVisible();
   await page.getByLabel("Reason (optional)").fill("Guest called");
   await page.getByRole("button", { name: "Cancel booking" }).click();
+  await expect(luciaRow).toHaveCount(0);
+  await page.getByRole("button", { name: "Show cancelled and no-shows (1)" }).click();
   await expect(luciaRow.getByText("Cancelled")).toBeVisible();
+  // the reason stays on the booking
+  await luciaRow.getByText("Lucia Bianchi").click();
+  await expect(page.getByText("Guest called")).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.goto(`/r/${owner.restaurantId}/bookings`);
   await expect(page.getByText("2 bookings")).toBeVisible();

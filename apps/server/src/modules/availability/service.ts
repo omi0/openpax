@@ -5,6 +5,7 @@ import {
   addDaysToLocalDate,
   type BookingLoad,
   type CapacityRuleDef,
+  compareServices,
   computeAvailability,
   type LocalDate,
   type RoomDef,
@@ -103,10 +104,12 @@ export async function loadAvailabilityInput(
   params: LoadParams,
 ): Promise<LoadedAvailability> {
   // Sequential on purpose: this often runs inside a transaction (one connection).
-  const services = await db
-    .select()
-    .from(service)
-    .where(and(eq(service.restaurantId, r.id), eq(service.active, true)));
+  const services = (
+    await db
+      .select()
+      .from(service)
+      .where(and(eq(service.restaurantId, r.id), eq(service.active, true)))
+  ).sort(compareServices);
   const exceptions = await db
     .select()
     .from(scheduleException)

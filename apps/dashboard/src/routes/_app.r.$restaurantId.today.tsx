@@ -1,4 +1,4 @@
-import { type BookingAction, weekdayOf, windowToMinutes } from "@openpax/core";
+import { type BookingAction, compareServices, weekdayOf, windowToMinutes } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
@@ -216,9 +216,7 @@ function TodayPage() {
   const selectedBooking = allItems.find((b) => b.id === selected) ?? null;
   // one service at a time (lunch, aperitivo, dinner), so the printout is only that one
   const services = useQuery(servicesQuery(restaurantId));
-  const activeServices = (services.data ?? [])
-    .filter((s) => s.active)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeServices = (services.data ?? []).filter((s) => s.active).sort(compareServices);
   const [fascia, setFascia] = useState<string>("all");
   const chosen = activeServices.find((s) => s.id === fascia) ?? null;
   const items = chosen
@@ -229,9 +227,14 @@ function TodayPage() {
   const seatedNow = items.filter((b) => b.status === "seated").length;
   const pending = items.filter((b) => b.status === "pending").length;
 
+  // cancelled and no-shows stay out of the list until someone asks for them
+  const [showGone, setShowGone] = useState(false);
+  const gone = items.filter((b) => b.status === "cancelled" || b.status === "no_show");
+  const listed = items.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
+
   // group by service, in order of first arrival
   const groups: Array<{ id: string; name: string; items: BookingDto[] }> = [];
-  for (const b of items) {
+  for (const b of listed) {
     let g = groups.find((x) => x.id === b.serviceId);
     if (!g) {
       g = { id: b.serviceId, name: b.serviceName, items: [] };
@@ -239,6 +242,20 @@ function TodayPage() {
     }
     g.items.push(b);
   }
+  const row = (b: BookingDto) => (
+    <BookingRow
+      key={b.id}
+      booking={b}
+      timezone={restaurant.timezone}
+      hasFloor={hasFloor}
+      roomName={b.areaId ? rooms.find((r) => r.id === b.areaId)?.name : undefined}
+      busy={act.isPending}
+      onOpen={() => setSelected(b.id)}
+      onAction={(a) => run(b, a)}
+      onEdit={() => setEditing(b)}
+      onAssign={() => setAssigning(b)}
+    />
+  );
   const longDate = formatDate(date, i18n.language, {
     weekday: "long",
     day: "numeric",
@@ -406,56 +423,59 @@ function TodayPage() {
           </EmptyState>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
-          <div
-            aria-hidden="true"
-            className={cn(
-              "hidden gap-x-3 border-b border-stone-200 px-4 py-1.5 text-[11px] font-semibold tracking-wider text-stone-500 uppercase md:grid",
-              hasFloor ? ROW_COLS_FLOOR : ROW_COLS,
-            )}
-          >
-            <span>{t("today.time")}</span>
-            <span>{t("today.guest")}</span>
-            <span>{t("today.party")}</span>
-            {hasFloor ? <span>{t("today.table")}</span> : null}
-            <span>{t("bookings.columns.status")}</span>
-            <span />
-          </div>
-          {groups.map((g) => {
-            const gActive = g.items.filter((b) => ACTIVE_STATUSES.has(b.status));
-            return (
-              <section key={g.id}>
-                {groups.length > 1 ? (
-                  <h2 className="flex items-baseline justify-between gap-3 border-y border-stone-200 bg-stone-50 px-4 py-1.5 first:border-t-0">
-                    <span className="text-[13px] font-semibold text-stone-800">{g.name}</span>
-                    <span className="text-xs text-stone-500 tabular-nums">
-                      {t("today.bookings", { count: gActive.length })} ·{" "}
-                      {t("today.covers", {
-                        count: gActive.reduce((n, b) => n + b.partySize, 0),
-                      })}
-                    </span>
-                  </h2>
-                ) : null}
-                <ul className="divide-y divide-stone-100">
-                  {g.items.map((b) => (
-                    <BookingRow
-                      key={b.id}
-                      booking={b}
-                      timezone={restaurant.timezone}
-                      hasFloor={hasFloor}
-                      roomName={b.areaId ? rooms.find((r) => r.id === b.areaId)?.name : undefined}
-                      busy={act.isPending}
-                      onOpen={() => setSelected(b.id)}
-                      onAction={(a) => run(b, a)}
-                      onEdit={() => setEditing(b)}
-                      onAssign={() => setAssigning(b)}
-                    />
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
-        </div>
+        <>
+          {groups.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+              <div
+                aria-hidden="true"
+                className={cn(
+                  "hidden gap-x-3 border-b border-stone-200 px-4 py-1.5 text-[11px] font-semibold tracking-wider text-stone-500 uppercase md:grid",
+                  hasFloor ? ROW_COLS_FLOOR : ROW_COLS,
+                )}
+              >
+                <span>{t("today.time")}</span>
+                <span>{t("today.guest")}</span>
+                <span>{t("today.party")}</span>
+                {hasFloor ? <span>{t("today.table")}</span> : null}
+                <span>{t("bookings.columns.status")}</span>
+                <span />
+              </div>
+              {groups.map((g) => {
+                const gActive = g.items.filter((b) => ACTIVE_STATUSES.has(b.status));
+                return (
+                  <section key={g.id}>
+                    {groups.length > 1 ? (
+                      <h2 className="flex items-baseline justify-between gap-3 border-y border-stone-200 bg-stone-50 px-4 py-1.5 first:border-t-0">
+                        <span className="text-[13px] font-semibold text-stone-800">{g.name}</span>
+                        <span className="text-xs text-stone-500 tabular-nums">
+                          {t("today.bookings", { count: gActive.length })} ·{" "}
+                          {t("today.covers", {
+                            count: gActive.reduce((n, b) => n + b.partySize, 0),
+                          })}
+                        </span>
+                      </h2>
+                    ) : null}
+                    <ul className="divide-y divide-stone-100">{g.items.map(row)}</ul>
+                  </section>
+                );
+              })}
+            </div>
+          ) : null}
+          {gone.length > 0 ? (
+            <div className="mt-2 print:hidden">
+              <Button variant="ghost" size="sm" onClick={() => setShowGone((v) => !v)}>
+                {showGone
+                  ? t("today.hideCancelled")
+                  : t("today.showCancelled", { count: gone.length })}
+              </Button>
+            </div>
+          ) : null}
+          {showGone && gone.length > 0 ? (
+            <div className="mt-2 overflow-hidden rounded-lg border border-stone-200 bg-white">
+              <ul className="divide-y divide-stone-100">{gone.map(row)}</ul>
+            </div>
+          ) : null}
+        </>
       )}
 
       <div className="print:hidden">

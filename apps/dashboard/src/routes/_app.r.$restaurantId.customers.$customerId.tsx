@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  Ban,
   CalendarDays,
   CalendarPlus,
   CalendarX,
@@ -459,6 +460,12 @@ function CustomerPage() {
                         <p className="mt-1 flex items-start gap-1 text-[13px] text-amber-900">
                           <StickyNote className="mt-0.5 size-3 shrink-0 text-amber-600" />
                           {b.notes}
+                        </p>
+                      ) : null}
+                      {b.status === "cancelled" && b.cancellationReason ? (
+                        <p className="mt-1 flex items-start gap-1 text-[13px] text-red-800">
+                          <Ban className="mt-0.5 size-3 shrink-0 text-red-600" />
+                          {t("today.cancelReasonText", { reason: b.cancellationReason })}
                         </p>
                       ) : null}
                     </Link>

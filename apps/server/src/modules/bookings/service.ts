@@ -109,6 +109,7 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     operatorName: x.booking.operatorName,
     modifiedByOperatorName: x.booking.modifiedByOperatorName,
     cancelledByOperatorName: x.booking.cancelledByOperatorName,
+    cancellationReason: x.booking.cancellationReason,
     confirmationCode: x.booking.confirmationCode,
     tables: x.tables,
     payment: x.payment ? toPaymentDto(x.payment) : null,
