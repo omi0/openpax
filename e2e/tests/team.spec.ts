@@ -53,5 +53,6 @@ test("owner creates the chef's calendar link, then changes it", async ({ page, r
   await page.getByRole("button", { name: "Change link" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Change link" }).click();
   await expect(link).not.toHaveValue(first);
-  expect((await request.get(first)).status()).toBe(404);
+  // the old link now serves an empty calendar under a generic name
+  expect(await (await request.get(first)).text()).toContain("X-WR-CALNAME:OpenPax");
 });

@@ -19,7 +19,7 @@ import * as svc from "./service.js";
 
 const bookingIdParam = restaurantIdParam.extend({ bookingId: z.uuid() });
 const tags = ["Meetings"];
-const feedFileParam = z.object({ file: z.string().regex(/^[\w-]{16,64}\.ics$/) });
+const feedFileParam = z.object({ file: z.string().regex(/^[\w-]{32}\.ics$/) });
 
 export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
   const base = "/api/v1/restaurants/{restaurantId}/meetings";
@@ -108,7 +108,8 @@ export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       method: "get",
       path: "/api/public/v1/meetings/feed/{file}",
       tags,
-      summary: "The host's meetings as an iCalendar subscription, behind the secret link",
+      summary:
+        "The host's meetings as an iCalendar subscription; an unknown link gets an empty one",
       request: { params: feedFileParam },
       responses: {
         200: {

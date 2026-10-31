@@ -1216,7 +1216,7 @@
     "feedRotate": "Change link",
     "feedRotateConfirm": "The old link stops working. The chef will need to add the new one.",
     "feedOff": "Turn off",
-    "feedOffConfirm": "The link stops working and the meetings disappear from the chef's calendar.",
+    "feedOffConfirm": "The link stops working: at Google's next refresh the meetings disappear from the chef's calendar.",
     "hours": "When they are free",
     "hoursHint": "Each window runs from the start of the first meeting to the end of the last (e.g. 15:00–17:30 = 5 meetings).",
     "afterEvent": "The meeting must be before the event. Pick an earlier day.",

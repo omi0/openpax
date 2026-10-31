@@ -1216,7 +1216,7 @@
     "feedRotate": "Cambia link",
     "feedRotateConfirm": "Il link vecchio smette di funzionare. Lo chef dovrà aggiungere quello nuovo.",
     "feedOff": "Disattiva",
-    "feedOffConfirm": "Il link smette di funzionare e gli appuntamenti spariscono dal calendario dello chef.",
+    "feedOffConfirm": "Il link smette di funzionare: al prossimo aggiornamento di Google gli appuntamenti spariscono dal calendario dello chef.",
     "hours": "Quando è disponibile",
     "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti).",
     "afterEvent": "L'appuntamento deve essere prima dell'evento. Scegli un giorno prima.",

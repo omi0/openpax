@@ -106,7 +106,7 @@ export function buildIcs(e: IcsEvent): string {
 
 /**
  * The host's subscription calendar: every live meeting, read by the calendar
- * app on its own schedule. Same UIDs as the invites, so the two never double up.
+ * app on its own schedule. Same UIDs as the email invites.
  */
 export function buildFeed(events: FeedEvent[], name: string): string {
   return calendar(

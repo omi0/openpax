@@ -1,6 +1,6 @@
 import { booking, bookingMeeting, bookingPolicy, customer, restaurant } from "@openpax/db";
 import type { MeetingFeedDto } from "@openpax/shared";
-import { and, asc, eq, gte, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, ne } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
 import { ApiError } from "../../lib/errors.js";
@@ -33,10 +33,12 @@ export async function setMeetingFeed(
 ): Promise<MeetingFeedDto> {
   const token = on ? newToken() : null;
   return ctx.db.transaction(async (tx) => {
-    await tx
+    const updated = await tx
       .update(bookingPolicy)
       .set({ meetingFeedToken: token })
-      .where(eq(bookingPolicy.restaurantId, r.id));
+      .where(eq(bookingPolicy.restaurantId, r.id))
+      .returning({ id: bookingPolicy.restaurantId });
+    if (updated.length === 0) throw ApiError.notFound("Booking policy");
     await writeAudit(tx, {
       restaurantId: r.id,
       actor,
@@ -48,7 +50,12 @@ export async function setMeetingFeed(
   });
 }
 
-/** The host's subscription calendar behind a secret link. */
+/**
+ * The host's subscription calendar behind a secret link. A link that was
+ * changed or turned off gets an empty calendar rather than an error: calendar
+ * apps keep the last copy of a feed that fails, so this is what clears the
+ * guests' details off the host's calendar.
+ */
 export async function meetingFeed(ctx: AppContext, token: string): Promise<string> {
   const [found] = await ctx.db
     .select({ restaurant })
@@ -56,7 +63,7 @@ export async function meetingFeed(ctx: AppContext, token: string): Promise<strin
     .innerJoin(restaurant, eq(restaurant.id, bookingPolicy.restaurantId))
     .where(eq(bookingPolicy.meetingFeedToken, token))
     .limit(1);
-  if (!found) throw ApiError.notFound("Calendar");
+  if (!found) return buildFeed([], "OpenPax");
   const now = ctx.now();
   const rows = await ctx.db
     .select({ meeting: bookingMeeting, booking, customer })
@@ -67,6 +74,8 @@ export async function meetingFeed(ctx: AppContext, token: string): Promise<strin
       and(
         eq(bookingMeeting.restaurantId, found.restaurant.id),
         isNull(bookingMeeting.cancelledAt),
+        // the meeting itself is cancelled a moment later, through the outbox
+        ne(booking.status, "cancelled"),
         gte(bookingMeeting.startsAt, new Date(now.getTime() - PAST_DAYS * 86_400_000)),
       ),
     )

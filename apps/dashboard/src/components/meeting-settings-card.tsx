@@ -66,6 +66,8 @@ export function MeetingSettingsCard({
     save.mutate({
       meetingMinPartySize: minParty === "" ? null : Number(minParty),
       meetingHostName: hostName.trim() || null,
+      // the calendar link replaced the email invites: clear an address saved before
+      meetingHostEmail: null,
       meetingHours: hours,
     });
   };
@@ -138,7 +140,9 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
         <p className="text-sm font-medium text-stone-700">{t("meetings.feedTitle")}</p>
         <p className="mt-1 text-[13px] text-stone-500">{t("meetings.feedHint")}</p>
       </div>
-      {url ? (
+      {feed.isError ? (
+        <Alert>{t("app.error")}</Alert>
+      ) : url ? (
         <>
           <div className="flex gap-2">
             <Input
@@ -150,10 +154,12 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
             <IconButton
               label={t("app.copy")}
               variant="outline"
-              onClick={() => {
-                void navigator.clipboard?.writeText(url);
-                toast.success(t("app.copied"));
-              }}
+              onClick={() =>
+                navigator.clipboard
+                  .writeText(url)
+                  .then(() => toast.success(t("app.copied")))
+                  .catch(() => toast.error(t("app.error")))
+              }
             >
               <Copy />
             </IconButton>

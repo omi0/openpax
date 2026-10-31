@@ -480,6 +480,9 @@ describe("host meeting calendar", () => {
 describe("host calendar subscription", () => {
   const feedPath = (url: string) => new URL(url).pathname;
   const getFeed = (url: string) => api<string>(t, "GET", feedPath(url));
+  // a changed or disabled link answers with an empty calendar, so calendar apps drop the copy
+  const isEmpty = (res: { status: number; body: string }) =>
+    res.status === 200 && !res.body.includes("BEGIN:VEVENT");
   const setFeed = (fx: Fixture, method: "POST" | "DELETE", session = fx.session) =>
     api<{ url: string | null }>(t, method, `${base(fx)}/meetings/feed`, undefined, session);
 
@@ -517,17 +520,27 @@ describe("host calendar subscription", () => {
     expect(ics).not.toContain("ATTENDEE");
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1); // the cancelled one is gone
 
-    const wrong = await getFeed(url.replace(/[\w-]+\.ics$/, `${"x".repeat(32)}.ics`));
-    expect(wrong.status).toBe(404);
+    expect(isEmpty(await getFeed(url.replace(/[\w-]+\.ics$/, `${"x".repeat(32)}.ics`)))).toBe(true);
+    expect((await getFeed(url.replace(/[\w-]+\.ics$/, "short.ics"))).status).toBe(400);
 
     const rotated = await setFeed(fx, "POST");
     expect(rotated.body.url).not.toBe(url);
-    expect((await getFeed(url)).status).toBe(404);
-    expect((await getFeed(rotated.body.url ?? "")).status).toBe(200);
+    expect(isEmpty(await getFeed(url))).toBe(true);
+    expect((await getFeed(rotated.body.url ?? "")).body).toContain("BEGIN:VEVENT");
+
+    // the booking is cancelled: its meeting leaves the feed before the outbox cancels it
+    await api(
+      t,
+      "POST",
+      `${base(fx)}/bookings/${bookingId}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    expect(isEmpty(await getFeed(rotated.body.url ?? ""))).toBe(true);
 
     const disabled = await setFeed(fx, "DELETE");
     expect(disabled.body.url).toBeNull();
-    expect((await getFeed(rotated.body.url ?? "")).status).toBe(404);
+    expect(isEmpty(await getFeed(rotated.body.url ?? ""))).toBe(true);
   });
 
   it("is only for those who manage the settings", async () => {

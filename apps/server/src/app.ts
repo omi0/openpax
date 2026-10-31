@@ -32,7 +32,8 @@ export function createApp(
     ctx.logger.debug(
       {
         method: c.req.method,
-        path: c.req.path,
+        // the host's calendar link is a secret: keep it out of the logs
+        path: c.req.path.replace(/(\/meetings\/feed\/)[^/]+/, "$1[secret]"),
         status: c.res.status,
         ms: Date.now() - start,
         requestId: c.get("requestId"),
