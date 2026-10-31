@@ -254,41 +254,6 @@ button:disabled {
   color: var(--openpax-fg);
 }
 
-/* ------------------------------------------------------------------ chips */
-.openpax .row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.openpax .chip {
-  min-width: var(--openpax-tap);
-  height: var(--openpax-tap);
-  padding: 0 14px;
-  border: 1px solid var(--openpax-border);
-  background: var(--openpax-bg);
-  color: var(--openpax-fg);
-  border-radius: 999px;
-  font-size: 16px;
-  font-weight: 600;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    transform 120ms ease;
-}
-.openpax .chip:hover:not(:disabled):not([aria-pressed="true"]) {
-  border-color: var(--openpax-primary);
-  background: var(--openpax-primary-soft);
-}
-.openpax .chip[aria-pressed="true"] {
-  background: var(--openpax-primary);
-  color: var(--openpax-primary-contrast);
-  border-color: var(--openpax-primary);
-}
-.openpax .chip:disabled {
-  opacity: 0.4;
-  text-decoration: line-through;
-}
-
 /* --------------------------------------------------------------- calendar */
 .openpax .cal-head {
   display: flex;

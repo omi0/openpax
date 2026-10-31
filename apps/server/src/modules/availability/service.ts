@@ -57,6 +57,8 @@ export function tableToDef(row: TableRow): TableDef {
     minCovers: row.minCovers,
     maxCovers: row.maxCovers,
     joinable: row.joinable,
+    joinWith: row.joinWith,
+    headSeats: row.headSeats,
     active: row.active,
     sortOrder: row.sortOrder,
   };
@@ -226,6 +228,7 @@ export async function loadAvailabilityInput(
     rooms: rooms.map(
       (x): RoomDef => ({ id: x.id, name: x.name, seats: x.seats, active: x.active }),
     ),
+    manualTables: !policy.autoAssignTables,
     ...(tables.length > 0
       ? {
           tables: tables.map(tableToDef),

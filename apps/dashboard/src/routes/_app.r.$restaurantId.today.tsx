@@ -1,8 +1,9 @@
-import type { BookingAction } from "@openpax/core";
+import { type BookingAction, weekdayOf, windowToMinutes } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
   ScheduleExceptionDto,
+  ServiceDto,
   UpsertAreaInput,
   UpsertScheduleExceptionInput,
 } from "@openpax/shared";
@@ -40,6 +41,11 @@ import {
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
+import {
+  OperatorGate,
+  OperatorsLoadError,
+  type VerifiedOperator,
+} from "@/components/operator-gate";
 import { defaultExceptionInput, ExceptionForm } from "@/components/schedule-forms";
 import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
@@ -57,16 +63,18 @@ import {
   StatusMark,
   Switch,
   Textarea,
+  useConfirm,
   useToast,
 } from "@/components/ui";
 import { WaitlistPanel } from "@/components/waitlist-panel";
-import { api } from "@/lib/api";
+import { ApiClientError, api } from "@/lib/api";
 import {
   areasQuery,
   bookingsQuery,
   capacityRulesQuery,
   exceptionsQuery,
   meQuery,
+  operatorsQuery,
   restaurantQuery,
   servicesQuery,
   tablesQuery,
@@ -95,6 +103,7 @@ function TodayPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const { data: restaurant } = useSuspenseQuery(restaurantQuery(restaurantId));
   const { data: me } = useSuspenseQuery(meQuery());
   const role = me.restaurants.find((r) => r.id === restaurantId)?.role ?? "staff";
@@ -105,6 +114,12 @@ function TodayPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<BookingDto | null>(null);
   const [cancelling, setCancelling] = useState<BookingDto | null>(null);
+  // with operators, cancelling asks who is doing it (name + code) before the reason
+  const [cancelGate, setCancelGate] = useState<BookingDto | null>(null);
+  const [cancelOperator, setCancelOperator] = useState<VerifiedOperator | null>(null);
+  // the staff list did not load: cancelling waits for it instead of guessing
+  const [cancelBlocked, setCancelBlocked] = useState<BookingDto | null>(null);
+  const operators = useQuery(operatorsQuery(restaurantId));
   const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
   const [view, setView] = useState<"list" | "floor">("list");
@@ -134,26 +149,81 @@ function TodayPage() {
   const setDate = (d: string) => void navigate({ search: d === today ? {} : { date: d } });
 
   const act = useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: BookingAction; reason?: string }) =>
+    mutationFn: ({
+      id,
+      action,
+      reason,
+      operator,
+    }: {
+      id: string;
+      action: BookingAction;
+      reason?: string;
+      operator?: VerifiedOperator | null;
+    }) =>
       api.post<BookingDto>(`/api/v1/restaurants/${restaurantId}/bookings/${id}/actions`, {
         action,
         ...(reason ? { reason } : {}),
+        ...(operator ? { operator: { id: operator.id, pin: operator.pin } } : {}),
       }),
     onSuccess: async (_b, vars) => {
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] });
       setCancelling(null);
+      setCancelOperator(null);
       setReason("");
       toast.success(t(`today.done.${vars.action}`));
     },
-    onError: () => toast.error(t("app.error")),
+    onError: async (e, vars) => {
+      const askAgain =
+        e instanceof ApiClientError &&
+        ["wrong_pin", "unknown_operator", "operator_locked", "operator_required"].includes(e.code);
+      if (askAgain && vars.action === "cancel" && cancelling) {
+        // the code changed or an operator was added meanwhile: ask who it is, the reason stays
+        await queryClient.invalidateQueries({
+          queryKey: ["restaurant", restaurantId, "operators"],
+        });
+        setCancelOperator(null);
+        setCancelGate(cancelling);
+        setCancelling(null);
+      }
+      toast.error(askAgain ? t("operators.askAgain") : t("app.error"));
+    },
   });
-  const run = (b: BookingDto, action: BookingAction) => {
-    if (action === "cancel") setCancelling(b);
-    else act.mutate({ id: b.id, action });
+  const askCancel = async (b: BookingDto) => {
+    setCancelBlocked(null);
+    setCancelOperator(null);
+    // fresh list: whether a code is needed must not depend on what is cached
+    const list = await operators.refetch();
+    if (list.isError) return setCancelBlocked(b);
+    return (list.data?.length ?? 0) > 0 ? setCancelGate(b) : setCancelling(b);
+  };
+  const run = async (b: BookingDto, action: BookingAction) => {
+    if (action === "cancel") return askCancel(b);
+    // a stray tap on "seat" or "complete" is easy during service: ask first
+    if (
+      (action === "seat" || action === "complete" || action === "reopen") &&
+      !(await confirm({
+        title: t(`today.ask.${action}`, { name: b.customer.name }),
+        confirmLabel: t("app.yes"),
+        cancelLabel: t("app.no"),
+        tone: "primary",
+      }))
+    )
+      return;
+    act.mutate({ id: b.id, action });
   };
 
-  const items = bookings.data?.items ?? [];
-  const selectedBooking = items.find((b) => b.id === selected) ?? null;
+  const allItems = bookings.data?.items ?? [];
+  const selectedBooking = allItems.find((b) => b.id === selected) ?? null;
+  // one service at a time (lunch, aperitivo, dinner), so the printout is only that one
+  const services = useQuery(servicesQuery(restaurantId));
+  const activeServices = (services.data ?? [])
+    .filter((s) => s.active)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const [fascia, setFascia] = useState<string>("all");
+  const chosen = activeServices.find((s) => s.id === fascia) ?? null;
+  const items = chosen
+    ? allItems.filter((b) => tabOf(b, activeServices, date, restaurant.timezone)?.id === chosen.id)
+    : allItems;
   const active = items.filter((b) => ACTIVE_STATUSES.has(b.status));
   const covers = active.reduce((n, b) => n + b.partySize, 0);
   const seatedNow = items.filter((b) => b.status === "seated").length;
@@ -181,6 +251,7 @@ function TodayPage() {
         <div className="min-w-0">
           <h1 className="text-[22px] font-semibold tracking-tight capitalize md:text-2xl">
             {date === today ? t("today.title") : longDate}
+            {chosen ? ` · ${chosen.name}` : null}
           </h1>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-stone-500 tabular-nums">
             {date === today ? <span className="capitalize">{longDate}</span> : null}
@@ -261,6 +332,28 @@ function TodayPage() {
 
       <DayStrip date={date} today={today} closedDays={closedDays} onChange={setDate} />
 
+      {activeServices.length > 1 ? (
+        <div className="mt-3 flex flex-wrap gap-2 print:hidden" role="tablist">
+          {[{ id: "all", name: t("today.allServices") }, ...activeServices].map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={fascia === s.id}
+              onClick={() => setFascia(s.id)}
+              className={cn(
+                "min-h-11 rounded-full border px-5 text-[15px] font-semibold transition-colors",
+                fascia === s.id
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-stone-300 bg-white text-stone-700 hover:border-brand-400",
+              )}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="mt-4 print:hidden">
         <SetupProgressCard restaurantId={restaurantId} role={role} variant="today" />
       </div>
@@ -282,9 +375,15 @@ function TodayPage() {
 
       {view === "floor" && tables.data ? (
         <FloorView
+          // switching service moves the plan to that service's time
+          key={fascia}
           tables={tables.data}
           areas={areas.data ?? []}
-          bookings={items}
+          bookings={allItems}
+          shown={items}
+          serviceStart={
+            chosen ? ((chosen.weeklyHours[weekdayOf(date)] ?? [])[0]?.start ?? null) : null
+          }
           timezone={restaurant.timezone}
           date={date}
           today={today}
@@ -392,10 +491,27 @@ function TodayPage() {
       ) : null}
       <BookingFormDialog
         restaurant={restaurant}
-        date={date}
         open={open}
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}
+      />
+      <OperatorsLoadError
+        open={cancelBlocked !== null}
+        retrying={operators.isFetching}
+        onRetry={() => cancelBlocked && void askCancel(cancelBlocked)}
+        onCancel={() => setCancelBlocked(null)}
+      />
+      <OperatorGate
+        restaurantId={restaurantId}
+        operators={operators.data ?? []}
+        open={cancelGate !== null}
+        title={t("operators.whoIsCancelling")}
+        onCancel={() => setCancelGate(null)}
+        onVerified={(op) => {
+          setCancelOperator(op);
+          setCancelling(cancelGate);
+          setCancelGate(null);
+        }}
       />
       <Dialog
         open={cancelling !== null}
@@ -416,7 +532,12 @@ function TodayPage() {
               loading={act.isPending}
               onClick={() =>
                 cancelling &&
-                act.mutate({ id: cancelling.id, action: "cancel", reason: reason.trim() })
+                act.mutate({
+                  id: cancelling.id,
+                  action: "cancel",
+                  reason: reason.trim(),
+                  operator: cancelOperator,
+                })
               }
             >
               {t("today.cancelConfirm")}
@@ -434,7 +555,9 @@ function TodayPage() {
           restaurantId={restaurantId}
           booking={assigning}
           tables={tables.data}
-          dayBookings={items}
+          areas={rooms}
+          // every service: an aperitivo still at the table blocks it for dinner
+          dayBookings={allItems}
           onClose={() => setAssigning(null)}
         />
       ) : null}
@@ -875,6 +998,8 @@ function FloorView({
   tables,
   areas,
   bookings,
+  shown,
+  serviceStart,
   timezone,
   date,
   today,
@@ -882,7 +1007,12 @@ function FloorView({
 }: {
   tables: Parameters<typeof FloorPlan>[0]["tables"];
   areas: Parameters<typeof FloorPlan>[0]["areas"];
+  /** Every booking of the day: who sits at a table at the chosen time. */
   bookings: BookingDto[];
+  /** The bookings of the chosen service: where the plan starts, who still needs a table. */
+  shown: BookingDto[];
+  /** Opening time of the chosen service that day; null = the whole day. */
+  serviceStart: string | null;
   timezone: string;
   date: string;
   today: string;
@@ -895,8 +1025,16 @@ function FloorView({
     minute: "2-digit",
     hourCycle: "h23",
   }).format(new Date());
-  const firstStart = bookings[0] ? formatTime(bookings[0].startsAt, timezone, "en-GB") : "20:00";
-  const [time, setTime] = useState(date === today ? nowLocal : firstStart);
+  const first = shown.find((b) => ACTIVE_STATUSES.has(b.status)) ?? shown[0];
+  const firstStart = first
+    ? formatTime(first.startsAt, timezone, "en-GB")
+    : (serviceStart ?? "20:00");
+  // today, "now" while it falls in the chosen service; otherwise its first arrival
+  const nowInService =
+    serviceStart === null ||
+    (nowLocal >= serviceStart &&
+      shown.some((b) => formatTime(b.endsAt, timezone, "en-GB") > nowLocal));
+  const [time, setTime] = useState(date === today && nowInService ? nowLocal : firstStart);
   // the chosen wall-clock time on that date, as an instant, via the bookings' own offsets
   const probe = (() => {
     const [h, m] = time.split(":").map(Number);
@@ -913,7 +1051,7 @@ function FloorView({
         new Date(b.startsAt).getTime() <= probe &&
         new Date(b.endsAt).getTime() > probe,
     ) ?? null;
-  const unassigned = bookings.filter((b) => ACTIVE_STATUSES.has(b.status) && b.tables.length === 0);
+  const unassigned = shown.filter((b) => ACTIVE_STATUSES.has(b.status) && b.tables.length === 0);
   const closedRooms = new Set(areas.filter((a) => !a.active).map((a) => a.id));
   const statusOf = (table: (typeof tables)[number]): TableStatus => {
     if (!table.active || (table.areaId !== null && closedRooms.has(table.areaId)))
@@ -1066,4 +1204,33 @@ function RoomsDialog({
       </ul>
     </Dialog>
   );
+}
+
+/**
+ * The one service tab a booking shows under: the service it was booked on, or,
+ * for a service switched off since (an old catch-all one), the tab whose hours
+ * that day are nearest to its time, the first one on a tie.
+ */
+function tabOf(
+  b: BookingDto,
+  active: ServiceDto[],
+  date: string,
+  timeZone: string,
+): ServiceDto | undefined {
+  const own = active.find((s) => s.id === b.serviceId);
+  if (own) return own;
+  const [h, m] = formatTime(b.startsAt, timeZone, "it").split(":").map(Number);
+  const at = (h ?? 0) * 60 + (m ?? 0);
+  const distance = (s: ServiceDto) =>
+    Math.min(
+      Number.POSITIVE_INFINITY,
+      ...(s.weeklyHours[weekdayOf(date)] ?? []).flatMap((w) => {
+        const { startMin, endMin } = windowToMinutes(w);
+        // past midnight the clock restarts, the service does not
+        return [at, at + 1440].map((t) => Math.max(startMin - t, t - endMin, 0));
+      }),
+    );
+  let best = active[0];
+  for (const s of active) if (best && distance(s) < distance(best)) best = s;
+  return best;
 }

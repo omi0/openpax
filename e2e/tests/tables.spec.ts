@@ -7,6 +7,12 @@ import { bookGuests, LUCIA, MARIO, nextOpenDate, onboardOwner } from "./helpers.
  * and staff can move a booking to another table by hand.
  */
 test("bookings are seated on tables and staff can reassign from Today", async ({ page }) => {
+  // web bookings made below pop up at the desk on the next visit; these flows are about the rest
+  await page.addLocatorHandler(
+    page.getByRole("dialog", { name: "New booking from the website" }),
+    (alert) => alert.getByRole("button", { name: "Seen" }).click(),
+    { noWaitAfter: true }, // one popup can follow another
+  );
   const owner = await onboardOwner(page, "Tavoli E2E");
 
   // --- add tables from the settings page
@@ -64,11 +70,16 @@ test("bookings are seated on tables and staff can reassign from Today", async ({
   // --- move Lucia onto T1: taken by Mario, so it needs "seat anyway"
   await luciaRow.getByRole("button", { name: "T2" }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("checkbox", { name: /T2/ }).uncheck();
-  await dialog.getByRole("checkbox", { name: /T1/ }).check();
-  await expect(dialog.getByText(`taken by ${MARIO.name}`)).toBeVisible();
+  // tables are picked on the floor plan: tap T2 off, tap T1 on
+  const t2 = dialog.getByRole("button", { name: /^T2\b/ });
+  const t1 = dialog.getByRole("button", { name: /^T1\b/ });
+  await t2.click();
+  await expect(t2).toHaveAttribute("aria-pressed", "false");
+  await expect(t1).toHaveAccessibleName(new RegExp(`taken by ${MARIO.name}`));
+  await t1.click();
+  await expect(t1).toHaveAttribute("aria-pressed", "true");
   await dialog.getByRole("button", { name: "Save" }).click();
-  await expect(dialog.getByText("A chosen table is taken at that time")).toBeVisible();
+  await expect(dialog.getByText("One of the chosen tables is taken at that time")).toBeVisible();
   await dialog.getByRole("checkbox", { name: /Seat here anyway/ }).check();
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();

@@ -32,7 +32,15 @@
     "switchRestaurant": "Switch restaurant",
     "confirm": "Confirm",
     "actions": "Actions",
-    "newOnlineBooking": "New online booking: {{name}}, {{guests}}, {{when}}"
+    "meetings": "Chef meetings",
+    "onlineAlert": {
+      "created": "New booking from the website",
+      "cancelled": "Booking cancelled by the guest",
+      "count": "{{current}} of {{total}}",
+      "seen": "Seen",
+      "openDay": "Open the day",
+      "reason": "Reason: {{reason}}"
+    }
   },
   "auth": {
     "login": "Log in",
@@ -154,7 +162,12 @@
       "notifyChange": "Tell the guest about the change",
       "notifyChangeHint": "By email or SMS, as set under Notifications.",
       "room": "Room",
-      "anyRoom": "Any room"
+      "anyRoom": "Any room",
+      "operator": "Who is taking it?",
+      "operatorChoose": "Pick your name…",
+      "operatorRequired": "Choose who is taking the booking.",
+      "unknownOperator": "This name is no longer in the staff list. Pick another one.",
+      "pickDateFirst": "Pick the date the guest asked for first."
     },
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
@@ -222,7 +235,20 @@
     "blockedTimes": "Times blocked online",
     "blockChange": "Change",
     "blockRuleName": "Blocked from Today",
-    "blockNoSlots": "No times on this day."
+    "blockNoSlots": "No times on this day.",
+    "operatorLabel": "Taken by",
+    "operatorTaken": "taken by {{name}}",
+    "operatorTakenAt": "Taken on",
+    "ask": {
+      "seat": "Confirm? Seat {{name}}",
+      "complete": "Confirm? Close {{name}}'s table",
+      "reopen": "Confirm? Reopen {{name}}'s booking"
+    },
+    "modifiedBy": "Changed by",
+    "cancelledBy": "Cancelled by",
+    "cancelledByName": "cancelled by {{name}}",
+    "allServices": "All",
+    "tableTaken": "One of the chosen tables is taken at that time. Pick another or tick \"Seat here anyway\"."
   },
   "services": {
     "title": "Services",
@@ -290,7 +316,9 @@
       "waitlist.offered": "Table offered from the waitlist",
       "booking.payment_required": "Deposit required to confirm",
       "booking.feedback_request": "Feedback request after the visit",
-      "booking.feedback_received": "Feedback received"
+      "booking.feedback_received": "Feedback received",
+      "meeting_invite": "chef meeting invite",
+      "meeting_cancel": "chef meeting cancelled"
     },
     "audience": {
       "guest": "Guest",
@@ -629,7 +657,8 @@
     "all": "All",
     "period": "Period",
     "hint": "Search and browse every booking, past and future.",
-    "emptyFiltered": "Try another search or clear the filters."
+    "emptyFiltered": "Try another search or clear the filters.",
+    "recent": "Latest taken"
   },
   "templates": {
     "hint": "Rewrite any message in your own words. Placeholders in double braces are replaced when the message goes out; the booking details table and the manage button stay.",
@@ -805,6 +834,13 @@
     },
     "joinable": "Joinable",
     "joinableHint": "Joinable tables in the same area can be combined for larger parties.",
+    "joinsWith": "Joins with",
+    "joinsWithHint": "Tap the tables that can be pushed against this one. Only linked tables are joined, in rows or blocks of any size.",
+    "joinsWithShort": "Joins {{names}}",
+    "headSeats": "Head seats",
+    "headSeatsHint": "Extra guests at the head when the table is alone or ends a joined row. 0 if it would block the way.",
+    "headSeatsShort_one": "+{{count}} at the head",
+    "headSeatsShort_other": "+{{count}} at the head",
     "active": "Active",
     "inactive": "Inactive",
     "sortOrder": "Priority",
@@ -822,7 +858,9 @@
     "layoutSaved": "Layout saved",
     "confirmDelete": "Delete this table?",
     "size": "Size on the plan",
-    "activeHint": "Inactive tables are never assigned."
+    "activeHint": "Inactive tables are never assigned.",
+    "autoAssign": "Assign tables automatically",
+    "autoAssignHint": "Off: bookings come in without a table and you seat them from the Today page, on the floor plan. Tables never block a time: only the guest limit counts."
   },
   "payments": {
     "title": "Payments",
@@ -1099,5 +1137,75 @@
     "switchAccount": "Log in with another account",
     "failed": "Could not complete the connection. Try again from the assistant.",
     "backTo": "After approving you will be sent back to {{host}}."
+  },
+  "operators": {
+    "title": "Staff and codes",
+    "hint": "Whoever takes, changes or cancels a booking from the dashboard picks their name and types their 6-digit code. With no names nothing is asked.",
+    "empty": "Nobody: the dashboard does not ask who is working.",
+    "placeholder": "Name, e.g. Mark",
+    "pin": "Code (6 digits)",
+    "add": "Add",
+    "remove": "Remove {{name}}",
+    "confirmRemove": "Remove {{name}}? Their name stays on bookings they took.",
+    "duplicate": "This name is already listed.",
+    "changePin": "Change code",
+    "newPin": "New code",
+    "pinChanged": "Code changed",
+    "whoIsTaking": "Who is taking the booking?",
+    "whoIsChanging": "Who is changing the booking?",
+    "whoIsCancelling": "Who is cancelling the booking?",
+    "typeCode": "{{name}}, type your code",
+    "code": "Code",
+    "back": "Back to names",
+    "erase": "Delete",
+    "wrongPin": "Wrong code, try again.",
+    "locked": "Too many wrong codes: try again in 5 minutes or ask a manager.",
+    "askAgain": "That code is no longer valid: pick your name again.",
+    "notMe": "Not me",
+    "correctHint": "Only owners and managers can correct it.",
+    "loadErrorTitle": "No connection",
+    "loadError": "The staff names did not load. Check the connection and try again.",
+    "retry": "Try again"
+  },
+  "meetings": {
+    "hostFallback": "the chef",
+    "title": "Meetings with {{host}}",
+    "pageHint": "Meetings in the next 60 days to plan group events.",
+    "empty": "No meetings planned",
+    "off": "Meetings are off: turn them on in Settings → Team.",
+    "emptyHint": "They are booked from a group booking of {{count}} guests or more.",
+    "forEvent": "event for {{count}} · {{when}}",
+    "openBookings": "Go to bookings",
+    "book": "Meeting with {{host}}",
+    "move": "Move the meeting with {{host}}",
+    "confirm": "Book meeting",
+    "currently": "Currently booked for {{when}}.",
+    "day": "Meeting day",
+    "pickDay": "Tap a free day: grey days are full or the chef is away.",
+    "closedDay": "The restaurant is closed that day.",
+    "noSlots": "{{host}} has no free time that day. Try another day.",
+    "taken": "Someone just took that time. Pick another one.",
+    "saved": "Meeting with {{host}} booked: {{when}}",
+    "with": "Meeting with {{host}}:",
+    "none": "No meeting with {{host}}.",
+    "bookShort": "Book meeting",
+    "moveShort": "Move",
+    "cancelShort": "Cancel meeting",
+    "confirmCancel": "Cancel the meeting with {{host}}?",
+    "cancelled": "Meeting cancelled",
+    "wants": "They want to talk to {{host}} about the menu",
+    "wantsHint": "After saving, pick the meeting day and time.",
+    "settingsTitle": "Meetings with the chef",
+    "settingsHint": "Large groups can book a 30-minute meeting to choose the menu. The chef gets a calendar invite.",
+    "minParty": "Groups from (guests)",
+    "minPartyHint": "Empty = meetings off.",
+    "hostName": "Chef's name",
+    "hostEmail": "Chef's email",
+    "hostEmailHint": "Gets an invite for every meeting. Empty = no invite.",
+    "hours": "When they are free",
+    "hoursHint": "Each window runs from the start of the first meeting to the end of the last (e.g. 15:00–17:30 = 5 meetings).",
+    "afterEvent": "The meeting must be before the event. Pick an earlier day.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
   }
 }

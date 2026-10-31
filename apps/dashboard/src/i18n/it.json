@@ -32,7 +32,15 @@
     "switchRestaurant": "Cambia ristorante",
     "confirm": "Conferma",
     "actions": "Azioni",
-    "newOnlineBooking": "Nuova prenotazione online: {{name}}, {{guests}}, {{when}}"
+    "meetings": "Appuntamenti chef",
+    "onlineAlert": {
+      "created": "Nuova prenotazione dal sito",
+      "cancelled": "Prenotazione annullata dal cliente",
+      "count": "{{current}} di {{total}}",
+      "seen": "Visto",
+      "openDay": "Apri il giorno",
+      "reason": "Motivo: {{reason}}"
+    }
   },
   "auth": {
     "login": "Accedi",
@@ -154,7 +162,12 @@
       "notifyChange": "Avvisa l'ospite della modifica",
       "notifyChangeHint": "Via email o SMS, come impostato in Notifiche.",
       "room": "Sala",
-      "anyRoom": "Qualsiasi sala"
+      "anyRoom": "Qualsiasi sala",
+      "operator": "Chi la sta prendendo?",
+      "operatorChoose": "Scegli il tuo nome…",
+      "operatorRequired": "Scegli chi sta prendendo la prenotazione.",
+      "unknownOperator": "Questo nome non è più nell'elenco dello staff. Scegline un altro.",
+      "pickDateFirst": "Scegli prima la data che chiede il cliente."
     },
     "notifications": "Notifiche",
     "noNotifications": "Nessuna notifica ancora.",
@@ -222,7 +235,20 @@
     "blockedTimes": "Orari bloccati online",
     "blockChange": "Modifica",
     "blockRuleName": "Bloccato da Oggi",
-    "blockNoSlots": "Nessun orario in questo giorno."
+    "blockNoSlots": "Nessun orario in questo giorno.",
+    "operatorLabel": "Presa da",
+    "operatorTaken": "presa da {{name}}",
+    "operatorTakenAt": "Presa il",
+    "ask": {
+      "seat": "Confermi? {{name}} al tavolo",
+      "complete": "Confermi? Concludere il tavolo di {{name}}",
+      "reopen": "Confermi? Riaprire la prenotazione di {{name}}"
+    },
+    "modifiedBy": "Modificata da",
+    "cancelledBy": "Annullata da",
+    "cancelledByName": "annullata da {{name}}",
+    "allServices": "Tutte",
+    "tableTaken": "Uno dei tavoli scelti è occupato a quell'ora. Scegline un altro o spunta \"Assegna comunque\"."
   },
   "services": {
     "title": "Servizi",
@@ -290,7 +316,9 @@
       "waitlist.offered": "Tavolo offerto dalla lista d'attesa",
       "booking.payment_required": "Caparra richiesta per confermare",
       "booking.feedback_request": "Richiesta di feedback dopo la visita",
-      "booking.feedback_received": "Feedback ricevuto"
+      "booking.feedback_received": "Feedback ricevuto",
+      "meeting_invite": "invito appuntamento chef",
+      "meeting_cancel": "appuntamento chef annullato"
     },
     "audience": {
       "guest": "Ospite",
@@ -629,7 +657,8 @@
     "all": "Tutte",
     "period": "Periodo",
     "hint": "Cerca e sfoglia tutte le prenotazioni, passate e future.",
-    "emptyFiltered": "Prova un'altra ricerca o azzera i filtri."
+    "emptyFiltered": "Prova un'altra ricerca o azzera i filtri.",
+    "recent": "Ultime prese"
   },
   "templates": {
     "hint": "Riscrivi ogni messaggio con parole tue. I segnaposto tra doppie graffe vengono sostituiti all'invio; la tabella con i dettagli e il pulsante di gestione restano.",
@@ -805,6 +834,13 @@
     },
     "joinable": "Unibile",
     "joinableHint": "I tavoli unibili della stessa sala si possono accostare per i gruppi numerosi.",
+    "joinsWith": "Si unisce con",
+    "joinsWithHint": "Tocca i tavoli che si possono accostare a questo. Il gestionale unisce solo tavoli collegati, anche in file o blocchi di più tavoli.",
+    "joinsWithShort": "Si unisce con {{names}}",
+    "headSeats": "Capotavola",
+    "headSeatsHint": "Persone in più in testa quando il tavolo è da solo o in fondo a una tavolata. 0 se bloccherebbe il passaggio.",
+    "headSeatsShort_one": "+{{count}} capotavola",
+    "headSeatsShort_other": "+{{count}} capotavola",
     "active": "Attivo",
     "inactive": "Non attivo",
     "sortOrder": "Priorità",
@@ -822,7 +858,9 @@
     "layoutSaved": "Disposizione salvata",
     "confirmDelete": "Eliminare questo tavolo?",
     "size": "Dimensioni sulla piantina",
-    "activeHint": "I tavoli non attivi non vengono mai assegnati."
+    "activeHint": "I tavoli non attivi non vengono mai assegnati.",
+    "autoAssign": "Assegna i tavoli in automatico",
+    "autoAssignHint": "Spento: le prenotazioni arrivano senza tavolo e li assegni tu dalla pagina Oggi, sulla planimetria. I tavoli non bloccano gli orari: conta solo il limite di persone."
   },
   "payments": {
     "title": "Pagamenti",
@@ -1099,5 +1137,75 @@
     "switchAccount": "Accedi con un altro account",
     "failed": "Non è stato possibile completare il collegamento. Riprova dall'assistente.",
     "backTo": "Dopo l'approvazione tornerai su {{host}}."
+  },
+  "operators": {
+    "title": "Staff e codici",
+    "hint": "Chi prende, modifica o annulla una prenotazione dal gestionale sceglie il suo nome e scrive il suo codice di 6 cifre. Senza nomi non viene chiesto niente.",
+    "empty": "Nessuno: il gestionale non chiede chi sta lavorando.",
+    "placeholder": "Nome, es. Marco",
+    "pin": "Codice (6 cifre)",
+    "add": "Aggiungi",
+    "remove": "Togli {{name}}",
+    "confirmRemove": "Togliere {{name}}? Il suo nome resta sulle prenotazioni già prese.",
+    "duplicate": "Questo nome c'è già.",
+    "changePin": "Cambia codice",
+    "newPin": "Nuovo codice",
+    "pinChanged": "Codice cambiato",
+    "whoIsTaking": "Chi prende la prenotazione?",
+    "whoIsChanging": "Chi modifica la prenotazione?",
+    "whoIsCancelling": "Chi annulla la prenotazione?",
+    "typeCode": "{{name}}, scrivi il tuo codice",
+    "code": "Codice",
+    "back": "Torna ai nomi",
+    "erase": "Cancella",
+    "wrongPin": "Codice sbagliato, riprova.",
+    "locked": "Troppi codici sbagliati: riprova tra 5 minuti o chiedi al responsabile.",
+    "askAgain": "Il codice non è più valido: scegli di nuovo il tuo nome.",
+    "notMe": "Non sono io",
+    "correctHint": "Solo titolare e manager possono correggerlo.",
+    "loadErrorTitle": "Connessione assente",
+    "loadError": "Non riesco a caricare i nomi dello staff. Controlla la connessione e riprova.",
+    "retry": "Riprova"
+  },
+  "meetings": {
+    "hostFallback": "lo chef",
+    "title": "Appuntamenti con {{host}}",
+    "pageHint": "Gli incontri dei prossimi 60 giorni per organizzare gli eventi dei gruppi.",
+    "empty": "Nessun appuntamento in programma",
+    "off": "Gli appuntamenti sono spenti: attivali in Impostazioni → Team.",
+    "emptyHint": "Si fissano dalla prenotazione di un gruppo da {{count}} persone in su.",
+    "forEvent": "evento {{count}} persone · {{when}}",
+    "openBookings": "Vai alle prenotazioni",
+    "book": "Appuntamento con {{host}}",
+    "move": "Sposta l'appuntamento con {{host}}",
+    "confirm": "Fissa appuntamento",
+    "currently": "Adesso è fissato per {{when}}.",
+    "day": "Giorno dell'appuntamento",
+    "pickDay": "Tocca un giorno libero: quelli grigi sono pieni o lo chef non c'è.",
+    "closedDay": "Quel giorno il ristorante è chiuso.",
+    "noSlots": "Quel giorno {{host}} non ha orari liberi. Prova un altro giorno.",
+    "taken": "Qualcuno ha appena preso quell'orario. Scegline un altro.",
+    "saved": "Appuntamento con {{host}} fissato: {{when}}",
+    "with": "Appuntamento con {{host}}:",
+    "none": "Nessun appuntamento con {{host}}.",
+    "bookShort": "Fissa appuntamento",
+    "moveShort": "Sposta",
+    "cancelShort": "Annulla appuntamento",
+    "confirmCancel": "Annullare l'appuntamento con {{host}}?",
+    "cancelled": "Appuntamento annullato",
+    "wants": "Vogliono parlare con {{host}} per il menu",
+    "wantsHint": "Dopo aver salvato scegli giorno e ora dell'appuntamento.",
+    "settingsTitle": "Appuntamenti con lo chef",
+    "settingsHint": "I gruppi grandi possono fissare un incontro di 30 minuti per decidere il menu. Lo chef riceve l'invito sul suo calendario.",
+    "minParty": "Gruppi da (persone)",
+    "minPartyHint": "Vuoto = appuntamenti spenti.",
+    "hostName": "Nome dello chef",
+    "hostEmail": "Email dello chef",
+    "hostEmailHint": "Riceve l'invito per ogni appuntamento. Vuota = nessun invito.",
+    "hours": "Quando è disponibile",
+    "hoursHint": "Ogni fascia va dall'inizio del primo appuntamento alla fine dell'ultimo (es. 15:00–17:30 = 5 appuntamenti).",
+    "afterEvent": "L'appuntamento deve essere prima dell'evento. Scegli un giorno prima.",
+    "prevMonth": "Mese prima",
+    "nextMonth": "Mese dopo"
   }
 }

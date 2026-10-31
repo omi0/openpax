@@ -10,10 +10,12 @@ import {
   partySizeSchema,
   phoneSchema,
 } from "./common.js";
+import { operatorProofSchema } from "./operator.js";
 import { bookingPaymentDtoSchema, publicPaymentDtoSchema } from "./payments.js";
 import { bookingTableDtoSchema } from "./tables.js";
 
 export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
+export const operatorNameSchema = z.string().trim().min(1).max(60);
 export const bookingSourceSchema = z.enum(BOOKING_SOURCES);
 export const bookingActionSchema = z.enum(BOOKING_ACTIONS);
 
@@ -62,6 +64,8 @@ export const createStaffBookingInputSchema = z.object({
   /** Staff may override capacity (e.g. squeeze in regulars). */
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),
+  /** Who is taking it; required from dashboard users once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
 });
 export type CreateStaffBookingInput = z.infer<typeof createStaffBookingInputSchema>;
 
@@ -91,6 +95,10 @@ export const bookingDtoSchema = z.object({
   source: bookingSourceSchema,
   locale: localeSchema,
   notes: z.string().nullable(),
+  /** Staff member who took the booking, last changed it, cancelled it. */
+  operatorName: z.string().nullable(),
+  modifiedByOperatorName: z.string().nullable(),
+  cancelledByOperatorName: z.string().nullable(),
   confirmationCode: z.string(),
   /** Tables assigned on the floor plan (empty without one). */
   tables: z.array(bookingTableDtoSchema),
@@ -129,6 +137,8 @@ export type PublicBookingDto = z.infer<typeof publicBookingDtoSchema>;
 export const bookingActionInputSchema = z.object({
   action: bookingActionSchema,
   reason: z.string().trim().max(500).optional(),
+  /** Who is acting; required to cancel from the dashboard once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
 });
 export type BookingActionInput = z.infer<typeof bookingActionInputSchema>;
 
@@ -138,6 +148,10 @@ export const updateBookingInputSchema = z.object({
   partySize: partySizeSchema.optional(),
   areaId: idSchema.nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  /** Who is making the change; required from dashboard users once the restaurant has operators. */
+  operator: operatorProofSchema.optional(),
+  /** Correct who took the booking (owners and managers only). */
+  operatorName: operatorNameSchema.nullable().optional(),
   ignoreCapacity: z.boolean().default(false),
   notifyGuest: z.boolean().default(true),
 });
@@ -158,5 +172,22 @@ export const listBookingsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(100).optional(),
   /** Chronological by default; "desc" for history views. */
   order: z.enum(["asc", "desc"]).default("asc"),
+  /** "created" = latest taken or received first, whatever the visit date. */
+  sort: z.enum(["visit", "created"]).optional(),
 });
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;
+
+/** What came in from outside since `since`: new online bookings, cancellations by guests. */
+export const onlineActivityQuerySchema = z.object({ since: instantSchema });
+export const onlineActivityDtoSchema = z.object({
+  items: z.array(
+    z.object({
+      kind: z.enum(["created", "cancelled"]),
+      at: instantSchema,
+      booking: bookingDtoSchema,
+      /** The guest's reason, for a cancellation. */
+      reason: z.string().nullable(),
+    }),
+  ),
+});
+export type OnlineActivityDto = z.infer<typeof onlineActivityDtoSchema>;

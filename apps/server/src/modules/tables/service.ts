@@ -1,12 +1,12 @@
 import { ACTIVE_BOOKING_STATUSES } from "@openpax/core";
-import { area, booking, bookingTable, diningTable } from "@openpax/db";
+import { area, booking, bookingTable, type DbOrTx, diningTable } from "@openpax/db";
 import type {
   AssignTablesInput,
   TableDto,
   UpdateTablePositionsInput,
   UpsertTableInput,
 } from "@openpax/shared";
-import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
 import { ApiError } from "../../lib/errors.js";
@@ -27,6 +27,8 @@ export const toTableDto = (row: Row): TableDto => ({
   width: row.width,
   height: row.height,
   joinable: row.joinable,
+  joinWith: row.joinWith,
+  headSeats: row.headSeats,
   active: row.active,
   sortOrder: row.sortOrder,
   createdAt: row.createdAt.toISOString(),
@@ -52,6 +54,50 @@ async function assertArea(ctx: AppContext, restaurantId: string, areaId: string 
   if (!row) throw ApiError.notFound("Area");
 }
 
+/** Tables it can be pushed against: other tables of the same restaurant and room. */
+async function assertLinks(
+  tx: DbOrTx,
+  restaurantId: string,
+  tableId: string | null,
+  input: UpsertTableInput & { joinWith: string[] },
+): Promise<string[]> {
+  const ids = [...new Set(input.joinWith)].filter((id) => id !== tableId);
+  if (ids.length === 0) return ids;
+  const rows = await tx
+    .select({ id: diningTable.id, areaId: diningTable.areaId })
+    .from(diningTable)
+    .where(and(eq(diningTable.restaurantId, restaurantId), inArray(diningTable.id, ids)));
+  if (rows.length !== ids.length) throw ApiError.notFound("Table");
+  if (rows.some((t) => t.areaId !== input.areaId))
+    throw ApiError.badRequest("link_other_room", "Tables of different rooms cannot be joined");
+  return ids;
+}
+
+/** Links go both ways: the tables listed point back, the others no longer do. */
+async function syncLinks(tx: DbOrTx, restaurantId: string, tableId: string, ids: string[]) {
+  await tx
+    .update(diningTable)
+    .set({ joinWith: sql`array_remove(${diningTable.joinWith}, ${tableId}::uuid)` })
+    .where(
+      and(
+        eq(diningTable.restaurantId, restaurantId),
+        sql`${tableId}::uuid = any(${diningTable.joinWith})`,
+        ids.length > 0 ? notInArray(diningTable.id, ids) : undefined,
+      ),
+    );
+  if (ids.length === 0) return;
+  await tx
+    .update(diningTable)
+    .set({ joinWith: sql`array_append(${diningTable.joinWith}, ${tableId}::uuid)` })
+    .where(
+      and(
+        eq(diningTable.restaurantId, restaurantId),
+        inArray(diningTable.id, ids),
+        sql`not (${tableId}::uuid = any(${diningTable.joinWith}))`,
+      ),
+    );
+}
+
 export async function createTable(
   ctx: AppContext,
   r: RestaurantRow,
@@ -59,11 +105,19 @@ export async function createTable(
   actor: Actor,
 ): Promise<TableDto> {
   await assertArea(ctx, r.id, input.areaId);
-  const [row] = await ctx.db
-    .insert(diningTable)
-    .values({ ...input, restaurantId: r.id })
-    .returning();
-  if (!row) throw new Error("table insert failed");
+  const row = await ctx.db.transaction(async (tx) => {
+    const joinWith = await assertLinks(tx, r.id, null, {
+      ...input,
+      joinWith: input.joinWith ?? [],
+    });
+    const [created] = await tx
+      .insert(diningTable)
+      .values({ ...input, joinWith, headSeats: input.headSeats ?? 0, restaurantId: r.id })
+      .returning();
+    if (!created) throw new Error("table insert failed");
+    await syncLinks(tx, r.id, created.id, joinWith);
+    return created;
+  });
   await writeAudit(ctx.db, {
     restaurantId: r.id,
     actor,
@@ -83,12 +137,21 @@ export async function updateTable(
   actor: Actor,
 ): Promise<TableDto> {
   await assertArea(ctx, r.id, input.areaId);
-  const [row] = await ctx.db
-    .update(diningTable)
-    .set(input)
-    .where(and(eq(diningTable.id, id), eq(diningTable.restaurantId, r.id)))
-    .returning();
-  if (!row) throw ApiError.notFound("Table");
+  const row = await ctx.db.transaction(async (tx) => {
+    // links left out stay as they are
+    const joinWith =
+      input.joinWith === undefined
+        ? undefined
+        : await assertLinks(tx, r.id, id, { ...input, joinWith: input.joinWith });
+    const [updated] = await tx
+      .update(diningTable)
+      .set({ ...input, joinWith })
+      .where(and(eq(diningTable.id, id), eq(diningTable.restaurantId, r.id)))
+      .returning();
+    if (!updated) throw ApiError.notFound("Table");
+    if (joinWith) await syncLinks(tx, r.id, id, joinWith);
+    return updated;
+  });
   await writeAudit(ctx.db, {
     restaurantId: r.id,
     actor,
@@ -101,11 +164,15 @@ export async function updateTable(
 }
 
 export async function deleteTable(ctx: AppContext, r: RestaurantRow, id: string, actor: Actor) {
-  const [row] = await ctx.db
-    .delete(diningTable)
-    .where(and(eq(diningTable.id, id), eq(diningTable.restaurantId, r.id)))
-    .returning({ id: diningTable.id, name: diningTable.name });
-  if (!row) throw ApiError.notFound("Table");
+  const row = await ctx.db.transaction(async (tx) => {
+    const [deleted] = await tx
+      .delete(diningTable)
+      .where(and(eq(diningTable.id, id), eq(diningTable.restaurantId, r.id)))
+      .returning({ id: diningTable.id, name: diningTable.name });
+    if (!deleted) throw ApiError.notFound("Table");
+    await syncLinks(tx, r.id, id, []);
+    return deleted;
+  });
   await writeAudit(ctx.db, {
     restaurantId: r.id,
     actor,

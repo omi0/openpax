@@ -7,6 +7,7 @@ import {
   type BookingSource,
   type BookingStatus,
   findTableAssignment,
+  freeTables,
   instantToLocal,
   isActiveStatus,
   SlotUnavailableError,
@@ -15,6 +16,7 @@ import {
 } from "@openpax/core";
 import type { DbOrTx } from "@openpax/db";
 import {
+  auditLog,
   booking,
   bookingPayment,
   bookingPolicy,
@@ -25,10 +27,24 @@ import {
 import type {
   BookingDto,
   ListBookingsQuery,
+  OnlineActivityDto,
   PublicBookingDto,
   UpdateBookingInput,
 } from "@openpax/shared";
-import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import {
+  type AnyColumn,
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -90,6 +106,9 @@ export function toBookingDto(x: BookingWithRelations): BookingDto {
     source: x.booking.source,
     locale: x.booking.locale as BookingDto["locale"],
     notes: x.booking.notes,
+    operatorName: x.booking.operatorName,
+    modifiedByOperatorName: x.booking.modifiedByOperatorName,
+    cancelledByOperatorName: x.booking.cancelledByOperatorName,
     confirmationCode: x.booking.confirmationCode,
     tables: x.tables,
     payment: x.payment ? toPaymentDto(x.payment) : null,
@@ -134,12 +153,9 @@ export function toPublicBookingDto(
 
 // ---------- lookups
 
-export async function getBookingWithRelations(
-  db: DbOrTx,
-  restaurantId: string,
-  bookingId: string,
-): Promise<BookingWithRelations> {
-  const [row] = await db
+/** A booking with its guest, service name, tables and payment, ready for toBookingDto. */
+const withRelations = (db: DbOrTx) =>
+  db
     .select({
       booking,
       customer,
@@ -150,7 +166,14 @@ export async function getBookingWithRelations(
     .from(booking)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .innerJoin(service, eq(service.id, booking.serviceId))
-    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
+    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id));
+
+export async function getBookingWithRelations(
+  db: DbOrTx,
+  restaurantId: string,
+  bookingId: string,
+): Promise<BookingWithRelations> {
+  const [row] = await withRelations(db)
     .where(and(eq(booking.id, bookingId), eq(booking.restaurantId, restaurantId)))
     .limit(1);
   if (!row) throw ApiError.notFound("Booking");
@@ -161,22 +184,92 @@ export async function getBookingByToken(
   ctx: AppContext,
   token: string,
 ): Promise<BookingWithRelations> {
-  const [row] = await ctx.db
-    .select({
-      booking,
-      customer,
-      serviceName: service.name,
-      tables: bookingTablesJson,
-      payment: bookingPayment,
-    })
-    .from(booking)
-    .innerJoin(customer, eq(customer.id, booking.customerId))
-    .innerJoin(service, eq(service.id, booking.serviceId))
-    .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
-    .where(eq(booking.manageToken, token))
-    .limit(1);
+  const [row] = await withRelations(ctx.db).where(eq(booking.manageToken, token)).limit(1);
   if (!row) throw ApiError.notFound("Booking");
   return row;
+}
+
+/** Sources nobody at the desk typed in themselves. */
+const ONLINE_SOURCES = ["widget", "api", "assistant"] as const;
+const ACTIVITY_LIMIT = 50;
+
+/**
+ * Strictly after `since`, which comes back from the client in milliseconds:
+ * the stored microseconds must not make the last event seen count as newer.
+ */
+const afterMillis = (column: AnyColumn, since: Date) =>
+  and(
+    gt(column, since),
+    sql`date_trunc('milliseconds', ${column}) > ${since.toISOString()}::timestamptz`,
+  );
+
+/**
+ * New online bookings and cancellations made by guests since `since`, oldest
+ * first, so the desk is told about each one even when nobody is watching.
+ */
+export async function onlineActivity(
+  ctx: AppContext,
+  r: RestaurantRow,
+  since: Date,
+): Promise<OnlineActivityDto> {
+  const [created, cancelled] = await Promise.all([
+    ctx.db
+      .select({ id: booking.id, at: booking.createdAt })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.restaurantId, r.id),
+          inArray(booking.source, [...ONLINE_SOURCES]),
+          afterMillis(booking.createdAt, since),
+        ),
+      )
+      .orderBy(asc(booking.createdAt))
+      .limit(ACTIVITY_LIMIT),
+    ctx.db
+      .select({ id: auditLog.entityId, at: auditLog.createdAt, data: auditLog.data })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.restaurantId, r.id),
+          eq(auditLog.action, "booking.cancel"),
+          eq(auditLog.actorType, "guest"),
+          afterMillis(auditLog.createdAt, since),
+        ),
+      )
+      .orderBy(asc(auditLog.createdAt))
+      .limit(ACTIVITY_LIMIT),
+  ]);
+  const events = [
+    ...created.map((e) => ({ kind: "created" as const, id: e.id, at: e.at, reason: null })),
+    ...cancelled.flatMap((e) =>
+      e.id
+        ? [
+            {
+              kind: "cancelled" as const,
+              id: e.id,
+              at: e.at,
+              reason: typeof e.data?.reason === "string" ? e.data.reason : null,
+            },
+          ]
+        : [],
+    ),
+  ]
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, ACTIVITY_LIMIT);
+  const ids = [...new Set(events.map((e) => e.id))];
+  const rows =
+    ids.length === 0
+      ? []
+      : await withRelations(ctx.db).where(
+          and(eq(booking.restaurantId, r.id), inArray(booking.id, ids)),
+        );
+  const byId = new Map(rows.map((x) => [x.booking.id, toBookingDto(x)]));
+  return {
+    items: events.flatMap((e) => {
+      const b = byId.get(e.id);
+      return b ? [{ kind: e.kind, at: e.at.toISOString(), booking: b, reason: e.reason }] : [];
+    }),
+  };
 }
 
 export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBookingsQuery) {
@@ -214,8 +307,12 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
       .leftJoin(bookingPayment, eq(bookingPayment.bookingId, booking.id))
       .where(where)
       .orderBy(
-        q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
-        desc(booking.createdAt),
+        ...(q.sort === "created"
+          ? [desc(booking.createdAt)]
+          : [
+              q.order === "desc" ? desc(booking.startsAt) : asc(booking.startsAt),
+              desc(booking.createdAt),
+            ]),
       )
       .limit(q.pageSize)
       .offset((q.page - 1) * q.pageSize),
@@ -233,17 +330,37 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
   };
 }
 
-/** Seat the booking on the best free table(s) of the floor plan, if the restaurant has one. */
+/**
+ * Seat the booking on the best free table(s) of the floor plan, if the
+ * restaurant has one. When staff seat by hand, their tables stay while still
+ * free at the new time and in the booking's room; otherwise they are dropped
+ * and the booking waits for a table again. `keepFree` keeps tables that are
+ * still free for automatic seating too (a reopened booking is the same party).
+ */
 async function assignTables(
   tx: DbOrTx,
   bookingId: string,
   input: AvailabilityInput | null,
   req: { startsAt: Date; endsAt: Date; partySize: number; areaId: string | null },
+  { keepFree = false }: { keepFree?: boolean } = {},
 ): Promise<void> {
+  const usable = input?.tables ? usableTables(input.tables, input.rooms) : [];
+  if (input?.manualTables || keepFree) {
+    const current = await tx
+      .select({ tableId: bookingTable.tableId })
+      .from(bookingTable)
+      .where(eq(bookingTable.bookingId, bookingId));
+    const free = new Set(freeTables(usable, input?.tableLoads ?? [], req).map((t) => t.id));
+    if (current.length > 0 && current.every((c) => free.has(c.tableId))) return;
+    if (input?.manualTables) {
+      if (current.length > 0)
+        await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
+      return;
+    }
+  }
   await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
-  if (!input?.tables || input.tables.length === 0) return;
-  const usable = usableTables(input.tables, input.rooms);
-  const chosen = findTableAssignment(usable, input.tableLoads ?? [], req);
+  if (usable.length === 0) return;
+  const chosen = findTableAssignment(usable, input?.tableLoads ?? [], req);
   if (!chosen) return; // staff override: stays unassigned, visible on the floor plan
   await tx.insert(bookingTable).values(chosen.map((t) => ({ bookingId, tableId: t.id })));
 }
@@ -272,6 +389,8 @@ export interface CreateBookingParams {
   seatNow?: boolean;
   /** false = do not send the guest the confirmation (default true). */
   notifyGuest?: boolean;
+  /** Staff member who took the booking (checked by the caller). */
+  operatorName?: string | null;
   requirePhone?: boolean;
   requireEmail?: boolean;
   /** Skip the pending/large-party rules: the restaurant already agreed to this table (waitlist offers). */
@@ -511,6 +630,7 @@ async function insertBookingLocked(
       manageToken: newToken(),
       idempotencyKey: p.idempotencyKey ?? null,
       createdByUserId: p.actor.type === "user" ? p.actor.id : null,
+      operatorName: p.operatorName ?? null,
       ...(p.imported?.createdAt ? { createdAt: p.imported.createdAt } : {}),
     })
     .returning();
@@ -584,6 +704,8 @@ export interface ApplyActionParams {
   action: BookingAction;
   actor: Actor;
   reason?: string | null;
+  /** Operator who cancelled (checked by the caller). */
+  operatorName?: string | null;
 }
 
 export async function applyBookingAction(
@@ -601,9 +723,11 @@ export async function applyBookingAction(
     const next = transition(row.status, p.action);
 
     let floor: AvailabilityInput | null = null;
+    // a completed booking freed its covers and tables like a cancelled one
+    const undoComplete = p.action === "reopen" && row.status === "completed";
     if (p.action === "reopen") {
-      // Re-check capacity before letting a cancelled booking back in: another
-      // party may have taken its covers, its table or its room meanwhile.
+      // Re-check capacity before letting a cancelled or completed booking back
+      // in: another party may have taken its covers, its table or its room meanwhile.
       await lockServiceDates(tx, r.id, [row.serviceDate]);
       const loaded = await loadAvailabilityInput(tx, ctx, r, {
         date: row.serviceDate,
@@ -626,19 +750,31 @@ export async function applyBookingAction(
       .set({
         status: next,
         ...(next === "cancelled"
-          ? { cancelledAt: ctx.now(), cancellationReason: p.reason ?? null }
+          ? {
+              cancelledAt: ctx.now(),
+              cancellationReason: p.reason ?? null,
+              cancelledByOperatorName: p.operatorName ?? null,
+            }
           : {}),
-        ...(p.action === "reopen" ? { cancelledAt: null, cancellationReason: null } : {}),
+        ...(p.action === "reopen"
+          ? { cancelledAt: null, cancellationReason: null, cancelledByOperatorName: null }
+          : {}),
       })
       .where(eq(booking.id, row.id));
     if (p.action === "reopen") {
-      // its old tables may be taken now: seat it again on what is free
-      await assignTables(tx, row.id, floor, {
-        startsAt: row.startsAt,
-        endsAt: row.endsAt,
-        partySize: row.partySize,
-        areaId: row.areaId,
-      });
+      // its old tables may be taken now: only then seat it again on what is free
+      await assignTables(
+        tx,
+        row.id,
+        floor,
+        {
+          startsAt: row.startsAt,
+          endsAt: row.endsAt,
+          partySize: row.partySize,
+          areaId: row.areaId,
+        },
+        { keepFree: true },
+      );
     }
 
     if (p.action === "seat") {
@@ -656,6 +792,12 @@ export async function applyBookingAction(
         .update(customer)
         .set({ cancelCount: sql`${customer.cancelCount} + 1` })
         .where(eq(customer.id, row.customerId));
+    } else if (undoComplete) {
+      // back before "seat": the visit is counted again when they are seated
+      await tx
+        .update(customer)
+        .set({ visitCount: sql`greatest(${customer.visitCount} - 1, 0)` })
+        .where(eq(customer.id, row.customerId));
     } else if (p.action === "reopen") {
       // Reopening says the cancellation or no-show was a mistake: take the mark off the guest.
       await tx
@@ -669,7 +811,8 @@ export async function applyBookingAction(
     }
 
     const base = { restaurantId: r.id, aggregateType: "booking", aggregateId: row.id } as const;
-    switch (p.action) {
+    // undoing a completion is internal: the guest is not sent a new confirmation
+    switch (undoComplete ? null : p.action) {
       case "confirm":
       case "reopen":
         await emitEvent(tx, {
@@ -750,6 +893,8 @@ export async function updateBooking(
   bookingId: string,
   input: UpdateBookingInput,
   actor: Actor,
+  /** Operator who made the change (checked by the caller). */
+  modifiedBy?: string | null,
 ): Promise<BookingWithRelations> {
   await ctx.db.transaction(async (tx) => {
     const [row] = await tx
@@ -813,6 +958,8 @@ export async function updateBooking(
       if (areaId !== row.areaId) changes.push("areaId");
     }
     if (input.notes !== undefined && input.notes !== row.notes) changes.push("notes");
+    if (input.operatorName !== undefined && input.operatorName !== row.operatorName)
+      changes.push("operatorName");
     if (changes.length === 0) return;
 
     await tx
@@ -825,6 +972,8 @@ export async function updateBooking(
         serviceId,
         areaId,
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        ...(input.operatorName !== undefined ? { operatorName: input.operatorName } : {}),
+        ...(modifiedBy ? { modifiedByOperatorName: modifiedBy } : {}),
       })
       .where(eq(booking.id, row.id));
     if (timingChanged) {
@@ -842,17 +991,20 @@ export async function updateBooking(
         before.every((b) => after.some((a) => a.tableId === b.tableId));
       if (!same) changes.push("tables");
     }
-    await emitEvent(tx, {
-      type: "booking.modified",
-      restaurantId: r.id,
-      aggregateType: "booking",
-      aggregateId: row.id,
-      payload: {
-        bookingId: row.id,
-        changes,
-        ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
-      },
-    });
+    // Fixing who took the booking is internal: no event, so nobody gets notified.
+    if (changes.some((c) => c !== "operatorName"))
+      await emitEvent(tx, {
+        type: "booking.modified",
+        restaurantId: r.id,
+        aggregateType: "booking",
+        aggregateId: row.id,
+        payload: {
+          bookingId: row.id,
+          changes,
+          ...(partySize !== row.partySize ? { previousPartySize: row.partySize } : {}),
+          ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
+        },
+      });
     await writeAudit(tx, {
       restaurantId: r.id,
       actor,

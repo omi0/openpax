@@ -1,11 +1,11 @@
-import type { BookingDto, TableDto } from "@openpax/shared";
+import { joinedCapacity, tableLinks } from "@openpax/core";
+import type { AreaDto, BookingDto, TableDto } from "@openpax/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FloorPlan } from "@/components/floor-plan";
 import { Alert, Button, Checkbox, Dialog } from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 const ACTIVE = new Set(["pending", "confirmed", "seated"]);
 const at = (iso: string) => new Date(iso).getTime();
@@ -24,17 +24,22 @@ export function occupantOf(
   return null;
 }
 
-/** Pick the tables of a booking by hand; taken tables are flagged and need "seat anyway". */
+/**
+ * Pick the tables of a booking on the floor plan: tap to add or remove. Taken
+ * tables show who sits there and need "seat anyway".
+ */
 export function TableAssignDialog({
   restaurantId,
   booking,
   tables,
+  areas,
   dayBookings,
   onClose,
 }: {
   restaurantId: string;
   booking: BookingDto;
   tables: TableDto[];
+  areas: AreaDto[];
   dayBookings: BookingDto[];
   onClose: () => void;
 }) {
@@ -43,6 +48,8 @@ export function TableAssignDialog({
   const [chosen, setChosen] = useState<Set<string>>(new Set(booking.tables.map((x) => x.id)));
   const [force, setForce] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // the server saw a clash this screen did not (e.g. a booking made meanwhile)
+  const [takenOnServer, setTakenOnServer] = useState(false);
   const save = useMutation({
     mutationFn: () =>
       api.put(`/api/v1/restaurants/${restaurantId}/bookings/${booking.id}/tables`, {
@@ -53,11 +60,25 @@ export function TableAssignDialog({
       await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId, "bookings"] });
       onClose();
     },
-    onError: (e) => setError(e instanceof ApiClientError ? e.message : t("app.error")),
+    onError: (e) => {
+      if (e instanceof ApiClientError && e.code === "table_taken") setTakenOnServer(true);
+      setError(
+        e instanceof ApiClientError && e.code === "table_taken"
+          ? t("today.tableTaken")
+          : e instanceof ApiClientError
+            ? e.message
+            : t("app.error"),
+      );
+    },
   });
   const active = tables.filter((x) => x.active);
-  const seats = active.filter((x) => chosen.has(x.id)).reduce((n, x) => n + x.maxCovers, 0);
-  const conflict = active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
+  // head seats count only where the plan allows them
+  const seats = joinedCapacity(
+    active.filter((x) => chosen.has(x.id)),
+    tableLinks(active),
+  ).max;
+  const conflict =
+    takenOnServer || active.some((x) => chosen.has(x.id) && occupantOf(x, booking, dayBookings));
   const toggle = (id: string) => {
     const next = new Set(chosen);
     if (next.has(id)) next.delete(id);
@@ -70,6 +91,7 @@ export function TableAssignDialog({
       open
       onClose={onClose}
       title={t("today.assignTables")}
+      size="xl"
       description={`${booking.customer.name} · ${t("today.guests", { count: booking.partySize })}${
         chosen.size > 0 ? ` · ${t("today.seatsChosen", { count: seats })}` : ""
       }`}
@@ -88,54 +110,22 @@ export function TableAssignDialog({
         {active.length === 0 ? (
           <p className="text-sm text-stone-500">{t("tables.empty")}</p>
         ) : (
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {active.map((x) => {
+          <FloorPlan
+            tables={active}
+            areas={areas.filter((a) => a.active)}
+            selectedIds={chosen}
+            onSelect={(x) => toggle(x.id)}
+            statusOf={(x) => {
               const by = occupantOf(x, booking, dayBookings);
-              const on = chosen.has(x.id);
-              return (
-                <li key={x.id}>
-                  <label
-                    className={cn(
-                      "flex h-full cursor-pointer flex-col gap-1 rounded-xl border p-3 transition-colors",
-                      on
-                        ? "border-brand-600 bg-brand-50 ring-2 ring-brand-600/20"
-                        : by
-                          ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50"
-                          : "border-stone-200 bg-white hover:border-stone-300",
-                    )}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-base font-semibold">{x.name}</span>
-                      <span className="relative inline-flex size-5 shrink-0 items-center justify-center">
-                        <input
-                          type="checkbox"
-                          className="peer size-5 appearance-none rounded-md border border-stone-300 bg-white transition checked:border-brand-600 checked:bg-brand-600"
-                          checked={on}
-                          onChange={() => toggle(x.id)}
-                          aria-label={x.name}
-                        />
-                        <Check
-                          className="pointer-events-none absolute size-3.5 text-white opacity-0 peer-checked:opacity-100"
-                          strokeWidth={3}
-                        />
-                      </span>
-                    </span>
-                    <span className="text-[13px] text-stone-500">
-                      {t("tables.seats", { min: x.minCovers, max: x.maxCovers })}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[13px] font-medium",
-                        by ? "text-amber-700" : "text-emerald-700 capitalize",
-                      )}
-                    >
-                      {by ? t("today.takenBy", { name: by.customer.name }) : t("today.free")}
-                    </span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
+              return by
+                ? {
+                    tone: "reserved",
+                    label: by.customer.name,
+                    title: t("today.takenBy", { name: by.customer.name }),
+                  }
+                : { tone: "free" };
+            }}
+          />
         )}
         {conflict ? (
           <Checkbox

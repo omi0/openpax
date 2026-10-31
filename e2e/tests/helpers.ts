@@ -38,6 +38,7 @@ export async function nextOpenDate(page: Page, slug: string): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
   for (let i = 0; i < 2; i += 1) {
     const d = new Date();
+    d.setUTCDate(1); // on the 31st, adding a month would skip a shorter one
     d.setUTCMonth(d.getUTCMonth() + i);
     const month = d.toISOString().slice(0, 7);
     const res = await page.request.get(

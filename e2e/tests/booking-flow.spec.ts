@@ -9,6 +9,12 @@ test("owner onboards, guest books through the widget, booking appears on Today",
   page,
   baseURL,
 }) => {
+  // web bookings made below pop up at the desk on the next visit; these flows are about the rest
+  await page.addLocatorHandler(
+    page.getByRole("dialog", { name: "New booking from the website" }),
+    (alert) => alert.getByRole("button", { name: "Seen" }).click(),
+    { noWaitAfter: true }, // one popup can follow another
+  );
   const email = `owner-${Date.now()}@example.com`;
 
   // --- sign up
@@ -107,5 +113,10 @@ test("owner onboards, guest books through the widget, booking appears on Today",
 
   // --- staff seats the guest from the row
   await page.getByRole("button", { name: "Seat" }).first().click();
+  // seating asks a Yes / No first
+  await page
+    .getByRole("dialog", { name: /Seat Mario Guest/ })
+    .getByRole("button", { name: "Yes" })
+    .click();
   await expect(page.getByText("Seated", { exact: true })).toBeVisible();
 });

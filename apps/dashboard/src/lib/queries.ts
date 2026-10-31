@@ -13,10 +13,15 @@ import type {
   CustomerTagDto,
   FeedbackDto,
   FeedbackSummaryDto,
+  MeetingDaysDto,
+  MeetingDto,
+  MeetingListItemDto,
+  MeetingSlotsDto,
   NotificationChannel,
   NotificationLogDto,
   NotificationSettingDto,
   NotificationTemplateDto,
+  OperatorDto,
   PaymentConfigDto,
   ProviderConfigDto,
   ProviderDescriptorDto,
@@ -166,6 +171,8 @@ export interface BookingsSearchParams {
   status?: string;
   from?: string;
   to?: string;
+  /** Latest taken or received first. */
+  recent?: boolean;
   page?: number;
 }
 
@@ -179,10 +186,13 @@ export const bookingsSearchQuery = (id: string, params: BookingsSearchParams) =>
         from: params.from || undefined,
         to: params.to || undefined,
         order: params.from && !params.to ? "asc" : "desc",
+        sort: params.recent ? "created" : undefined,
         page: params.page,
         pageSize: 50,
       }),
     placeholderData: (prev) => prev,
+    // the history picks up online bookings as they arrive
+    refetchInterval: params.recent ? 30_000 : false,
   });
 
 /** Slots as staff see them: only real capacity, none of the online-only rules. */
@@ -351,4 +361,38 @@ export const feedbackQuery = (id: string, params: { rating?: number; page?: numb
         pageSize: 50,
       }),
     placeholderData: (prev) => prev,
+  });
+
+// all meeting queries share this prefix so one invalidation refreshes slots, lists and sheets
+export const meetingSlotsQuery = (id: string, date: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "slots", date],
+    queryFn: () => api.get<MeetingSlotsDto>(`/api/v1/restaurants/${id}/meetings/slots`, { date }),
+  });
+
+export const bookingMeetingQuery = (id: string, bookingId: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "booking", bookingId],
+    queryFn: () =>
+      api.get<MeetingDto | null>(`/api/v1/restaurants/${id}/bookings/${bookingId}/meeting`),
+  });
+
+export const meetingsQuery = (id: string, from: string, to: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "list", from, to],
+    queryFn: () =>
+      api.get<MeetingListItemDto[]>(`/api/v1/restaurants/${id}/meetings`, { from, to }),
+  });
+
+export const operatorsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "operators"],
+    queryFn: () => api.get<OperatorDto[]>(`/api/v1/restaurants/${id}/operators`),
+  });
+
+export const meetingDaysQuery = (id: string, from: string, to: string, before: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "days", from, to, before],
+    queryFn: () =>
+      api.get<MeetingDaysDto>(`/api/v1/restaurants/${id}/meetings/days`, { from, to, before }),
   });

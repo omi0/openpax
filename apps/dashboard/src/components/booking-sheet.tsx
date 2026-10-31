@@ -9,6 +9,7 @@ import {
   CalendarX,
   CheckCheck,
   CircleCheck,
+  Clock,
   Copy,
   DoorOpen,
   LayoutGrid,
@@ -18,12 +19,14 @@ import {
   Send,
   StickyNote,
   Undo2,
+  UserPen,
   UserRound,
   Users,
   UserX,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { MeetingSection } from "@/components/meeting-dialog";
 import {
   Avatar,
   Badge,
@@ -36,7 +39,7 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { areasQuery, bookingNotificationsQuery } from "@/lib/queries";
-import { cn, formatDate, formatTime } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, formatTime } from "@/lib/utils";
 
 export const ACTIVE_STATUSES = new Set(["pending", "confirmed", "seated"]);
 
@@ -55,7 +58,7 @@ export const actionsFor: Record<string, BookingAction[]> = {
   pending: ["confirm", "cancel"],
   confirmed: ["seat", "no_show", "cancel"],
   seated: ["complete", "cancel"],
-  completed: [],
+  completed: ["reopen"],
   cancelled: ["reopen"],
   no_show: ["reopen"],
 };
@@ -234,6 +237,26 @@ export function BookingSheet({
             <Row icon={<Copy />} label={t("today.code")}>
               <span className="font-mono tracking-wider">{b.confirmationCode}</span>
             </Row>
+            {b.operatorName ? (
+              <Row icon={<UserPen />} label={t("today.operatorLabel")}>
+                {b.operatorName}
+              </Row>
+            ) : null}
+            {b.modifiedByOperatorName ? (
+              <Row icon={<Pencil />} label={t("today.modifiedBy")}>
+                {b.modifiedByOperatorName}
+              </Row>
+            ) : null}
+            {b.cancelledByOperatorName ? (
+              <Row icon={<Ban />} label={t("today.cancelledBy")}>
+                {b.cancelledByOperatorName}
+              </Row>
+            ) : null}
+            <Row icon={<Clock />} label={t("today.operatorTakenAt")}>
+              <span className="capitalize tabular-nums">
+                {formatDateTime(b.createdAt, restaurant.timezone, i18n.language)}
+              </span>
+            </Row>
           </dl>
 
           {b.payment ? <PaymentLine restaurantId={restaurant.id} booking={b} /> : null}
@@ -252,6 +275,8 @@ export function BookingSheet({
               <UserRound className="size-4" /> {t("today.viewProfile")}
             </Link>
           </div>
+
+          <MeetingSection restaurant={restaurant} booking={b} active={active} />
 
           <NotificationLog
             restaurantId={restaurant.id}

@@ -1,5 +1,15 @@
-import { defineProvider } from "../provider.js";
+import { type CalendarInvite, calendarAttachment, defineProvider } from "../provider.js";
 import { errorText, parseAddress } from "./address.js";
+
+function sendgridAttachment(invite: CalendarInvite) {
+  const a = calendarAttachment(invite);
+  return {
+    content: a.base64,
+    filename: a.filename,
+    type: a.contentType,
+    disposition: "attachment",
+  };
+}
 
 export const sendgridProvider = defineProvider({
   id: "sendgrid",
@@ -40,6 +50,7 @@ export const sendgridProvider = defineProvider({
           { type: "text/plain", value: message.text },
           { type: "text/html", value: message.html },
         ],
+        ...(message.calendar ? { attachments: [sendgridAttachment(message.calendar)] } : {}),
       }),
     });
     if (!res.ok) throw new Error(`SendGrid responded ${res.status}: ${await errorText(res)}`);

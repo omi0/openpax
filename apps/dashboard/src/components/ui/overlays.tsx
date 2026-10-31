@@ -69,7 +69,8 @@ const dialogSizes = {
 
 /**
  * Modal dialog. On phones it rises from the bottom as a sheet; on larger
- * screens it is centred. Escape and the backdrop close it.
+ * screens it is centred. Escape and the backdrop close it, unless it is
+ * `persistent`: then only its own buttons do (no X either).
  */
 export function Dialog({
   open,
@@ -80,6 +81,7 @@ export function Dialog({
   footer,
   size = "md",
   className,
+  persistent = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -90,23 +92,28 @@ export function Dialog({
   footer?: ReactNode;
   size?: keyof typeof dialogSizes;
   className?: string;
+  persistent?: boolean;
 }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useScrollLock(open);
-  useEscape(open, onClose);
+  useEscape(open && !persistent, onClose);
   useInitialFocus(open, ref);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <button
-        type="button"
-        aria-label={t("app.close")}
-        data-close
-        className="absolute inset-0 animate-fade-in cursor-default bg-stone-900/40"
-        onClick={onClose}
-      />
+      {persistent ? (
+        <div className="absolute inset-0 animate-fade-in bg-stone-900/40" />
+      ) : (
+        <button
+          type="button"
+          aria-label={t("app.close")}
+          data-close
+          className="absolute inset-0 animate-fade-in cursor-default bg-stone-900/40"
+          onClick={onClose}
+        />
+      )}
       <div
         ref={ref}
         role="dialog"
@@ -127,15 +134,17 @@ export function Dialog({
             </h2>
             {description ? <p className="mt-0.5 text-sm text-stone-500">{description}</p> : null}
           </div>
-          <button
-            type="button"
-            data-close
-            onClick={onClose}
-            className="-mr-2 -mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-900"
-            aria-label={t("app.close")}
-          >
-            <X className="size-5" />
-          </button>
+          {persistent ? null : (
+            <button
+              type="button"
+              data-close
+              onClick={onClose}
+              className="-mr-2 -mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-900"
+              aria-label={t("app.close")}
+            >
+              <X className="size-5" />
+            </button>
+          )}
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-6">{children}</div>
         {footer ? (

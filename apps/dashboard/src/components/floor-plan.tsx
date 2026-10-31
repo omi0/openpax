@@ -1,5 +1,10 @@
 import type { AreaDto, TableDto } from "@openpax/shared";
-import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +45,7 @@ export function FloorPlan({
   onMove,
   onSelect,
   selectedId,
+  selectedIds,
   className,
 }: {
   tables: TableDto[];
@@ -48,11 +54,14 @@ export function FloorPlan({
   onMove?: (positions: Position[]) => void;
   onSelect?: (table: TableDto) => void;
   selectedId?: string | null;
+  /** Several tables picked at once (assigning a joined group). */
+  selectedIds?: ReadonlySet<string>;
   className?: string;
 }) {
   const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
-  const [areaFilter, setAreaFilter] = useState<string | "all">("all");
+  // one room at a time (tables of a room overlap the others on the plan)
+  const [picked, setPicked] = useState<string | null>(null);
   const [drag, setDrag] = useState<{
     id: string;
     startX: number;
@@ -63,7 +72,15 @@ export function FloorPlan({
     y: number;
   } | null>(null);
 
-  const visible = tables.filter((x) => areaFilter === "all" || x.areaId === areaFilter);
+  const tabs = [
+    ...areas,
+    ...(tables.some((x) => x.areaId === null) ? [{ id: "", name: t("tables.noArea") }] : []),
+  ];
+  const areaFilter =
+    tabs.find((a) => a.id === picked)?.id ??
+    tabs.find((a) => tables.some((x) => (x.areaId ?? "") === a.id))?.id ??
+    tabs[0]?.id;
+  const visible = tables.filter((x) => areaFilter === undefined || (x.areaId ?? "") === areaFilter);
   const toUnits = (e: ReactPointerEvent) => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
@@ -105,14 +122,14 @@ export function FloorPlan({
 
   return (
     <div className={className}>
-      {areas.length > 0 ? (
+      {tabs.length > 1 ? (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {[{ id: "all" as const, name: t("tables.allAreas") }, ...areas].map((a) => (
+          {tabs.map((a) => (
             <button
               key={a.id}
               type="button"
               aria-pressed={areaFilter === a.id}
-              onClick={() => setAreaFilter(a.id)}
+              onClick={() => setPicked(a.id)}
               className={cn(
                 "h-8 rounded-full px-3 text-sm font-medium transition-colors",
                 areaFilter === a.id
@@ -142,13 +159,16 @@ export function FloorPlan({
           const status = statusOf?.(table) ?? { tone: table.active ? "free" : "inactive" };
           const cx = x + table.width / 2;
           const cy = y + table.height / 2;
-          const selected = selectedId === table.id;
+          const selected = selectedId === table.id || (selectedIds?.has(table.id) ?? false);
           // fit the guest name to the table width (roughly 1.1 units per character at size 2)
           const maxChars = Math.max(6, Math.floor(table.width / 1.15));
           const label =
             status.label && status.label.length > maxChars
               ? `${status.label.slice(0, maxChars - 1)}…`
               : status.label;
+          const title = status.title ?? `${table.name} · ${table.minCovers}–${table.maxCovers}`;
+          // picking tables (not dragging them) also works from the keyboard
+          const pickable = !onMove && onSelect !== undefined;
           return (
             // biome-ignore lint/a11y/noStaticElementInteractions: drag surface; the list below the plan exposes the same actions
             <g
@@ -159,11 +179,22 @@ export function FloorPlan({
               onClick={() => {
                 if (!onMove) onSelect?.(table);
               }}
+              {...(pickable
+                ? {
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-pressed": selected,
+                    "aria-label": status.title ? `${table.name}, ${status.title}` : title,
+                    onKeyDown: (e: ReactKeyboardEvent) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      onSelect?.(table);
+                    },
+                  }
+                : {})}
               className={cn(onMove ? "cursor-move" : onSelect ? "cursor-pointer" : "")}
             >
-              <title>
-                {status.title ?? `${table.name} · ${table.minCovers}–${table.maxCovers}`}
-              </title>
+              <title>{title}</title>
               {table.shape === "round" ? (
                 <ellipse
                   cx={cx}
@@ -171,7 +202,7 @@ export function FloorPlan({
                   rx={table.width / 2}
                   ry={table.height / 2}
                   strokeWidth={selected ? 0.8 : 0.45}
-                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
+                  className={cn(fills[status.tone], selected && "fill-brand-100 stroke-brand-600")}
                 />
               ) : (
                 <rect
@@ -181,7 +212,7 @@ export function FloorPlan({
                   height={table.height}
                   rx={1.4}
                   strokeWidth={selected ? 0.8 : 0.45}
-                  className={cn(fills[status.tone], selected && "stroke-brand-600")}
+                  className={cn(fills[status.tone], selected && "fill-brand-100 stroke-brand-600")}
                 />
               )}
               <text

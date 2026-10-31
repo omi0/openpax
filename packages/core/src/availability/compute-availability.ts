@@ -87,6 +87,7 @@ export function computeAvailability(input: AvailabilityInput): AvailabilityResul
       if (
         reason === null &&
         input.tables &&
+        !input.manualTables &&
         tablesExhausted(
           input.tables,
           input.tableLoads ?? [],

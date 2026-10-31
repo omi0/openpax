@@ -6,8 +6,10 @@ import { csvModule } from "./csv/index.js";
 import { customersModule } from "./customers/index.js";
 import { feedbackModule } from "./feedback/index.js";
 import { mcpModule } from "./mcp/index.js";
+import { meetingsModule } from "./meetings/index.js";
 import type { OpenPaxModule } from "./module.js";
 import { notificationsModule } from "./notifications/index.js";
+import { operatorsModule } from "./operators/index.js";
 import { paymentsModule } from "./payments/index.js";
 import { restaurantsModule } from "./restaurants/index.js";
 import { setupModule } from "./setup/index.js";
@@ -24,6 +26,8 @@ export const modules: OpenPaxModule[] = [
   availabilityModule,
   widgetModule,
   bookingsModule,
+  meetingsModule,
+  operatorsModule,
   waitlistModule,
   tablesModule,
   paymentsModule,

@@ -10,6 +10,8 @@ import { Copy, Mail, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InviteForm } from "@/components/invite-form";
+import { MeetingSettingsCard } from "@/components/meeting-settings-card";
+import { OperatorsCard } from "@/components/operators-card";
 import {
   Alert,
   Avatar,
@@ -163,6 +165,9 @@ function TeamPage() {
           ))}
         </div>
       </Card>
+
+      <OperatorsCard restaurantId={restaurantId} canManage={canManage} />
+      <MeetingSettingsCard restaurantId={restaurantId} canManage={canManage} />
 
       {canManage ? (
         <Card

@@ -85,6 +85,27 @@
       "when": 1789839978865,
       "tag": "0011_widget_contact_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793252140175,
+      "tag": "0012_operators_and_meetings",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793292679027,
+      "tag": "0013_table_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793294840677,
+      "tag": "0014_manual_tables",
+      "breakpoints": true
     }
   ]
 }

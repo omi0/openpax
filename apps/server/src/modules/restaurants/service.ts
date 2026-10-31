@@ -86,6 +86,11 @@ export function toPolicyDto(row: typeof bookingPolicy.$inferSelect): BookingPoli
     waitlistEnabled: row.waitlistEnabled,
     waitlistAutoOffer: row.waitlistAutoOffer,
     waitlistOfferMinutes: row.waitlistOfferMinutes,
+    meetingMinPartySize: row.meetingMinPartySize,
+    meetingHours: row.meetingHours,
+    meetingHostName: row.meetingHostName,
+    meetingHostEmail: row.meetingHostEmail,
+    autoAssignTables: row.autoAssignTables,
   };
 }
 

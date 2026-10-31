@@ -10,6 +10,12 @@ test("guest joins the waitlist on a full date and confirms the auto-offered tabl
   page,
   baseURL,
 }) => {
+  // web bookings made below pop up at the desk on the next visit; these flows are about the rest
+  await page.addLocatorHandler(
+    page.getByRole("dialog", { name: "New booking from the website" }),
+    (alert) => alert.getByRole("button", { name: "Seen" }).click(),
+    { noWaitAfter: true }, // one popup can follow another
+  );
   const owner = await onboardOwner(page, "Waitlist E2E");
   const api = `${baseURL}/api/v1/restaurants/${owner.restaurantId}`;
 

@@ -330,4 +330,180 @@ describe("tables and auto-assignment", () => {
     expect(squeezed.status).toBe(201);
     expect(squeezed.body.tables).toEqual([]);
   });
+  it("keeps table links both ways, only within a room, and drops them with the table", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const room = async (name: string) =>
+      (await api<{ id: string }>(t, "POST", `${base}/areas`, { name }, fx.session)).body.id;
+    const upstairs = await room("Sopra");
+    const downstairs = await room("Sotto");
+    const add = async (name: string, areaId: string, joinWith: string[] = []) => {
+      const res = await api<{ id: string; joinWith: string[] }>(
+        t,
+        "POST",
+        `${base}/tables`,
+        { name, areaId, maxCovers: 2, joinWith, headSeats: 1 },
+        fx.session,
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(201);
+      return res.body;
+    };
+    const one = await add("1", upstairs);
+    const two = await add("2", upstairs, [one.id]);
+    const three = await add("3", upstairs, [two.id]);
+    const below = await add("26", downstairs);
+    const links = async () => {
+      const res = await api<Array<{ name: string; joinWith: string[]; headSeats: number }>>(
+        t,
+        "GET",
+        `${base}/tables`,
+        undefined,
+        fx.session,
+      );
+      return Object.fromEntries(res.body.map((x) => [x.name, x.joinWith.length]));
+    };
+    expect(await links()).toEqual({ "1": 1, "2": 2, "3": 1, "26": 0 });
+
+    const cross = await api(
+      t,
+      "PUT",
+      `${base}/tables/${one.id}`,
+      { name: "1", areaId: upstairs, maxCovers: 2, joinWith: [below.id] },
+      fx.session,
+    );
+    expect(cross.status).toBe(400);
+
+    // an update that leaves the links out keeps them
+    const rename = await api(
+      t,
+      "PUT",
+      `${base}/tables/${two.id}`,
+      { name: "2", areaId: upstairs, maxCovers: 2 },
+      fx.session,
+    );
+    expect(rename.status).toBe(200);
+    expect(await links()).toEqual({ "1": 1, "2": 2, "3": 1, "26": 0 });
+
+    // 1 no longer joins 2: 2 forgets 1 too
+    const cut = await api(
+      t,
+      "PUT",
+      `${base}/tables/${one.id}`,
+      { name: "1", areaId: upstairs, maxCovers: 2, joinWith: [] },
+      fx.session,
+    );
+    expect(cut.status).toBe(200);
+    expect(await links()).toEqual({ "1": 0, "2": 1, "3": 1, "26": 0 });
+
+    expect(
+      (await api(t, "DELETE", `${base}/tables/${three.id}`, undefined, fx.session)).status,
+    ).toBe(204);
+    expect(await links()).toEqual({ "1": 0, "2": 0, "26": 0 });
+  });
+  it("leaves bookings without a table, and slots open, when staff seat by hand", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const policy = await api<{ autoAssignTables: boolean }>(
+      t,
+      "PUT",
+      `${base}/policy`,
+      { autoAssignTables: false },
+      fx.session,
+    );
+    expect(policy.body.autoAssignTables).toBe(false);
+    const only = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/tables`,
+      { name: "1", maxCovers: 2 },
+      fx.session,
+    );
+    const book = (name: string) =>
+      api<Booking>(t, "POST", `/api/public/v1/restaurants/${fx.slug}/bookings`, {
+        ...guestBooking(fx, { partySize: 2 }),
+        guest: { name, email: `${name}@example.com`, phone: "+39 333 1234567" },
+      });
+    const tablesOf = async (id: string) =>
+      (await api<Booking>(t, "GET", `${base}/bookings/${id}`, undefined, fx.session)).body.tables;
+    const first = await book("uno");
+    expect(first.status).toBe(201);
+    expect(await tablesOf(first.body.id)).toEqual([]);
+
+    // seated by hand; the next party still gets in (only the guest limit counts)
+    const seat = await api(
+      t,
+      "PUT",
+      `${base}/bookings/${first.body.id}/tables`,
+      { tableIds: [only.body.id] },
+      fx.session,
+    );
+    expect(seat.status).toBe(200);
+    const second = await book("due");
+    expect(second.status, JSON.stringify(second.body)).toBe(201);
+    expect(await tablesOf(second.body.id)).toEqual([]);
+
+    // the first party cancels, the second takes its table, then the first comes back:
+    // it must not share the table, it waits to be seated again
+    const action = (id: string, act: string) =>
+      api(t, "POST", `${base}/bookings/${id}/actions`, { action: act }, fx.session);
+    expect((await action(first.body.id, "cancel")).status).toBe(200);
+    const take = await api(
+      t,
+      "PUT",
+      `${base}/bookings/${second.body.id}/tables`,
+      { tableIds: [only.body.id] },
+      fx.session,
+    );
+    expect(take.status).toBe(200);
+    expect((await action(first.body.id, "reopen")).status).toBe(200);
+    expect(await tablesOf(first.body.id)).toEqual([]);
+    expect((await tablesOf(second.body.id)).map((x) => x.name)).toEqual(["1"]);
+  });
+
+  it("reopening a completed booking keeps the tables staff moved it to", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const addTable = async (name: string, sortOrder: number) =>
+      (
+        await api<{ id: string }>(
+          t,
+          "POST",
+          `${base}/tables`,
+          { name, maxCovers: 4, sortOrder, x: sortOrder * 15, y: 10 },
+          fx.session,
+        )
+      ).body.id;
+    await addTable("Best", 0);
+    const moved = await addTable("Moved", 1);
+    const created = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 2,
+        customer: { name: "Sara Gialli", phone: "+39 340 1111111" },
+        source: "phone",
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    const path = `${base}/bookings/${created.body.id}`;
+    expect((await api(t, "PUT", `${path}/tables`, { tableIds: [moved] }, fx.session)).status).toBe(
+      200,
+    );
+    for (const action of ["seat", "complete", "reopen"]) {
+      const res = await api(t, "POST", `${path}/actions`, { action }, fx.session);
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+    }
+    const after = await api<{ tables: Array<{ name: string }> }>(
+      t,
+      "GET",
+      path,
+      undefined,
+      fx.session,
+    );
+    expect(after.body.tables.map((x) => x.name)).toEqual(["Moved"]);
+  });
 });

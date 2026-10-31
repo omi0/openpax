@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  addMember,
   api,
   createFixture,
   createTestApp,
+  type Fixture,
   FRIDAY,
   guestBooking,
   romeInstant,
@@ -548,5 +550,362 @@ describe("bookings created after an instant", () => {
       fx.session,
     );
     expect(none.body.total).toBe(0);
+
+    // history: the latest taken first, whatever the time of the visit
+    const names = async (query: string) =>
+      (
+        await api<{ items: Array<{ customer: { name: string } }> }>(
+          t,
+          "GET",
+          `${bookings(fx)}${query}`,
+          undefined,
+          fx.session,
+        )
+      ).body.items.map((x) => x.customer.name);
+    expect(await names("")).toEqual(["Mario Rossi", "Lucia Bianchi"]);
+    expect(await names("?sort=created")).toEqual(["Lucia Bianchi", "Mario Rossi"]);
+  });
+
+  it("does not report the last acknowledged event again", async () => {
+    const fx = await createFixture(t);
+    const online = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(online.status).toBe(201);
+    const read = (from: string) =>
+      api<{ items: Array<{ at: string }> }>(
+        t,
+        "GET",
+        `${bookings(fx)}/online-activity?since=${encodeURIComponent(from)}`,
+        undefined,
+        fx.session,
+      );
+    const first = await read(new Date(Date.now() - 60_000).toISOString());
+    const at = first.body.items[0]?.at ?? "";
+    expect(at).not.toBe("");
+    expect((await read(at)).body.items).toEqual([]);
+  });
+
+  it("reports new online bookings and guest cancellations, not the staff's own", async () => {
+    const fx = await createFixture(t);
+    const since = new Date(Date.now() - 1000).toISOString();
+    const activity = async (from = since) =>
+      (
+        await api<{
+          items: Array<{
+            kind: string;
+            reason: string | null;
+            booking: { customer: { name: string } };
+          }>;
+        }>(
+          t,
+          "GET",
+          `${bookings(fx)}/online-activity?since=${encodeURIComponent(from)}`,
+          undefined,
+          fx.session,
+        )
+      ).body.items.map(
+        (x) => `${x.kind}:${x.booking.customer.name}${x.reason ? `:${x.reason}` : ""}`,
+      );
+
+    const online = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(online.status).toBe(201);
+    const phone = await api<{ id: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "21:00"),
+        partySize: 2,
+        customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+        source: "phone",
+        notifyGuest: false,
+      },
+      fx.session,
+    );
+    expect(phone.status).toBe(201);
+    const token = online.body.manageUrl.split("/").pop() ?? "";
+    expect(
+      (await api(t, "POST", `/api/public/v1/bookings/${token}/cancel`, { reason: "Influenza" }))
+        .status,
+    ).toBe(200);
+    const byStaff = await api(
+      t,
+      "POST",
+      `${bookings(fx)}/${phone.body.id}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    expect(byStaff.status).toBe(200);
+
+    expect(await activity()).toEqual(["created:Mario Rossi", "cancelled:Mario Rossi:Influenza"]);
+    expect(await activity(new Date(Date.now() + 60_000).toISOString())).toEqual([]);
+  });
+});
+
+describe("booking operators", () => {
+  const ops = (fx: { restaurantId: string }) => `/api/v1/restaurants/${fx.restaurantId}/operators`;
+  const phoneBooking = (fx: { serviceId: string }, extra: Record<string, unknown> = {}) => ({
+    serviceId: fx.serviceId,
+    startsAt: romeInstant(FRIDAY, "20:00"),
+    partySize: 2,
+    customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+    source: "phone",
+    ...extra,
+  });
+  const addOperator = async (fx: Fixture, name: string, pin: string) => {
+    const res = await api<{ id: string; name: string }>(
+      t,
+      "POST",
+      ops(fx),
+      { name, pin },
+      fx.session,
+    );
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    return res.body;
+  };
+
+  it("does not ask for an operator while there are none", async () => {
+    const fx = await createFixture(t);
+    const res = await api<{ operatorName: string | null }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx),
+      fx.session,
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.operatorName).toBeNull();
+  });
+
+  it("makes dashboard users give their name and code to take, change and cancel", async () => {
+    const fx = await createFixture(t);
+    const marco = await addOperator(fx, "Marco", "123456");
+    const giulia = await addOperator(fx, "Giulia", "654321");
+
+    const list = await api<Array<{ id: string; name: string; pin?: string }>>(
+      t,
+      "GET",
+      ops(fx),
+      undefined,
+      fx.session,
+    );
+    expect(list.body.map((o) => o.name).sort()).toEqual(["Giulia", "Marco"]);
+    expect(list.body.every((o) => o.pin === undefined)).toBe(true);
+
+    const missing = await api<{ code: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx),
+      fx.session,
+    );
+    expect(missing.status).toBe(400);
+    expect(missing.body.code).toBe("operator_required");
+
+    const wrong = await api<{ code: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx, { operator: { id: marco.id, pin: "000000" } }),
+      fx.session,
+    );
+    expect(wrong.status).toBe(400);
+    expect(wrong.body.code).toBe("wrong_pin");
+
+    const staff = await addMember(t, fx, "staff");
+    const created = await api<{ id: string; operatorName: string | null }>(
+      t,
+      "POST",
+      bookings(fx),
+      phoneBooking(fx, { operator: { id: marco.id, pin: "123456" } }),
+      staff,
+    );
+    expect(created.status).toBe(201);
+    expect(created.body.operatorName).toBe("Marco");
+    const one = `${bookings(fx)}/${created.body.id}`;
+
+    const noOp = await api<{ code: string }>(t, "PATCH", one, { partySize: 3 }, staff);
+    expect(noOp.body.code).toBe("operator_required");
+    const changed = await api<{ partySize: number; modifiedByOperatorName: string | null }>(
+      t,
+      "PATCH",
+      one,
+      { partySize: 3, operator: { id: giulia.id, pin: "654321" } },
+      staff,
+    );
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ partySize: 3, modifiedByOperatorName: "Giulia" });
+
+    const staffFix = await api(
+      t,
+      "PATCH",
+      one,
+      { operatorName: "Giulia", operator: { id: giulia.id, pin: "654321" } },
+      staff,
+    );
+    expect(staffFix.status).toBe(403);
+    const managerFix = await api<{ operatorName: string | null }>(
+      t,
+      "PATCH",
+      one,
+      { operatorName: "Giulia", operator: { id: marco.id, pin: "123456" } },
+      fx.session,
+    );
+    expect(managerFix.status).toBe(200);
+    expect(managerFix.body.operatorName).toBe("Giulia");
+
+    const cancelNoOp = await api<{ code: string }>(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "cancel" },
+      staff,
+    );
+    expect(cancelNoOp.body.code).toBe("operator_required");
+    const cancelled = await api<{ status: string; cancelledByOperatorName: string | null }>(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "cancel", operator: { id: marco.id, pin: "123456" } },
+      staff,
+    );
+    expect(cancelled.body).toMatchObject({ status: "cancelled", cancelledByOperatorName: "Marco" });
+  });
+
+  it("locks an operator after five wrong codes and lets only managers edit the list", async () => {
+    const fx = await createFixture(t);
+    const marco = await addOperator(fx, "Marco", "123456");
+    const verify = (pin: string) =>
+      api<{ code: string }>(t, "POST", `${ops(fx)}/${marco.id}/verify`, { pin }, fx.session);
+    expect((await verify("123456")).status).toBe(204);
+    for (let i = 0; i < 5; i += 1) expect((await verify("111111")).status).toBe(400);
+    const locked = await verify("123456");
+    expect(locked.status).toBe(429);
+    expect(locked.body.code).toBe("operator_locked");
+
+    const reset = await api(t, "PATCH", `${ops(fx)}/${marco.id}`, { pin: "222222" }, fx.session);
+    expect(reset.status).toBe(200);
+    expect((await verify("222222")).status).toBe(204);
+
+    const staff = await addMember(t, fx, "staff");
+    const denied = await api(t, "POST", ops(fx), { name: "Luca", pin: "333333" }, staff);
+    expect(denied.status).toBe(403);
+    const dup = await api(t, "POST", ops(fx), { name: "marco", pin: "333333" }, fx.session);
+    expect(dup.status).toBe(409);
+    const shortPin = await api(t, "POST", ops(fx), { name: "Luca", pin: "123" }, fx.session);
+    expect(shortPin.status).toBe(400);
+  });
+
+  it("counts wrong codes sent all at once", async () => {
+    const fx = await createFixture(t);
+    const marco = await addOperator(fx, "Marco", "123456");
+    const tries = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        api<{ code: string }>(
+          t,
+          "POST",
+          `${ops(fx)}/${marco.id}/verify`,
+          { pin: String(900000 + i) },
+          fx.session,
+        ),
+      ),
+    );
+    expect(tries.filter((x) => x.body.code === "wrong_pin").length).toBeLessThanOrEqual(5);
+    const after = await api<{ code: string }>(
+      t,
+      "POST",
+      `${ops(fx)}/${marco.id}/verify`,
+      { pin: "123456" },
+      fx.session,
+    );
+    expect(after.body.code).toBe("operator_locked");
+  });
+
+  it("never asks guests booking online", async () => {
+    const fx = await createFixture(t);
+    await addOperator(fx, "Marco", "123456");
+    const res = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("undoing a completion", () => {
+  it("reopens a table closed by mistake as confirmed, without telling the guest", async () => {
+    const fx = await createFixture(t);
+    await api(
+      t,
+      "PUT",
+      `/api/v1/restaurants/${fx.restaurantId}/notification-providers/email`,
+      {
+        providerId: "test-email",
+        config: { apiKey: "secret-key-1234", from: "T <t@example.com>" },
+      },
+      fx.session,
+    );
+    const created = await api<{ id: string }>(
+      t,
+      "POST",
+      bookings(fx),
+      {
+        serviceId: fx.serviceId,
+        startsAt: romeInstant(FRIDAY, "19:30"),
+        partySize: 2,
+        customer: { name: "Sara Gialli", email: "sara@example.com" },
+        source: "phone",
+      },
+      fx.session,
+    );
+    const action = (a: string) =>
+      api<{ status: string; customer: { visitCount: number } }>(
+        t,
+        "POST",
+        `${bookings(fx)}/${created.body.id}/actions`,
+        { action: a },
+        fx.session,
+      );
+    await action("seat");
+    await action("complete");
+    await t.processEvents();
+    const before = t.sentEmails.filter((e) => e.to === "sara@example.com").length;
+
+    const reopened = await action("reopen");
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.status).toBe("confirmed");
+    expect(reopened.body.customer.visitCount).toBe(0);
+    await t.processEvents();
+    expect(t.sentEmails.filter((e) => e.to === "sara@example.com")).toHaveLength(before);
+
+    const seatedAgain = await action("seat");
+    expect(seatedAgain.body.customer.visitCount).toBe(1);
+  });
+});
+
+describe("undoing a completion when the room filled up", () => {
+  it("refuses to reopen a completed booking whose covers were given away", async () => {
+    const fx = await createFixture(t, { maxCoversPerSlot: 4 });
+    const take = (name: string) =>
+      api<{ id: string; code?: string }>(
+        t,
+        "POST",
+        bookings(fx),
+        {
+          serviceId: fx.serviceId,
+          startsAt: romeInstant(FRIDAY, "19:30"),
+          partySize: 4,
+          customer: { name, phone: "+39 340 3333333" },
+          source: "walk_in",
+        },
+        fx.session,
+      );
+    const first = await take("Primo Tavolo");
+    const act = (id: string, action: string) =>
+      api<{ code?: string }>(t, "POST", `${bookings(fx)}/${id}/actions`, { action }, fx.session);
+    await act(first.body.id, "seat");
+    await act(first.body.id, "complete");
+    const second = await take("Secondo Tavolo");
+    expect(second.status).toBe(201);
+    const reopened = await act(first.body.id, "reopen");
+    expect(reopened.status).toBe(409);
+    expect(reopened.body.code).toBe("slot_unavailable");
   });
 });

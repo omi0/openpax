@@ -8,6 +8,23 @@ export interface EmailMessage {
   html: string;
   text: string;
   replyTo?: string;
+  /** iCalendar invite (or cancellation) for the recipient's calendar app. */
+  calendar?: CalendarInvite;
+}
+
+export interface CalendarInvite {
+  method: "REQUEST" | "CANCEL";
+  /** The full VCALENDAR text. */
+  ics: string;
+}
+
+/** The invite as a regular .ics attachment, for HTTP APIs that take base64 files. */
+export function calendarAttachment(invite: CalendarInvite) {
+  return {
+    filename: invite.method === "CANCEL" ? "cancel.ics" : "invite.ics",
+    contentType: `text/calendar; charset=utf-8; method=${invite.method}`,
+    base64: Buffer.from(invite.ics, "utf8").toString("base64"),
+  };
 }
 
 export interface SmsMessage {

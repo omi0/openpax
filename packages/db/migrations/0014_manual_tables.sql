@@ -1,0 +1,1 @@
+ALTER TABLE "booking_policy" ADD COLUMN "auto_assign_tables" boolean DEFAULT true NOT NULL;

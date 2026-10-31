@@ -72,6 +72,11 @@ export const booking = pgTable(
     manageToken: text().notNull(),
     idempotencyKey: text(),
     createdByUserId: uuid().references(() => user.id, { onDelete: "set null" }),
+    /** Staff member who took the booking (name kept even if the operator is removed later). */
+    operatorName: text(),
+    /** Last operator who changed the booking, and who cancelled it. */
+    modifiedByOperatorName: text(),
+    cancelledByOperatorName: text(),
     cancelledAt: timestamp({ withTimezone: true }),
     cancellationReason: text(),
     createdAt: createdAt(),

@@ -27,7 +27,8 @@ const TRANSITIONS: Record<BookingStatus, Partial<Record<BookingAction, BookingSt
   pending: { confirm: "confirmed", cancel: "cancelled" },
   confirmed: { seat: "seated", cancel: "cancelled", no_show: "no_show" },
   seated: { complete: "completed", cancel: "cancelled" },
-  completed: {},
+  // concluded by mistake: back to the start, as if the guest had not sat down yet
+  completed: { reopen: "confirmed" },
   cancelled: { reopen: "confirmed" },
   no_show: { reopen: "confirmed" },
 };

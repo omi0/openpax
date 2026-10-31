@@ -1,4 +1,9 @@
-import { defineProvider } from "../provider.js";
+import { type CalendarInvite, calendarAttachment, defineProvider } from "../provider.js";
+
+function resendAttachment(invite: CalendarInvite) {
+  const a = calendarAttachment(invite);
+  return { filename: a.filename, content: a.base64, content_type: a.contentType };
+}
 
 export const resendProvider = defineProvider({
   id: "resend",
@@ -34,6 +39,7 @@ export const resendProvider = defineProvider({
         html: message.html,
         text: message.text,
         ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        ...(message.calendar ? { attachments: [resendAttachment(message.calendar)] } : {}),
       }),
     });
     if (!res.ok)
