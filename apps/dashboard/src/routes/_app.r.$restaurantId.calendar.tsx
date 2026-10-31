@@ -1,5 +1,5 @@
 import { sortServices } from "@openpax/core";
-import type { BookingDto, ScheduleExceptionDto } from "@openpax/shared";
+import type { BookingDto, ScheduleExceptionDto, ServiceDto } from "@openpax/shared";
 import { useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -87,7 +87,6 @@ function CalendarPage() {
   const weekBookings = byDay.reduce((n, d) => n + d.bookings, 0);
   const weekCovers = byDay.reduce((n, d) => n + d.covers, 0);
   const last = days[6] ?? week;
-  const sortedServices = sortServices(services);
 
   return (
     <div>
@@ -148,7 +147,7 @@ function CalendarPage() {
               bookings={day.bookings}
               covers={day.covers}
               exceptions={day.exceptions}
-              services={sortedServices}
+              services={services}
               timezone={restaurant.timezone}
               loading={day.loading}
             />
@@ -187,13 +186,14 @@ function DayColumn({
   bookings: number;
   covers: number;
   exceptions: ScheduleExceptionDto[];
-  services: Array<{ id: string; name: string; sortOrder: number }>;
+  services: ServiceDto[];
   timezone: string;
   loading: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const closedAll = exceptions.find((e) => e.serviceId === null && e.closed);
-  const groups = services
+  // in the order of this day
+  const groups = sortServices(services, { date, exceptions })
     .map((s) => ({
       service: s,
       items: items.filter((b) => b.serviceId === s.id),

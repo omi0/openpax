@@ -496,7 +496,7 @@ export async function createBooking(
         bookingId: created.id,
         action: "cancel",
         actor: { type: "system", id: null },
-        reason: "payment_unavailable",
+        reason: r.locale === "it" ? "Pagamento non disponibile" : "Payment unavailable",
       });
       throw error;
     }

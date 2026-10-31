@@ -220,7 +220,7 @@ function TodayPage() {
   // in the order of this day: lunch, aperitivo, dinner
   const activeServices = sortServices(
     (services.data ?? []).filter((s) => s.active),
-    weekdayOf(date),
+    { date, exceptions: exceptions.data ?? [] },
   );
   const [fascia, setFascia] = useState<string>("all");
   const chosen = activeServices.find((s) => s.id === fascia) ?? null;
@@ -232,13 +232,15 @@ function TodayPage() {
   const seatedNow = items.filter((b) => b.status === "seated").length;
   const pending = items.filter((b) => b.status === "pending").length;
 
-  // cancelled and no-shows stay out of the list until someone asks for them
-  const [showGone, setShowGone] = useState(false);
+  // cancelled and no-shows stay out of the list until someone asks for them, on this day and tab
+  const goneKey = `${date}/${fascia}`;
+  const [goneOpenFor, setGoneOpenFor] = useState<string | null>(null);
+  const showGone = goneOpenFor === goneKey;
   const gone: BookingDto[] = [];
   const listed: BookingDto[] = [];
   for (const b of items) (isGone(b) ? gone : listed).push(b);
 
-  // group by service, in order of first arrival
+  // group by service, in the order of the tabs; services without a tab last
   const groups: Array<{ id: string; name: string; items: BookingDto[] }> = [];
   for (const b of listed) {
     let g = groups.find((x) => x.id === b.serviceId);
@@ -248,6 +250,11 @@ function TodayPage() {
     }
     g.items.push(b);
   }
+  const tabPlace = (id: string) => {
+    const at = activeServices.findIndex((s) => s.id === id);
+    return at < 0 ? activeServices.length : at;
+  };
+  groups.sort((a, b) => tabPlace(a.id) - tabPlace(b.id));
   const row = (b: BookingDto) => (
     <BookingRow
       key={b.id}
@@ -414,23 +421,23 @@ function TodayPage() {
         />
       ) : bookings.isLoading ? (
         <PageLoader />
-      ) : items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-stone-300 bg-white">
-          <EmptyState
-            icon={<CalendarDays />}
-            title={t("today.noBookings")}
-            action={
-              <Button variant="outline" icon={<Plus />} onClick={() => setOpen(true)}>
-                {t("today.newBooking")}
-              </Button>
-            }
-          >
-            {t("today.noBookingsHint")}
-          </EmptyState>
-        </div>
       ) : (
         <>
-          {groups.length > 0 ? (
+          {listed.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-stone-300 bg-white">
+              <EmptyState
+                icon={<CalendarDays />}
+                title={t("today.noBookings")}
+                action={
+                  <Button variant="outline" icon={<Plus />} onClick={() => setOpen(true)}>
+                    {t("today.newBooking")}
+                  </Button>
+                }
+              >
+                {t("today.noBookingsHint")}
+              </EmptyState>
+            </div>
+          ) : (
             <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
               <div
                 aria-hidden="true"
@@ -466,10 +473,10 @@ function TodayPage() {
                 );
               })}
             </div>
-          ) : null}
+          )}
           {gone.length > 0 ? (
             <div className="mt-2 print:hidden">
-              <Button variant="ghost" size="sm" onClick={() => setShowGone((v) => !v)}>
+              <Button variant="ghost" size="sm" onClick={() => setGoneOpenFor(showGone ? null : goneKey)}>
                 {showGone
                   ? t("today.hideCancelled")
                   : t("today.showCancelled", { count: gone.length })}

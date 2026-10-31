@@ -14,7 +14,6 @@ import {
   sortServices,
   type TableDef,
   type TableLoad,
-  weekdayOf,
 } from "@openpax/core";
 import type { DbOrTx } from "@openpax/db";
 import {
@@ -256,7 +255,10 @@ export function toAvailabilityResponse(
     closed: result.closed,
     reasons: result.reasons,
     // in the order of that day: lunch, aperitivo, dinner
-    services: sortServices(loaded.services, weekdayOf(result.date)).map((s) => ({
+    services: sortServices(loaded.services, {
+      date: result.date,
+      exceptions: loaded.input.exceptions,
+    }).map((s) => ({
       id: s.id,
       name: s.name,
     })),

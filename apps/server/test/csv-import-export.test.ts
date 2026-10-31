@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { api, createFixture, createTestApp, guestBooking, type TestApp } from "./helpers.js";
+import {
+  api,
+  createFixture,
+  createTestApp,
+  everyDay,
+  guestBooking,
+  type TestApp,
+} from "./helpers.js";
 
 let t: TestApp;
 beforeAll(async () => {
@@ -189,6 +196,43 @@ describe("CSV import and export", () => {
     expect(lines[1]).toMatch(
       /^2026-05-15,20:00,4,Mario Rossi,mario@example\.com,,Cena,completed,phone,[A-Z0-9]{6},,,Compleanno,/,
     );
+  });
+
+  it("gives bookings without a service the one open at their time", async () => {
+    const fx = await createFixture(t);
+    const base = `/api/v1/restaurants/${fx.restaurantId}`;
+    const lunch = await api(
+      t,
+      "POST",
+      `${base}/services`,
+      {
+        name: "Pranzo",
+        weeklyHours: everyDay("12:00", "15:00"),
+        slotIntervalMinutes: 30,
+        durationMinutes: 90,
+        maxCoversPerSlot: 20,
+      },
+      fx.session,
+    );
+    expect(lunch.status, JSON.stringify(lunch.body)).toBe(201);
+    const csv = [
+      "date,time,guests,name",
+      "2026-05-15,13:00,2,Lina Pranzo",
+      "2026-05-15,20:30,2,Rita Cena",
+    ].join("\n");
+    const result = await importCsv(`${base}/bookings/import`, csv, fx.session.cookie);
+    expect(result.body).toMatchObject({ created: 2 });
+    const list = await api<{ items: Array<{ serviceName: string; customer: { name: string } }> }>(
+      t,
+      "GET",
+      `${base}/bookings?from=2026-05-01&to=2026-05-31`,
+      undefined,
+      fx.session,
+    );
+    expect(list.body.items.map((b) => [b.customer.name, b.serviceName])).toEqual([
+      ["Lina Pranzo", "Pranzo"],
+      ["Rita Cena", "Cena"],
+    ]);
   });
 
   it("brings rooms, creation dates, references and unreadable phones over from another system", async () => {

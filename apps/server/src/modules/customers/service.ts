@@ -1,4 +1,4 @@
-import { booking, bookingFeedback, customer, waitlistEntry } from "@openpax/db";
+import { auditLog, booking, bookingFeedback, customer, waitlistEntry } from "@openpax/db";
 import type {
   CustomerDto,
   CustomerDuplicateDto,
@@ -357,6 +357,25 @@ export async function deleteCustomer(
           marketingConsent: false,
         })
         .where(eq(customer.id, existing.id));
+      // free text staff or the guest wrote can name them or say why they did not come
+      const bookings = tx
+        .select({ id: sql<string>`${booking.id}::text`.as("id") })
+        .from(booking)
+        .where(eq(booking.customerId, existing.id));
+      await tx
+        .update(auditLog)
+        .set({ data: sql`${auditLog.data} - 'reason'` })
+        .where(
+          and(
+            eq(auditLog.restaurantId, r.id),
+            eq(auditLog.entityType, "booking"),
+            inArray(auditLog.entityId, bookings),
+          ),
+        );
+      await tx
+        .update(booking)
+        .set({ notes: null, cancellationReason: null })
+        .where(eq(booking.customerId, existing.id));
     } else {
       await tx.delete(customer).where(eq(customer.id, existing.id));
     }
