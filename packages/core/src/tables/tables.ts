@@ -93,8 +93,19 @@ export function findTableAssignment(
 ): TableDef[] | null {
   const free = freeTables(tables, loads, req);
   const n = req.partySize;
+  const byId = new Map(tables.map((t) => [t.id, t]));
+  // a link to a table left out of the list (switched off for now) still draws the plan
   const linkedRooms = new Set(
-    tables.filter((t) => (t.joinWith?.length ?? 0) > 0).map((t) => t.areaId),
+    tables
+      .filter(
+        (t) =>
+          t.joinable &&
+          t.joinWith?.some((id) => {
+            const o = byId.get(id);
+            return !o || (o.id !== t.id && o.areaId === t.areaId && o.joinable);
+          }),
+      )
+      .map((t) => t.areaId),
   );
   const loose = pairAssignment(
     free.filter((t) => !linkedRooms.has(t.areaId)),

@@ -566,6 +566,24 @@ describe("bookings created after an instant", () => {
     expect(await names("?sort=created")).toEqual(["Lucia Bianchi", "Mario Rossi"]);
   });
 
+  it("does not report the last acknowledged event again", async () => {
+    const fx = await createFixture(t);
+    const online = await api<PublicBooking>(t, "POST", publicBookings(fx), guestBooking(fx));
+    expect(online.status).toBe(201);
+    const read = (from: string) =>
+      api<{ items: Array<{ at: string }> }>(
+        t,
+        "GET",
+        `${bookings(fx)}/online-activity?since=${encodeURIComponent(from)}`,
+        undefined,
+        fx.session,
+      );
+    const first = await read(new Date(Date.now() - 60_000).toISOString());
+    const at = first.body.items[0]?.at ?? "";
+    expect(at).not.toBe("");
+    expect((await read(at)).body.items).toEqual([]);
+  });
+
   it("reports new online bookings and guest cancellations, not the staff's own", async () => {
     const fx = await createFixture(t);
     const since = new Date(Date.now() - 1000).toISOString();

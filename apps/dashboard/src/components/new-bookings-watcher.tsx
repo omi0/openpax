@@ -33,7 +33,7 @@ function writeSeen(restaurantId: string, at: string) {
 /**
  * New online bookings and guest cancellations, one popup each, until someone
  * at the desk taps "Seen". Picks up what arrived while the screen was closed
- * (since the last acknowledged one on this device), never older ones.
+ * (since the first visit or the last acknowledged one on this device), never older ones.
  */
 export function NewBookingsWatcher({
   restaurantId,
@@ -50,7 +50,11 @@ export function NewBookingsWatcher({
   const since = useRef(
     (() => {
       const seen = readSeen(restaurantId);
-      if (seen === null) return new Date().toISOString();
+      if (seen === null) {
+        const now = new Date().toISOString();
+        writeSeen(restaurantId, now); // what arrives after this first visit is not lost
+        return now;
+      }
       const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
       return seen > dayAgo ? seen : dayAgo;
     })(),

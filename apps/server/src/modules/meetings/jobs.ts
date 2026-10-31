@@ -92,7 +92,10 @@ export const meetingEventHandlers = [
     handle: async (event, ctx) => {
       const relevant = ["startsAt", "partySize", "serviceId", "notes"];
       if (event.restaurantId && event.payload.changes.some((c) => relevant.includes(c)))
-        await refreshMeetingOfBooking(ctx, event.restaurantId, event.payload.bookingId);
+        await refreshMeetingOfBooking(ctx, event.restaurantId, event.payload.bookingId, {
+          eventId: event.id,
+          previousPartySize: event.payload.previousPartySize,
+        });
     },
   }),
   defineEventHandler({

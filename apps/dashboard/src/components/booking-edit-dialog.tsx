@@ -63,12 +63,17 @@ export function BookingEditDialog({
   // with operators, whoever changes the booking says who they are first (name + code)
   const operatorList = useQuery({ ...operatorsQuery(restaurant.id), enabled: open });
   const [operator, setOperator] = useState<VerifiedOperator | null>(null);
+  // once filled in, the form stays mounted under the gate: its fields are uncontrolled
+  const [formStarted, setFormStarted] = useState(false);
   useEffect(() => {
-    if (open) setOperator(null);
+    if (!open) return;
+    setOperator(null);
+    setFormStarted(false);
   }, [open]);
   const needsOperator = (operatorList.data?.length ?? 0) > 0;
   const gateOpen = open && needsOperator && operator === null;
-  const formOpen = open && operatorList.isSuccess && (!needsOperator || operator !== null);
+  const formOpen =
+    open && operatorList.isSuccess && (!needsOperator || operator !== null || formStarted);
   // managers may correct who took it: the list, plus the booking's own name if removed since
   const listed = (operatorList.data ?? []).map((o) => o.name);
   const operators =
@@ -155,14 +160,6 @@ export function BookingEditDialog({
 
   return (
     <>
-      <OperatorGate
-        restaurantId={restaurant.id}
-        operators={operatorList.data ?? []}
-        open={gateOpen}
-        title={t("operators.whoIsChanging")}
-        onCancel={onClose}
-        onVerified={setOperator}
-      />
       <OperatorsLoadError
         open={open && operatorList.isError}
         retrying={operatorList.isFetching}
@@ -175,6 +172,7 @@ export function BookingEditDialog({
         title={t("today.editBooking")}
         description={`${booking.customer.name} · ${booking.confirmationCode}`}
         size="lg"
+        persistent={gateOpen}
         footer={
           <>
             <Button variant="secondary" onClick={onClose}>
@@ -266,6 +264,17 @@ export function BookingEditDialog({
           ) : null}
         </form>
       </Dialog>
+      <OperatorGate
+        restaurantId={restaurant.id}
+        operators={operatorList.data ?? []}
+        open={gateOpen}
+        title={t("operators.whoIsChanging")}
+        onCancel={onClose}
+        onVerified={(op) => {
+          setOperator(op);
+          setFormStarted(true);
+        }}
+      />
     </>
   );
 }

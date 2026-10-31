@@ -31,7 +31,20 @@ import type {
   PublicBookingDto,
   UpdateBookingInput,
 } from "@openpax/shared";
-import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import {
+  type AnyColumn,
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { emitEvent } from "../../events/outbox.js";
 import { writeAudit } from "../../lib/audit.js";
@@ -181,6 +194,16 @@ const ONLINE_SOURCES = ["widget", "api", "assistant"] as const;
 const ACTIVITY_LIMIT = 50;
 
 /**
+ * Strictly after `since`, which comes back from the client in milliseconds:
+ * the stored microseconds must not make the last event seen count as newer.
+ */
+const afterMillis = (column: AnyColumn, since: Date) =>
+  and(
+    gt(column, since),
+    sql`date_trunc('milliseconds', ${column}) > ${since.toISOString()}::timestamptz`,
+  );
+
+/**
  * New online bookings and cancellations made by guests since `since`, oldest
  * first, so the desk is told about each one even when nobody is watching.
  */
@@ -197,7 +220,7 @@ export async function onlineActivity(
         and(
           eq(booking.restaurantId, r.id),
           inArray(booking.source, [...ONLINE_SOURCES]),
-          gt(booking.createdAt, since),
+          afterMillis(booking.createdAt, since),
         ),
       )
       .orderBy(asc(booking.createdAt))
@@ -210,7 +233,7 @@ export async function onlineActivity(
           eq(auditLog.restaurantId, r.id),
           eq(auditLog.action, "booking.cancel"),
           eq(auditLog.actorType, "guest"),
-          gt(auditLog.createdAt, since),
+          afterMillis(auditLog.createdAt, since),
         ),
       )
       .orderBy(asc(auditLog.createdAt))
@@ -311,25 +334,29 @@ export async function listBookings(ctx: AppContext, r: RestaurantRow, q: ListBoo
  * Seat the booking on the best free table(s) of the floor plan, if the
  * restaurant has one. When staff seat by hand, their tables stay while still
  * free at the new time and in the booking's room; otherwise they are dropped
- * and the booking waits for a table again.
+ * and the booking waits for a table again. `keepFree` keeps tables that are
+ * still free for automatic seating too (a reopened booking is the same party).
  */
 async function assignTables(
   tx: DbOrTx,
   bookingId: string,
   input: AvailabilityInput | null,
   req: { startsAt: Date; endsAt: Date; partySize: number; areaId: string | null },
+  { keepFree = false }: { keepFree?: boolean } = {},
 ): Promise<void> {
   const usable = input?.tables ? usableTables(input.tables, input.rooms) : [];
-  if (input?.manualTables) {
+  if (input?.manualTables || keepFree) {
     const current = await tx
       .select({ tableId: bookingTable.tableId })
       .from(bookingTable)
       .where(eq(bookingTable.bookingId, bookingId));
-    if (current.length === 0) return;
-    const free = new Set(freeTables(usable, input.tableLoads ?? [], req).map((t) => t.id));
-    if (current.every((c) => free.has(c.tableId))) return;
-    await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
-    return;
+    const free = new Set(freeTables(usable, input?.tableLoads ?? [], req).map((t) => t.id));
+    if (current.length > 0 && current.every((c) => free.has(c.tableId))) return;
+    if (input?.manualTables) {
+      if (current.length > 0)
+        await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
+      return;
+    }
   }
   await tx.delete(bookingTable).where(eq(bookingTable.bookingId, bookingId));
   if (usable.length === 0) return;
@@ -735,13 +762,19 @@ export async function applyBookingAction(
       })
       .where(eq(booking.id, row.id));
     if (p.action === "reopen") {
-      // its old tables may be taken now: seat it again on what is free
-      await assignTables(tx, row.id, floor, {
-        startsAt: row.startsAt,
-        endsAt: row.endsAt,
-        partySize: row.partySize,
-        areaId: row.areaId,
-      });
+      // its old tables may be taken now: only then seat it again on what is free
+      await assignTables(
+        tx,
+        row.id,
+        floor,
+        {
+          startsAt: row.startsAt,
+          endsAt: row.endsAt,
+          partySize: row.partySize,
+          areaId: row.areaId,
+        },
+        { keepFree: true },
+      );
     }
 
     if (p.action === "seat") {
@@ -968,6 +1001,7 @@ export async function updateBooking(
         payload: {
           bookingId: row.id,
           changes,
+          ...(partySize !== row.partySize ? { previousPartySize: row.partySize } : {}),
           ...(input.notifyGuest === false ? { notifyGuest: false } : {}),
         },
       });

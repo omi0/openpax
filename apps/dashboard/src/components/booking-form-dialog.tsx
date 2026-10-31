@@ -53,6 +53,7 @@ export function BookingFormDialog({
     setError(null);
     setWantsMeeting(false);
     setOperator(null);
+    setFormStarted(false);
   }, [open]);
   // staff see every slot with room, without the online-only rules (notice, horizon, party size)
   const availability = useQuery({
@@ -67,7 +68,10 @@ export function BookingFormDialog({
   const [operator, setOperator] = useState<VerifiedOperator | null>(null);
   const needsOperator = (operators.data?.length ?? 0) > 0;
   const gateOpen = open && needsOperator && operator === null;
-  const formOpen = open && operators.isSuccess && (!needsOperator || operator !== null);
+  // once filled in, the form stays mounted under the gate: its fields are uncontrolled
+  const [formStarted, setFormStarted] = useState(false);
+  const formOpen =
+    open && operators.isSuccess && (!needsOperator || operator !== null || formStarted);
   const meetingFrom = policy.data?.meetingMinPartySize ?? null;
   const canMeet = meetingFrom !== null && partySize >= meetingFrom;
   const [wantsMeeting, setWantsMeeting] = useState(false);
@@ -128,14 +132,6 @@ export function BookingFormDialog({
 
   return (
     <>
-      <OperatorGate
-        restaurantId={restaurant.id}
-        operators={operators.data ?? []}
-        open={gateOpen}
-        title={t("operators.whoIsTaking")}
-        onCancel={onClose}
-        onVerified={setOperator}
-      />
       <OperatorsLoadError
         open={open && operators.isError}
         retrying={operators.isFetching}
@@ -147,6 +143,7 @@ export function BookingFormDialog({
         onClose={onClose}
         title={t("today.newBooking")}
         size="lg"
+        persistent={gateOpen}
         footer={
           <>
             <Button variant="secondary" onClick={onClose}>
@@ -270,6 +267,17 @@ export function BookingFormDialog({
           ) : null}
         </form>
       </Dialog>
+      <OperatorGate
+        restaurantId={restaurant.id}
+        operators={operators.data ?? []}
+        open={gateOpen}
+        title={t("operators.whoIsTaking")}
+        onCancel={onClose}
+        onVerified={(op) => {
+          setOperator(op);
+          setFormStarted(true);
+        }}
+      />
       {meetingFor ? (
         <MeetingDialog
           restaurant={restaurant}

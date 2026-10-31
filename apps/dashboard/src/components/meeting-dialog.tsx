@@ -1,4 +1,9 @@
-import type { BookingDto, MeetingDto, RestaurantDto } from "@openpax/shared";
+import {
+  type BookingDto,
+  MEETING_MINUTES,
+  type MeetingDto,
+  type RestaurantDto,
+} from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChefHat, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -71,7 +76,11 @@ export function MeetingDialog({
     },
   });
 
-  const free = (slots.data?.slots ?? []).filter((s) => s.available);
+  // the meeting has to be over before the event starts
+  const latest = new Date(booking.startsAt).getTime() - MEETING_MINUTES * 60_000;
+  const free = (slots.data?.slots ?? []).filter(
+    (s) => s.available && new Date(s.startsAt).getTime() <= latest,
+  );
   return (
     <Dialog
       open={open}
@@ -103,6 +112,7 @@ export function MeetingDialog({
             restaurantId={restaurant.id}
             today={todayLocal(restaurant.timezone)}
             last={booking.serviceDate}
+            before={booking.startsAt}
             value={day}
             onChange={(d) => {
               setDay(d);
@@ -244,6 +254,7 @@ function MeetingCalendar({
   restaurantId,
   today,
   last,
+  before,
   value,
   onChange,
 }: {
@@ -251,13 +262,15 @@ function MeetingCalendar({
   today: string;
   /** The event day: the meeting has to come before it. */
   last: string;
+  /** The event start: a day only counts the meetings over by then. */
+  before: string;
   value: string;
   onChange: (date: string) => void;
 }) {
   const { t, i18n } = useTranslation();
   const [month, setMonth] = useState(monthStart(today));
   const end = addDays(shiftMonth(month, 1), -1);
-  const days = useQuery(meetingDaysQuery(restaurantId, month, end));
+  const days = useQuery(meetingDaysQuery(restaurantId, month, end, before));
   const free = new Map((days.data?.days ?? []).map((d) => [d.date, d.free]));
   // Monday-first grid: blank cells before the 1st
   const lead = (new Date(`${month}T12:00:00Z`).getUTCDay() + 6) % 7;

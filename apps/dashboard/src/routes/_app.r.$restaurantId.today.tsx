@@ -1,4 +1,4 @@
-import { type BookingAction, weekdayOf } from "@openpax/core";
+import { type BookingAction, weekdayOf, windowToMinutes } from "@openpax/core";
 import type {
   AreaDto,
   BookingDto,
@@ -41,7 +41,11 @@ import {
   primaryActionFor,
 } from "@/components/booking-sheet";
 import { FloorPlan, type TableStatus } from "@/components/floor-plan";
-import { OperatorGate, type VerifiedOperator } from "@/components/operator-gate";
+import {
+  OperatorGate,
+  OperatorsLoadError,
+  type VerifiedOperator,
+} from "@/components/operator-gate";
 import { defaultExceptionInput, ExceptionForm } from "@/components/schedule-forms";
 import { SetupProgressCard } from "@/components/setup-card";
 import { TableAssignDialog } from "@/components/table-assign-dialog";
@@ -113,6 +117,8 @@ function TodayPage() {
   // with operators, cancelling asks who is doing it (name + code) before the reason
   const [cancelGate, setCancelGate] = useState<BookingDto | null>(null);
   const [cancelOperator, setCancelOperator] = useState<VerifiedOperator | null>(null);
+  // the staff list did not load: cancelling waits for it instead of guessing
+  const [cancelBlocked, setCancelBlocked] = useState<BookingDto | null>(null);
   const operators = useQuery(operatorsQuery(restaurantId));
   const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
@@ -166,16 +172,32 @@ function TodayPage() {
       setReason("");
       toast.success(t(`today.done.${vars.action}`));
     },
-    onError: (e) =>
-      toast.error(
-        e instanceof ApiClientError && (e.code === "wrong_pin" || e.code === "operator_locked")
-          ? t("operators.askAgain")
-          : t("app.error"),
-      ),
+    onError: async (e, vars) => {
+      const askAgain =
+        e instanceof ApiClientError &&
+        ["wrong_pin", "unknown_operator", "operator_locked", "operator_required"].includes(e.code);
+      if (askAgain && vars.action === "cancel" && cancelling) {
+        // the code changed or an operator was added meanwhile: ask who it is, the reason stays
+        await queryClient.invalidateQueries({
+          queryKey: ["restaurant", restaurantId, "operators"],
+        });
+        setCancelOperator(null);
+        setCancelGate(cancelling);
+        setCancelling(null);
+      }
+      toast.error(askAgain ? t("operators.askAgain") : t("app.error"));
+    },
   });
+  const askCancel = async (b: BookingDto) => {
+    setCancelBlocked(null);
+    setCancelOperator(null);
+    // fresh list: whether a code is needed must not depend on what is cached
+    const list = await operators.refetch();
+    if (list.isError) return setCancelBlocked(b);
+    return (list.data?.length ?? 0) > 0 ? setCancelGate(b) : setCancelling(b);
+  };
   const run = async (b: BookingDto, action: BookingAction) => {
-    if (action === "cancel")
-      return (operators.data?.length ?? 0) > 0 ? setCancelGate(b) : setCancelling(b);
+    if (action === "cancel") return askCancel(b);
     // a stray tap on "seat" or "complete" is easy during service: ask first
     if (
       (action === "seat" || action === "complete" || action === "reopen") &&
@@ -200,7 +222,7 @@ function TodayPage() {
   const [fascia, setFascia] = useState<string>("all");
   const chosen = activeServices.find((s) => s.id === fascia) ?? null;
   const items = chosen
-    ? allItems.filter((b) => inService(b, chosen, activeServices, date, restaurant.timezone))
+    ? allItems.filter((b) => tabOf(b, activeServices, date, restaurant.timezone)?.id === chosen.id)
     : allItems;
   const active = items.filter((b) => ACTIVE_STATUSES.has(b.status));
   const covers = active.reduce((n, b) => n + b.partySize, 0);
@@ -472,6 +494,12 @@ function TodayPage() {
         open={open}
         onClose={() => setOpen(false)}
         canOverride={role !== "staff"}
+      />
+      <OperatorsLoadError
+        open={cancelBlocked !== null}
+        retrying={operators.isFetching}
+        onRetry={() => cancelBlocked && void askCancel(cancelBlocked)}
+        onCancel={() => setCancelBlocked(null)}
       />
       <OperatorGate
         restaurantId={restaurantId}
@@ -1179,28 +1207,30 @@ function RoomsDialog({
 }
 
 /**
- * A booking belongs to a service tab when it was booked on it, or, for a
- * service switched off since (an old catch-all one), when its time falls in
- * the tab's hours that day.
+ * The one service tab a booking shows under: the service it was booked on, or,
+ * for a service switched off since (an old catch-all one), the tab whose hours
+ * that day are nearest to its time, the first one on a tie.
  */
-function inService(
+function tabOf(
   b: BookingDto,
-  s: ServiceDto,
   active: ServiceDto[],
   date: string,
   timeZone: string,
-): boolean {
-  if (b.serviceId === s.id) return true;
-  if (active.some((x) => x.id === b.serviceId)) return false;
+): ServiceDto | undefined {
+  const own = active.find((s) => s.id === b.serviceId);
+  if (own) return own;
   const [h, m] = formatTime(b.startsAt, timeZone, "it").split(":").map(Number);
   const at = (h ?? 0) * 60 + (m ?? 0);
-  const toMin = (v: string) => {
-    const [hh, mm] = v.split(":").map(Number);
-    return (hh ?? 0) * 60 + (mm ?? 0);
-  };
-  return (s.weeklyHours[weekdayOf(date)] ?? []).some((w) => {
-    const start = toMin(w.start);
-    const end = toMin(w.end);
-    return end >= start ? at >= start && at <= end : at >= start || at <= end;
-  });
+  const distance = (s: ServiceDto) =>
+    Math.min(
+      Number.POSITIVE_INFINITY,
+      ...(s.weeklyHours[weekdayOf(date)] ?? []).flatMap((w) => {
+        const { startMin, endMin } = windowToMinutes(w);
+        // past midnight the clock restarts, the service does not
+        return [at, at + 1440].map((t) => Math.max(startMin - t, t - endMin, 0));
+      }),
+    );
+  let best = active[0];
+  for (const s of active) if (best && distance(s) < distance(best)) best = s;
+  return best;
 }

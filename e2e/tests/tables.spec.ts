@@ -7,6 +7,12 @@ import { bookGuests, LUCIA, MARIO, nextOpenDate, onboardOwner } from "./helpers.
  * and staff can move a booking to another table by hand.
  */
 test("bookings are seated on tables and staff can reassign from Today", async ({ page }) => {
+  // web bookings made below pop up at the desk on the next visit; these flows are about the rest
+  await page.addLocatorHandler(
+    page.getByRole("dialog", { name: "New booking from the website" }),
+    (alert) => alert.getByRole("button", { name: "Seen" }).click(),
+    { noWaitAfter: true }, // one popup can follow another
+  );
   const owner = await onboardOwner(page, "Tavoli E2E");
 
   // --- add tables from the settings page

@@ -10,7 +10,14 @@ import {
   windowToMinutes,
 } from "@openpax/core";
 import type { DbOrTx } from "@openpax/db";
-import { booking, bookingMeeting, bookingPolicy, customer, scheduleException } from "@openpax/db";
+import {
+  booking,
+  bookingMeeting,
+  bookingPolicy,
+  customer,
+  outboxEvent,
+  scheduleException,
+} from "@openpax/db";
 import {
   MEETING_MINUTES,
   type MeetingDaysDto,
@@ -155,7 +162,7 @@ export async function meetingSlots(
 export async function meetingDays(
   ctx: AppContext,
   r: RestaurantRow,
-  q: { from: LocalDate; to: LocalDate },
+  q: { from: LocalDate; to: LocalDate; before?: string | undefined },
 ): Promise<MeetingDaysDto> {
   const policy = await loadPolicy(ctx.db, r.id);
   const [closures, taken] = await Promise.all([
@@ -163,10 +170,15 @@ export async function meetingDays(
     loadTaken(ctx.db, r, q.from, q.to),
   ]);
   const now = ctx.now().getTime();
+  // only slots whose meeting is over by then count (the start of the event)
+  const latest = q.before ? new Date(q.before).getTime() : Number.POSITIVE_INFINITY;
   const days: MeetingDaysDto["days"] = [];
   for (let d = q.from, i = 0; d <= q.to && i < 62; d = addDaysToLocalDate(d, 1), i += 1) {
     const day = computeSlots(policy, closures, taken, r, d, now);
-    days.push({ date: d, closed: day.closed, free: day.slots.filter((s) => s.available).length });
+    const free = day.slots.filter(
+      (s) => s.available && new Date(s.startsAt).getTime() + MEETING_MS <= latest,
+    );
+    days.push({ date: d, closed: day.closed, free: free.length });
   }
   return { days };
 }
@@ -369,29 +381,47 @@ export async function cancelMeetingOfBooking(
 /**
  * The event booking changed (time, size, notes): send the host the invite
  * again so the description is current. When the meeting no longer fits (the
- * event now starts before it ends, or the group got too small for one) it is
- * cancelled instead, and the host gets the cancellation. No-op without a
- * live meeting.
+ * event now starts before it ends, or this change made the group too small
+ * for one) it is cancelled instead, and the host gets the cancellation. A
+ * minimum changed later does not touch meetings already booked. No-op without
+ * a live meeting, and once per `eventId`: the outbox may deliver it again.
  */
 export async function refreshMeetingOfBooking(
   ctx: AppContext,
   restaurantId: string,
   bookingId: string,
+  change: { eventId: string; previousPartySize?: number | undefined },
 ): Promise<void> {
   await ctx.db.transaction(async (tx) => {
     const row = await activeMeeting(tx, restaurantId, bookingId);
     if (!row) return;
+    const [done] = await tx
+      .select({ id: outboxEvent.id })
+      .from(outboxEvent)
+      .where(
+        and(
+          eq(outboxEvent.type, "meeting.scheduled"),
+          eq(outboxEvent.aggregateId, bookingId),
+          sql`${outboxEvent.payload}->>'cause' = ${change.eventId}`,
+        ),
+      )
+      .limit(1);
+    if (done) return;
     const [b] = await tx
       .select({ startsAt: booking.startsAt, partySize: booking.partySize })
       .from(booking)
       .where(eq(booking.id, bookingId))
       .limit(1);
     const policy = await loadPolicy(tx, restaurantId);
-    const fits =
+    const min = policy.meetingMinPartySize;
+    const previous = change.previousPartySize;
+    const tooSmallNow =
       b !== undefined &&
-      row.endsAt.getTime() <= b.startsAt.getTime() &&
-      policy.meetingMinPartySize !== null &&
-      b.partySize >= policy.meetingMinPartySize;
+      min !== null &&
+      previous !== undefined &&
+      b.partySize < previous &&
+      b.partySize < min;
+    const fits = b !== undefined && row.endsAt.getTime() <= b.startsAt.getTime() && !tooSmallNow;
     if (!fits) {
       await cancelRow(tx, { id: restaurantId }, row, { type: "system", id: null }, ctx.now());
       return;
@@ -403,7 +433,7 @@ export async function refreshMeetingOfBooking(
       restaurantId,
       aggregateType: "booking",
       aggregateId: bookingId,
-      payload: { meetingId: row.id, bookingId, sequence },
+      payload: { meetingId: row.id, bookingId, sequence, cause: change.eventId },
     });
   });
 }

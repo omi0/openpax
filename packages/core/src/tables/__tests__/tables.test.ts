@@ -148,3 +148,20 @@ describe("linked tables", () => {
     expect(findTableAssignment(grid, [], req(73))).toBeNull();
   });
 });
+
+describe("rooms with unusable links", () => {
+  it("still joins a pair when the only links cannot be used", () => {
+    const tables = [
+      table("A", 4, { joinable: false, joinWith: ["B"] }),
+      table("B", 4),
+      table("C", 4),
+      table("G", 4, { areaId: "garden", joinWith: ["B"] }),
+    ];
+    expect(findTableAssignment(tables, [], req(6))?.map((t) => t.id)).toEqual(["B", "C"]);
+  });
+
+  it("keeps a room linked when the table it links to is switched off for now", () => {
+    const tables = [table("A", 4, { joinWith: ["OFF"] }), table("C", 4)];
+    expect(findTableAssignment(tables, [], req(6))).toBeNull();
+  });
+});

@@ -41,6 +41,8 @@ export interface DomainEventPayloads {
   "booking.modified": {
     bookingId: string;
     changes: string[];
+    /** Set when the party size is one of the changes. */
+    previousPartySize?: number;
     /** Staff chose not to tell the guest about the change. */
     notifyGuest?: boolean;
   };
@@ -83,7 +85,13 @@ export interface DomainEventPayloads {
   "feedback.requested": { bookingId: string };
   "feedback.received": { bookingId: string; feedbackId: string; rating: number };
   /** A planning meeting with the host was booked or moved (`sequence` > 0 = moved). */
-  "meeting.scheduled": { meetingId: string; bookingId: string; sequence: number };
+  "meeting.scheduled": {
+    meetingId: string;
+    bookingId: string;
+    sequence: number;
+    /** The `booking.modified` event this invite was sent again for. */
+    cause?: string;
+  };
   "meeting.cancelled": { meetingId: string; bookingId: string; sequence: number };
 }
 

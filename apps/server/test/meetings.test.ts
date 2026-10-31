@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { refreshMeetingOfBooking } from "../src/modules/meetings/service.js";
 import {
   addMember,
   api,
@@ -340,6 +341,63 @@ describe("host meetings, edge cases", () => {
     await change(earlier, { startsAt: romeInstant(FRIDAY, "12:00") });
     expect(await meetingOf(earlier)).toBeNull();
     expect(hostEmails().at(-1)?.calendar?.method).toBe("CANCEL");
+  });
+
+  it("keeps a booked meeting when the minimum is raised or cleared later", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const id = await groupBooking(fx);
+    await schedule(fx, id, "15:00");
+    await t.processEvents();
+    for (const meetingMinPartySize of [30, null]) {
+      await api(t, "PUT", `${base(fx)}/policy`, { meetingMinPartySize }, fx.session);
+      const res = await api(
+        t,
+        "PATCH",
+        `${base(fx)}/bookings/${id}`,
+        { notes: `Min ${meetingMinPartySize}`, notifyGuest: false },
+        fx.session,
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      await t.processEvents();
+      const meeting = await api(
+        t,
+        "GET",
+        `${base(fx)}/bookings/${id}/meeting`,
+        undefined,
+        fx.session,
+      );
+      expect(meeting.body).not.toBeNull();
+    }
+    expect(hostEmails().at(-1)?.calendar?.method).toBe("REQUEST");
+  });
+
+  it("sends one invite when the same booking change is delivered twice", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const id = await groupBooking(fx);
+    await schedule(fx, id, "15:00");
+    await t.processEvents();
+    const before = hostEmails().length;
+    const event = { eventId: crypto.randomUUID() };
+    await refreshMeetingOfBooking(t.ctx, fx.restaurantId, id, event);
+    await refreshMeetingOfBooking(t.ctx, fx.restaurantId, id, event);
+    await t.processEvents();
+    expect(hostEmails()).toHaveLength(before + 1);
+  });
+
+  it("does not count slots past the start of the event in the calendar", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const before = romeInstant(FRIDAY, "16:00");
+    const res = await api<{ days: Array<{ free: number }> }>(
+      t,
+      "GET",
+      `${base(fx)}/meetings/days?from=${FRIDAY}&to=${FRIDAY}&before=${encodeURIComponent(before)}`,
+      undefined,
+      fx.session,
+    );
+    expect(res.body.days[0]?.free).toBe(2); // 15:00 and 15:30 are over by 16:00
   });
 
   it("blocks slots that overlap a booked meeting when windows overlap", async () => {

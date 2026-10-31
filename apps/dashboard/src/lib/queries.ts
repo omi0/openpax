@@ -390,8 +390,9 @@ export const operatorsQuery = (id: string) =>
     queryFn: () => api.get<OperatorDto[]>(`/api/v1/restaurants/${id}/operators`),
   });
 
-export const meetingDaysQuery = (id: string, from: string, to: string) =>
+export const meetingDaysQuery = (id: string, from: string, to: string, before: string) =>
   queryOptions({
-    queryKey: ["restaurant", id, "meetings", "days", from, to],
-    queryFn: () => api.get<MeetingDaysDto>(`/api/v1/restaurants/${id}/meetings/days`, { from, to }),
+    queryKey: ["restaurant", id, "meetings", "days", from, to, before],
+    queryFn: () =>
+      api.get<MeetingDaysDto>(`/api/v1/restaurants/${id}/meetings/days`, { from, to, before }),
   });
