@@ -30,11 +30,19 @@ describe("sortServices", () => {
       } as WeeklyHours,
       sortOrder: 0,
     };
-    const aperitivo = { id: "x", name: "Aperitivo", weeklyHours: days("18:30", "19:30"), sortOrder: 0 };
+    const aperitivo = {
+      id: "x",
+      name: "Aperitivo",
+      weeklyHours: days("18:30", "19:30"),
+      sortOrder: 0,
+    };
     expect(usualStartMinutes(cena.weeklyHours)).toBe(19 * 60 + 30);
     expect(names(sortServices([cena, aperitivo]))).toEqual(["Aperitivo", "Cena"]);
     // on Sunday that day's hours decide (Aperitivo is closed: it keeps its usual time)
-    expect(names(sortServices([aperitivo, cena], { date: SUNDAY, exceptions: [] }))).toEqual(["Cena", "Aperitivo"]);
+    expect(names(sortServices([aperitivo, cena], { date: SUNDAY, exceptions: [] }))).toEqual([
+      "Cena",
+      "Aperitivo",
+    ]);
   });
 
   it("lets special hours of that day decide, and a closed service keeps its usual time", () => {

@@ -249,13 +249,7 @@ describe("customers", () => {
     expect(after.body).toMatchObject({ name: "Ospite eliminato", email: null, phone: null });
     const history = await api<
       Page<{ id: string; notes: string | null; cancellationReason: string | null }>
-    >(
-      t,
-      "GET",
-      `${bookings(fx)}?customerId=${mario.id}`,
-      undefined,
-      fx.session,
-    );
+    >(t, "GET", `${bookings(fx)}?customerId=${mario.id}`, undefined, fx.session);
     expect(history.body.total).toBe(1);
     // what was written about the guest goes with them
     expect(history.body.items[0]).toMatchObject({ notes: null, cancellationReason: null });

@@ -476,7 +476,11 @@ function TodayPage() {
           )}
           {gone.length > 0 ? (
             <div className="mt-2 print:hidden">
-              <Button variant="ghost" size="sm" onClick={() => setGoneOpenFor(showGone ? null : goneKey)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setGoneOpenFor(showGone ? null : goneKey)}
+              >
                 {showGone
                   ? t("today.hideCancelled")
                   : t("today.showCancelled", { count: gone.length })}
