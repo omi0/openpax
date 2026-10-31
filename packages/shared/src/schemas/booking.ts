@@ -99,6 +99,8 @@ export const bookingDtoSchema = z.object({
   operatorName: z.string().nullable(),
   modifiedByOperatorName: z.string().nullable(),
   cancelledByOperatorName: z.string().nullable(),
+  /** What staff or the guest wrote when cancelling. */
+  cancellationReason: z.string().nullable(),
   confirmationCode: z.string(),
   /** Tables assigned on the floor plan (empty without one). */
   tables: z.array(bookingTableDtoSchema),

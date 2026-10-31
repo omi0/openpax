@@ -1,10 +1,12 @@
-import type { BookingDto, ScheduleExceptionDto } from "@openpax/shared";
+import { sortServices } from "@openpax/core";
+import type { BookingDto, ScheduleExceptionDto, ServiceDto } from "@openpax/shared";
 import { useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookingFormDialog } from "@/components/booking-form-dialog";
+import { isGone } from "@/components/booking-sheet";
 import { Button, IconButton } from "@/components/ui";
 import {
   bookingsQuery,
@@ -71,7 +73,8 @@ function CalendarPage() {
     const active = items.filter((b) => ACTIVE.has(b.status));
     return {
       date,
-      items,
+      // cancelled and no-shows are only in Bookings and the guest's page
+      items: items.filter((b) => !isGone(b)),
       bookings: active.length,
       covers: active.reduce((n, b) => n + b.partySize, 0),
       // the exception that starts last wins, like the engine
@@ -84,7 +87,6 @@ function CalendarPage() {
   const weekBookings = byDay.reduce((n, d) => n + d.bookings, 0);
   const weekCovers = byDay.reduce((n, d) => n + d.covers, 0);
   const last = days[6] ?? week;
-  const sortedServices = [...services].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <div>
@@ -145,7 +147,7 @@ function CalendarPage() {
               bookings={day.bookings}
               covers={day.covers}
               exceptions={day.exceptions}
-              services={sortedServices}
+              services={services}
               timezone={restaurant.timezone}
               loading={day.loading}
             />
@@ -184,13 +186,14 @@ function DayColumn({
   bookings: number;
   covers: number;
   exceptions: ScheduleExceptionDto[];
-  services: Array<{ id: string; name: string; sortOrder: number }>;
+  services: ServiceDto[];
   timezone: string;
   loading: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const closedAll = exceptions.find((e) => e.serviceId === null && e.closed);
-  const groups = services
+  // in the order of this day
+  const groups = sortServices(services, { date, exceptions })
     .map((s) => ({
       service: s,
       items: items.filter((b) => b.serviceId === s.id),

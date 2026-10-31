@@ -11,6 +11,7 @@ import {
   resolveServiceWindows,
   type ScheduleExceptionDef,
   type ServiceDef,
+  sortServices,
   type TableDef,
   type TableLoad,
 } from "@openpax/core";
@@ -253,7 +254,14 @@ export function toAvailabilityResponse(
     timezone: r.timezone,
     closed: result.closed,
     reasons: result.reasons,
-    services: loaded.services.map((s) => ({ id: s.id, name: s.name })),
+    // in the order of that day: lunch, aperitivo, dinner
+    services: sortServices(loaded.services, {
+      date: result.date,
+      exceptions: loaded.input.exceptions,
+    }).map((s) => ({
+      id: s.id,
+      name: s.name,
+    })),
     slots: result.slots.map((s) => ({
       serviceId: s.serviceId,
       startsAt: s.startsAt.toISOString(),

@@ -8,6 +8,9 @@ import {
   isLocalTime,
   localToInstant,
   parseLocalTime,
+  serviceAtTime,
+  sortServices,
+  weekdayOf,
 } from "@openpax/core";
 import { area, booking, customer, service } from "@openpax/db";
 import {
@@ -399,13 +402,21 @@ export async function importBookings(
 ): Promise<ImportResultDto> {
   const { rows, header } = parseRows(text);
   requireColumns(header, ["date", "time", "guests", "name"]);
-  const services = await ctx.db
-    .select({ id: service.id, name: service.name, active: service.active })
-    .from(service)
-    .where(eq(service.restaurantId, r.id))
-    .orderBy(asc(service.sortOrder), asc(service.name));
-  const fallback = services.find((s) => s.active) ?? services[0];
-  if (!fallback) throw ApiError.badRequest("no_service", "Create a service before importing");
+  const services = sortServices(
+    await ctx.db
+      .select({
+        id: service.id,
+        name: service.name,
+        active: service.active,
+        weeklyHours: service.weeklyHours,
+        sortOrder: service.sortOrder,
+      })
+      .from(service)
+      .where(eq(service.restaurantId, r.id)),
+  );
+  if (!services[0]) throw ApiError.badRequest("no_service", "Create a service before importing");
+  const active = services.filter((s) => s.active);
+  const candidates = active.length > 0 ? active : services;
   const rooms = await ctx.db
     .select({ id: area.id, name: area.name })
     .from(area)
@@ -443,7 +454,7 @@ export async function importBookings(
     const serviceName = pick(row, "service");
     const svc = serviceName
       ? services.find((s) => s.name.toLowerCase() === serviceName.toLowerCase())
-      : fallback;
+      : serviceAtTime(candidates, weekdayOf(date), parseLocalTime(time));
     if (!svc) {
       fail(`unknown service "${serviceName}"`);
       continue;

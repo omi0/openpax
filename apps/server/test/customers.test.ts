@@ -1,3 +1,5 @@
+import { auditLog } from "@openpax/db";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addMember,
@@ -202,7 +204,12 @@ describe("customers", () => {
 
   it("anonymises guests with bookings on delete and lets only managers do it", async () => {
     const fx = await createFixture(t);
-    await api(t, "POST", `/api/public/v1/restaurants/${fx.slug}/bookings`, guestBooking(fx));
+    const held = await api<{ id: string }>(
+      t,
+      "POST",
+      `/api/public/v1/restaurants/${fx.slug}/bookings`,
+      guestBooking(fx),
+    );
     const list = await api<Page<Customer>>(t, "GET", customers(fx), undefined, fx.session);
     const [mario] = list.body.items;
     if (!mario) throw new Error("customer missing");
@@ -221,6 +228,14 @@ describe("customers", () => {
     const denied = await api(t, "DELETE", `${customers(fx)}/${mario.id}`, undefined, staff);
     expect(denied.status).toBe(403);
 
+    await api(
+      t,
+      "POST",
+      `${bookings(fx)}/${held.body.id}/actions`,
+      { action: "cancel", reason: "Mario ha la febbre" },
+      fx.session,
+    );
+
     const removed = await api(t, "DELETE", `${customers(fx)}/${mario.id}`, undefined, fx.session);
     expect(removed.status).toBe(204);
     const after = await api<Customer>(
@@ -232,14 +247,18 @@ describe("customers", () => {
     );
     expect(after.status).toBe(200);
     expect(after.body).toMatchObject({ name: "Ospite eliminato", email: null, phone: null });
-    const history = await api<Page<{ id: string }>>(
-      t,
-      "GET",
-      `${bookings(fx)}?customerId=${mario.id}`,
-      undefined,
-      fx.session,
-    );
+    const history = await api<
+      Page<{ id: string; notes: string | null; cancellationReason: string | null }>
+    >(t, "GET", `${bookings(fx)}?customerId=${mario.id}`, undefined, fx.session);
     expect(history.body.total).toBe(1);
+    // what was written about the guest goes with them
+    expect(history.body.items[0]).toMatchObject({ notes: null, cancellationReason: null });
+    const audit = await t.ctx.db
+      .select({ data: auditLog.data })
+      .from(auditLog)
+      .where(and(eq(auditLog.entityId, held.body.id), eq(auditLog.action, "booking.cancel")));
+    expect(audit).toHaveLength(1);
+    expect(audit[0]?.data).not.toHaveProperty("reason");
   });
 
   it("counts cancellations per guest and forgets them when the booking is reopened", async () => {

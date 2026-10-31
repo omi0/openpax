@@ -14,6 +14,7 @@ import {
   DoorOpen,
   LayoutGrid,
   Mail,
+  MessageSquareText,
   Pencil,
   Phone,
   Send,
@@ -42,6 +43,9 @@ import { areasQuery, bookingNotificationsQuery } from "@/lib/queries";
 import { cn, formatDate, formatDateTime, formatTime } from "@/lib/utils";
 
 export const ACTIVE_STATUSES = new Set(["pending", "confirmed", "seated"]);
+/** Cancelled and no-show: kept out of Today and the Calendar unless asked for. */
+export const isGone = (b: Pick<BookingDto, "status">) =>
+  b.status === "cancelled" || b.status === "no_show";
 
 /** The one thing staff most likely want to do next, per status. */
 export const primaryActionFor: Record<string, BookingAction | null> = {
@@ -250,6 +254,11 @@ export function BookingSheet({
             {b.cancelledByOperatorName ? (
               <Row icon={<Ban />} label={t("today.cancelledBy")}>
                 {b.cancelledByOperatorName}
+              </Row>
+            ) : null}
+            {b.status === "cancelled" && b.cancellationReason ? (
+              <Row icon={<MessageSquareText />} label={t("today.cancelReasonLabel")}>
+                {b.cancellationReason}
               </Row>
             ) : null}
             <Row icon={<Clock />} label={t("today.operatorTakenAt")}>

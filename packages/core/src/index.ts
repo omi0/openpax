@@ -1,6 +1,7 @@
 export * from "./availability/capacity.js";
 export * from "./availability/compute-availability.js";
 export * from "./availability/policy.js";
+export * from "./availability/service-order.js";
 export * from "./availability/slots.js";
 export * from "./availability/types.js";
 export * from "./availability/windows.js";

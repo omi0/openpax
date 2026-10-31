@@ -53,11 +53,17 @@ export function SlotGrid() {
   const byService = new Map<string, AvailabilitySlotDto[]>();
   for (const s of slotsLeft) byService.set(s.serviceId, [...(byService.get(s.serviceId) ?? []), s]);
   const showServiceNames = byService.size > 1;
+  // in the order the server sends: lunch, aperitivo, dinner
+  const place = (id: string) => {
+    const at = data.services.findIndex((s) => s.id === id);
+    return at < 0 ? data.services.length : at;
+  };
+  const groups = [...byService.entries()].sort(([a], [b]) => place(a) - place(b));
 
   return (
     <div>
       <span class="label">{t("time")}</span>
-      {[...byService.entries()].map(([serviceId, slots]) => (
+      {groups.map(([serviceId, slots]) => (
         <div key={serviceId}>
           {showServiceNames ? (
             <h3 class="group-label">{data.services.find((s) => s.id === serviceId)?.name}</h3>

@@ -23,6 +23,21 @@ export function exceptionCoversDate(
 }
 
 /**
+ * The exception that decides a service's day: service-specific before
+ * restaurant-wide; among overlapping ones the one that starts last wins.
+ */
+export function exceptionForService(
+  serviceId: string,
+  date: LocalDate,
+  exceptions: ScheduleExceptionDef[],
+): ScheduleExceptionDef | undefined {
+  const forDay = exceptions
+    .filter((e) => exceptionCoversDate(e, date))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return forDay.find((e) => e.serviceId === serviceId) ?? forDay.find((e) => e.serviceId === null);
+}
+
+/**
  * Opening windows of a service on a date. Precedence:
  * service-specific exception > restaurant-wide exception > weekly hours.
  * Among overlapping exceptions the one that starts last wins, so a single
@@ -33,11 +48,7 @@ export function resolveServiceWindows(
   date: LocalDate,
   exceptions: ScheduleExceptionDef[],
 ): { closed: boolean; windows: ResolvedWindow[] } {
-  const forDay = exceptions
-    .filter((e) => exceptionCoversDate(e, date))
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  const exception =
-    forDay.find((e) => e.serviceId === service.id) ?? forDay.find((e) => e.serviceId === null);
+  const exception = exceptionForService(service.id, date, exceptions);
 
   if (exception) {
     if (exception.closed) return { closed: true, windows: [] };

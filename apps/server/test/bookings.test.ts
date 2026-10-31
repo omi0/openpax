@@ -762,14 +762,22 @@ describe("booking operators", () => {
       staff,
     );
     expect(cancelNoOp.body.code).toBe("operator_required");
-    const cancelled = await api<{ status: string; cancelledByOperatorName: string | null }>(
+    const cancelled = await api<{
+      status: string;
+      cancelledByOperatorName: string | null;
+      cancellationReason: string | null;
+    }>(
       t,
       "POST",
       `${one}/actions`,
-      { action: "cancel", operator: { id: marco.id, pin: "123456" } },
+      { action: "cancel", reason: "Febbre", operator: { id: marco.id, pin: "123456" } },
       staff,
     );
-    expect(cancelled.body).toMatchObject({ status: "cancelled", cancelledByOperatorName: "Marco" });
+    expect(cancelled.body).toMatchObject({
+      status: "cancelled",
+      cancelledByOperatorName: "Marco",
+      cancellationReason: "Febbre",
+    });
   });
 
   it("locks an operator after five wrong codes and lets only managers edit the list", async () => {

@@ -65,6 +65,9 @@ test("Today lists the evening's bookings and reflects seat and cancel", async ({
   await sara.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Cancel booking" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Cancel booking" }).click();
+  // cancelled bookings leave the list until someone asks for them
+  await expect(sara).toHaveCount(0);
+  await page.getByRole("button", { name: "Show cancelled and no-shows (1)" }).click();
   await expect(sara.getByText("Cancelled")).toBeVisible();
 
   const dir = process.env.E2E_SCREENSHOT_DIR;

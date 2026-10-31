@@ -3,6 +3,7 @@ import {
   instantToLocal,
   type RoomDef,
   resolveServiceWindows,
+  sortServices,
   totalSeats,
   WEEKDAYS,
   weekdayOf,
@@ -313,17 +314,15 @@ export async function getAnalytics(
   const previousDates = datesBetween(previousFrom, previousTo);
   const today = instantToLocal(ctx.now(), r.timezone).date;
 
-  const [services, rooms] = await Promise.all([
-    ctx.db
-      .select()
-      .from(service)
-      .where(eq(service.restaurantId, r.id))
-      .orderBy(asc(service.sortOrder), asc(service.name)),
+  const [serviceRows, rooms] = await Promise.all([
+    ctx.db.select().from(service).where(eq(service.restaurantId, r.id)),
     ctx.db
       .select({ id: area.id, seats: area.seats, active: area.active })
       .from(area)
       .where(eq(area.restaurantId, r.id)),
   ]);
+  // in the order of the day, like everywhere else
+  const services = sortServices(serviceRows);
   // rooms have no history: the seats open today stand for the whole range
   const seats = totalSeats(rooms.map((x): RoomDef => ({ ...x })));
   const [current, previous, dist, feedback] = await Promise.all([

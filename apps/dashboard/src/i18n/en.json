@@ -247,6 +247,10 @@
     "modifiedBy": "Changed by",
     "cancelledBy": "Cancelled by",
     "cancelledByName": "cancelled by {{name}}",
+    "cancelReasonLabel": "Cancellation reason",
+    "cancelReasonText": "Reason: {{reason}}",
+    "showCancelled": "Show cancelled and no-shows ({{count}})",
+    "hideCancelled": "Hide cancelled and no-shows",
     "allServices": "All",
     "tableTaken": "One of the chosen tables is taken at that time. Pick another or tick \"Seat here anyway\"."
   },

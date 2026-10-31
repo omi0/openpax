@@ -1,3 +1,4 @@
+import { sortServices } from "@openpax/core";
 import {
   area,
   bookingPolicy,
@@ -361,12 +362,9 @@ export async function updateRestaurant(
 // ---------- services
 
 export async function listServices(ctx: AppContext, restaurantId: string): Promise<ServiceDto[]> {
-  const rows = await ctx.db
-    .select()
-    .from(service)
-    .where(eq(service.restaurantId, restaurantId))
-    .orderBy(asc(service.sortOrder), asc(service.name));
-  return rows.map(toServiceDto);
+  const rows = await ctx.db.select().from(service).where(eq(service.restaurantId, restaurantId));
+  // in the order of the day: lunch, aperitivo, dinner
+  return sortServices(rows).map(toServiceDto);
 }
 
 export async function createService(
