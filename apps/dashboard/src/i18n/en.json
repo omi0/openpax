@@ -1212,7 +1212,7 @@
     "feedStep2": "In Google Calendar on a computer: \"Other calendars\" → \"+\" → \"From URL\".",
     "feedStep3": "Paste the link and press \"Add calendar\". It then shows on the phone too.",
     "feedDelay": "Google refreshes the calendar on its own, sometimes after a few hours: a meeting just booked may show up late.",
-    "feedPrivate": "Anyone with the link sees guest names and phone numbers: give it to the chef only.",
+    "feedPrivate": "Anyone with the link sees guest names, phone numbers and booking codes (not the notes): give it to the chef only.",
     "feedRotate": "Change link",
     "feedRotateConfirm": "The old link stops working. The chef will need to add the new one.",
     "feedOff": "Turn off",

@@ -1,3 +1,5 @@
+import { booking, customer } from "@openpax/db";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { refreshMeetingOfBooking } from "../src/modules/meetings/service.js";
 import {
@@ -486,6 +488,9 @@ describe("host calendar subscription", () => {
   const setFeed = (fx: Fixture, method: "POST" | "DELETE", session = fx.session) =>
     api<{ url: string | null }>(t, method, `${base(fx)}/meetings/feed`, undefined, session);
 
+  const rotateFeed = (fx: Fixture, session = fx.session) =>
+    api<{ url: string | null }>(t, "POST", `${base(fx)}/meetings/feed/rotate`, undefined, session);
+
   it("serves the live meetings behind a secret link that can be changed and turned off", async () => {
     const fx = await createFixture(t);
     await setUp(fx);
@@ -523,7 +528,10 @@ describe("host calendar subscription", () => {
     expect(isEmpty(await getFeed(url.replace(/[\w-]+\.ics$/, `${"x".repeat(32)}.ics`)))).toBe(true);
     expect((await getFeed(url.replace(/[\w-]+\.ics$/, "short.ics"))).status).toBe(400);
 
-    const rotated = await setFeed(fx, "POST");
+    // creating again hands back the same link, so a stale page cannot cut it off
+    expect((await setFeed(fx, "POST")).body.url).toBe(url);
+
+    const rotated = await rotateFeed(fx);
     expect(rotated.body.url).not.toBe(url);
     expect(isEmpty(await getFeed(url))).toBe(true);
     expect((await getFeed(rotated.body.url ?? "")).body).toContain("BEGIN:VEVENT");
@@ -543,9 +551,43 @@ describe("host calendar subscription", () => {
     expect(isEmpty(await getFeed(rotated.body.url ?? ""))).toBe(true);
   });
 
+  it("is a valid calendar even with no meetings", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const url = (await setFeed(fx, "POST")).body.url ?? "";
+    const { body } = await getFeed(url);
+    expect(body).not.toContain("BEGIN:VEVENT");
+    expect(body).toContain("BEGIN:VTIMEZONE"); // RFC 5545 wants one component
+  });
+
+  it("cannot rotate a link that does not exist", async () => {
+    const fx = await createFixture(t);
+    expect((await rotateFeed(fx)).status).toBe(404);
+  });
+
+  it("keeps booking notes out and guest input cannot add lines", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const url = (await setFeed(fx, "POST")).body.url ?? "";
+    const bookingId = await groupBooking(fx);
+    await schedule(fx, bookingId, "15:30");
+    const hostile = "Laura\rEND:VEVENT\rBEGIN:VEVENT\rSUMMARY:fake";
+    await t.ctx.db.update(customer).set({ name: hostile });
+    await t.ctx.db
+      .update(booking)
+      .set({ notes: "allergia alle noci" })
+      .where(eq(booking.id, bookingId));
+    const { body } = await getFeed(url);
+    expect(body).not.toContain("noci");
+    expect(body.replace(/\r\n/g, "")).not.toContain("\r");
+    expect(body.match(/^BEGIN:VEVENT/gm)).toHaveLength(1);
+  });
+
   it("is only for those who manage the settings", async () => {
     const fx = await createFixture(t);
     const staff = await addMember(t, fx, "staff");
     expect((await setFeed(fx, "POST", staff)).status).toBe(403);
+    expect((await rotateFeed(fx, staff)).status).toBe(403);
+    expect((await setFeed(fx, "DELETE", staff)).status).toBe(403);
   });
 });

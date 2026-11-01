@@ -20,15 +20,24 @@ const utc = (d: Date) =>
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}/, "");
 
+/**
+ * Guest input reaches these files through the public booking form. A line
+ * break other than the escaped one, or any control character, could end the
+ * event early and add properties or events of the guest's own.
+ */
+const stripControls = (value: string) =>
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: removing them is the point
+  value.replace(/\r\n?/g, "\n").replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "");
+
 function escapeText(value: string): string {
-  return value
+  return stripControls(value)
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
+    .replace(/\n/g, "\\n");
 }
 
-const param = (value: string) => `"${value.replace(/"/g, "'")}"`;
+const param = (value: string) => `"${stripControls(value).replace(/["\n]/g, "'")}"`;
 
 /** Lines longer than 75 octets continue on the next line after a space. */
 function fold(line: string): string {
@@ -105,10 +114,27 @@ export function buildIcs(e: IcsEvent): string {
 }
 
 /**
+ * RFC 5545 wants at least one component in a calendar. A time zone is one that
+ * shows up nowhere, so a feed with no meetings stays valid and empty to the host.
+ */
+const noEvents = [
+  "BEGIN:VTIMEZONE",
+  "TZID:UTC",
+  "BEGIN:STANDARD",
+  "DTSTART:19700101T000000",
+  "TZOFFSETFROM:+0000",
+  "TZOFFSETTO:+0000",
+  "TZNAME:UTC",
+  "END:STANDARD",
+  "END:VTIMEZONE",
+];
+
+/**
  * The host's subscription calendar: every live meeting, read by the calendar
  * app on its own schedule. Same UIDs as the email invites.
  */
 export function buildFeed(events: FeedEvent[], name: string): string {
+  const body = events.length > 0 ? events.map((e) => veventLines(e, false, [])) : [noEvents];
   return calendar(
     [
       "METHOD:PUBLISH",
@@ -116,7 +142,7 @@ export function buildFeed(events: FeedEvent[], name: string): string {
       "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
       "X-PUBLISHED-TTL:PT1H",
     ],
-    events.map((e) => veventLines(e, false, [])),
+    body,
   );
 }
 

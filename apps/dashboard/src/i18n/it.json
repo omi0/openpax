@@ -1212,7 +1212,7 @@
     "feedStep2": "Su Google Calendar dal computer: \"Altri calendari\" → \"+\" → \"Da URL\".",
     "feedStep3": "Incolla il link e premi \"Aggiungi calendario\". Sul telefono comparirà da solo.",
     "feedDelay": "Google aggiorna il calendario da solo, a volte dopo qualche ora: un appuntamento appena fissato può arrivare in ritardo.",
-    "feedPrivate": "Chi ha il link vede nomi e telefoni dei clienti: dallo solo allo chef.",
+    "feedPrivate": "Chi ha il link vede nomi, telefoni e codici prenotazione dei clienti (le note no): dallo solo allo chef.",
     "feedRotate": "Cambia link",
     "feedRotateConfirm": "Il link vecchio smette di funzionare. Lo chef dovrà aggiungere quello nuovo.",
     "feedOff": "Disattiva",

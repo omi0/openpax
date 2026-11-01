@@ -78,7 +78,7 @@ export const bookingPolicy = pgTable("booking_policy", {
   /** When the host takes meetings; each window runs from the first start to the end of the last meeting. */
   meetingHours: jsonb().$type<WeeklyHours>().notNull().default({}),
   meetingHostName: text(),
-  /** Receives a calendar invite for every meeting; empty = no invite. */
+  /** API only since the calendar link: receives an email invite per meeting; empty = none. */
   meetingHostEmail: text(),
   /** Secret for the host's calendar subscription (an .ics link); null = off. */
   meetingFeedToken: text().unique(),

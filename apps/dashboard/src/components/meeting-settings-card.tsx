@@ -66,8 +66,6 @@ export function MeetingSettingsCard({
     save.mutate({
       meetingMinPartySize: minParty === "" ? null : Number(minParty),
       meetingHostName: hostName.trim() || null,
-      // the calendar link replaced the email invites: clear an address saved before
-      meetingHostEmail: null,
       meetingHours: hours,
     });
   };
@@ -126,13 +124,24 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
   const path = `/api/v1/restaurants/${restaurantId}/meetings/feed`;
   const feed = useQuery(meetingFeedQuery(restaurantId));
   const change = useMutation({
-    mutationFn: (on: boolean) =>
-      on ? api.post<MeetingFeedDto>(path, {}) : api.delete<MeetingFeedDto>(path),
+    mutationFn: (action: "create" | "rotate" | "off") =>
+      action === "off"
+        ? api.delete<MeetingFeedDto>(path)
+        : api.post<MeetingFeedDto>(action === "rotate" ? `${path}/rotate` : path, {}),
     onSuccess: (updated) =>
       queryClient.setQueryData(meetingFeedQuery(restaurantId).queryKey, updated),
     onError: (e) => toast.error(e instanceof ApiClientError ? e.message : t("app.error")),
   });
   const url = feed.data?.url ?? null;
+  const copy = async (text: string) => {
+    try {
+      // no clipboard API on plain http
+      await navigator.clipboard.writeText(text);
+      toast.success(t("app.copied"));
+    } catch {
+      toast.error(t("app.error"));
+    }
+  };
 
   return (
     <div className="mt-6 space-y-3 border-t border-stone-200 pt-5">
@@ -151,16 +160,7 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
               aria-label={t("meetings.feedLink")}
               className="bg-stone-50 font-mono text-[13px] text-stone-600"
             />
-            <IconButton
-              label={t("app.copy")}
-              variant="outline"
-              onClick={() =>
-                navigator.clipboard
-                  .writeText(url)
-                  .then(() => toast.success(t("app.copied")))
-                  .catch(() => toast.error(t("app.error")))
-              }
-            >
+            <IconButton label={t("app.copy")} variant="outline" onClick={() => void copy(url)}>
               <Copy />
             </IconButton>
           </div>
@@ -185,7 +185,7 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
                     confirmLabel: t("meetings.feedRotate"),
                   })
                 )
-                  change.mutate(true);
+                  change.mutate("rotate");
               }}
             >
               {t("meetings.feedRotate")}
@@ -203,7 +203,7 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
                     confirmLabel: t("meetings.feedOff"),
                   })
                 )
-                  change.mutate(false);
+                  change.mutate("off");
               }}
             >
               {t("meetings.feedOff")}
@@ -216,7 +216,7 @@ function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
           icon={<CalendarPlus />}
           loading={change.isPending}
           disabled={feed.isPending}
-          onClick={() => change.mutate(true)}
+          onClick={() => change.mutate("create")}
         >
           {t("meetings.feedCreate")}
         </Button>

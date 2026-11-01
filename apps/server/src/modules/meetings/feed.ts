@@ -1,12 +1,12 @@
 import { booking, bookingMeeting, bookingPolicy, customer, restaurant } from "@openpax/db";
 import type { MeetingFeedDto } from "@openpax/shared";
-import { and, asc, eq, gte, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, gte, isNotNull, isNull, ne, type SQL } from "drizzle-orm";
 import type { Actor, AppContext, RestaurantRow } from "../../context.js";
 import { writeAudit } from "../../lib/audit.js";
 import { ApiError } from "../../lib/errors.js";
 import { newToken } from "../../lib/random.js";
+import { feedName, meetingEvent } from "./event.js";
 import { buildFeed } from "./ics.js";
-import { feedName, meetingEvent } from "./jobs.js";
 
 /** Past meetings stay in the host's calendar for a month. */
 const PAST_DAYS = 30;
@@ -24,30 +24,87 @@ export async function getMeetingFeed(ctx: AppContext, r: RestaurantRow): Promise
   return feedUrl(ctx, row?.token ?? null);
 }
 
-/** A new secret link for the host's calendar (or none); the old link stops working. */
-export async function setMeetingFeed(
+/** Write the link and its audit entry; nothing happens unless `only` matches a row. */
+async function writeFeedToken(
   ctx: AppContext,
   r: RestaurantRow,
-  on: boolean,
+  token: string | null,
+  only: SQL | undefined,
+  action: string,
   actor: Actor,
-): Promise<MeetingFeedDto> {
-  const token = on ? newToken() : null;
+): Promise<boolean> {
   return ctx.db.transaction(async (tx) => {
     const updated = await tx
       .update(bookingPolicy)
       .set({ meetingFeedToken: token })
-      .where(eq(bookingPolicy.restaurantId, r.id))
+      .where(and(eq(bookingPolicy.restaurantId, r.id), only))
       .returning({ id: bookingPolicy.restaurantId });
-    if (updated.length === 0) throw ApiError.notFound("Booking policy");
+    if (updated.length === 0) return false;
     await writeAudit(tx, {
       restaurantId: r.id,
       actor,
-      action: on ? "meeting_feed.rotated" : "meeting_feed.disabled",
+      action,
       entityType: "booking_policy",
       entityId: r.id,
     });
-    return feedUrl(ctx, token);
+    return true;
   });
+}
+
+/**
+ * The link, created if there is none. Never replaces one: a page left open
+ * from before the link existed must not cut off the calendar it is feeding.
+ */
+export async function createMeetingFeed(
+  ctx: AppContext,
+  r: RestaurantRow,
+  actor: Actor,
+): Promise<MeetingFeedDto> {
+  const created = newToken();
+  const won = await writeFeedToken(
+    ctx,
+    r,
+    created,
+    isNull(bookingPolicy.meetingFeedToken),
+    "meeting_feed.created",
+    actor,
+  );
+  return won ? feedUrl(ctx, created) : getMeetingFeed(ctx, r);
+}
+
+/** A new secret link; the old one stops working. */
+export async function rotateMeetingFeed(
+  ctx: AppContext,
+  r: RestaurantRow,
+  actor: Actor,
+): Promise<MeetingFeedDto> {
+  const token = newToken();
+  const done = await writeFeedToken(
+    ctx,
+    r,
+    token,
+    isNotNull(bookingPolicy.meetingFeedToken),
+    "meeting_feed.rotated",
+    actor,
+  );
+  if (!done) throw ApiError.notFound("Calendar link");
+  return feedUrl(ctx, token);
+}
+
+export async function disableMeetingFeed(
+  ctx: AppContext,
+  r: RestaurantRow,
+  actor: Actor,
+): Promise<MeetingFeedDto> {
+  await writeFeedToken(
+    ctx,
+    r,
+    null,
+    isNotNull(bookingPolicy.meetingFeedToken),
+    "meeting_feed.disabled",
+    actor,
+  );
+  return feedUrl(ctx, null);
 }
 
 /**
@@ -81,7 +138,9 @@ export async function meetingFeed(ctx: AppContext, token: string): Promise<strin
     )
     .orderBy(asc(bookingMeeting.startsAt));
   return buildFeed(
-    rows.map((x) => meetingEvent({ ...x, restaurant: found.restaurant }, now).event),
+    rows.map(
+      (x) => meetingEvent({ ...x, restaurant: found.restaurant }, now, { notes: false }).event,
+    ),
     feedName(found.restaurant),
   );
 }

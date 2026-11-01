@@ -82,13 +82,26 @@ export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       method: "post",
       path: `${base}/feed`,
       tags,
+      summary: "The host's calendar subscription link, created if there is none",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam },
+      responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
+    }),
+    async (c) =>
+      c.json(await feed.createMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: `${base}/feed/rotate`,
+      tags,
       summary: "A new calendar subscription link for the host; the old one stops working",
       middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
       request: { params: restaurantIdParam },
       responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
     }),
     async (c) =>
-      c.json(await feed.setMeetingFeed(ctx, c.get("restaurant"), true, c.get("actor")), 200),
+      c.json(await feed.rotateMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
   );
   app.openapi(
     createRoute({
@@ -101,7 +114,7 @@ export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
       responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
     }),
     async (c) =>
-      c.json(await feed.setMeetingFeed(ctx, c.get("restaurant"), false, c.get("actor")), 200),
+      c.json(await feed.disableMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
   );
   app.openapi(
     createRoute({
