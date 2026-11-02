@@ -61,3 +61,7 @@ export const listMeetingsQuerySchema = z.object({
 
 export const scheduleMeetingInputSchema = z.object({ startsAt: instantSchema });
 export type ScheduleMeetingInput = z.infer<typeof scheduleMeetingInputSchema>;
+
+/** The host's subscription calendar: a secret .ics link, or null when off. */
+export const meetingFeedDtoSchema = z.object({ url: z.string().nullable() });
+export type MeetingFeedDto = z.infer<typeof meetingFeedDtoSchema>;

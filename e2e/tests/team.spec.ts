@@ -9,7 +9,6 @@ test("owner invites a colleague who signs up from the link and lands on Today", 
   const invitee = `giulia-${Date.now()}@example.com`;
 
   await page.goto(`/r/${owner.restaurantId}/settings/team`);
-  // exact: the chef card below has its own "Chef's email"
   await page.getByLabel("Email", { exact: true }).fill(invitee);
   await page.getByLabel("Role").selectOption("staff");
   await page.getByRole("button", { name: "Send invitation" }).click();
@@ -38,4 +37,22 @@ test("owner invites a colleague who signs up from the link and lands on Today", 
   await page.reload();
   await expect(page.locator("li", { hasText: "Giulia Staff" })).toBeVisible();
   await expect(page.getByText("No pending invitations.")).toBeVisible();
+});
+
+test("owner creates the chef's calendar link, then changes it", async ({ page, request }) => {
+  const owner = await onboardOwner(page, "Osteria Calendario");
+  await page.goto(`/r/${owner.restaurantId}/settings/team`);
+  await page.getByRole("button", { name: "Create calendar link" }).click();
+  const link = page.getByLabel("Calendar link");
+  await expect(link).toHaveValue(/\/api\/public\/v1\/meetings\/feed\/[\w-]+\.ics$/);
+  const first = await link.inputValue();
+  const feed = await request.get(first);
+  expect(feed.status()).toBe(200);
+  expect(await feed.text()).toContain("BEGIN:VCALENDAR");
+
+  await page.getByRole("button", { name: "Change link" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Change link" }).click();
+  await expect(link).not.toHaveValue(first);
+  // the old link now serves an empty calendar under a generic name
+  expect(await (await request.get(first)).text()).toContain("X-WR-CALNAME:OpenPax");
 });

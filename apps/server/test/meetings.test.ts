@@ -1,3 +1,5 @@
+import { booking, customer } from "@openpax/db";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { refreshMeetingOfBooking } from "../src/modules/meetings/service.js";
 import {
@@ -474,5 +476,118 @@ describe("host meeting calendar", () => {
     expect(byDate["2026-06-11"]?.free).toBe(0); // Thursday: no hours
     expect(byDate[FRIDAY]?.free).toBe(4); // five slots, one taken
     expect(byDate["2026-06-19"]).toMatchObject({ closed: true, free: 0 });
+  });
+});
+
+describe("host calendar subscription", () => {
+  const feedPath = (url: string) => new URL(url).pathname;
+  const getFeed = (url: string) => api<string>(t, "GET", feedPath(url));
+  // a changed or disabled link answers with an empty calendar, so calendar apps drop the copy
+  const isEmpty = (res: { status: number; body: string }) =>
+    res.status === 200 && !res.body.includes("BEGIN:VEVENT");
+  const setFeed = (fx: Fixture, method: "POST" | "DELETE", session = fx.session) =>
+    api<{ url: string | null }>(t, method, `${base(fx)}/meetings/feed`, undefined, session);
+
+  const rotateFeed = (fx: Fixture, session = fx.session) =>
+    api<{ url: string | null }>(t, "POST", `${base(fx)}/meetings/feed/rotate`, undefined, session);
+
+  it("serves the live meetings behind a secret link that can be changed and turned off", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const off = await api<{ url: string | null }>(
+      t,
+      "GET",
+      `${base(fx)}/meetings/feed`,
+      undefined,
+      fx.session,
+    );
+    expect(off.body.url).toBeNull();
+
+    const on = await setFeed(fx, "POST");
+    expect(on.status).toBe(200);
+    const url = on.body.url ?? "";
+    expect(url).toMatch(/\/api\/public\/v1\/meetings\/feed\/[\w-]+\.ics$/);
+
+    const bookingId = await groupBooking(fx);
+    const meeting = await schedule(fx, bookingId, "15:30");
+    const other = await groupBooking(fx, 30, "21:00");
+    await schedule(fx, other, "16:00");
+    await api(t, "DELETE", `${base(fx)}/bookings/${other}/meeting`, undefined, fx.session);
+
+    const res = await t.app.request(feedPath(url));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/calendar");
+    const ics = await res.text();
+    expect(ics).toContain("METHOD:PUBLISH");
+    expect(ics).toContain(`UID:${meeting.body.id}@openpax`);
+    expect(ics).toContain("DTSTART:20260612T133000Z");
+    expect(ics).toContain("SUMMARY:Appuntamento con Laura Neri");
+    expect(ics).not.toContain("ATTENDEE");
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1); // the cancelled one is gone
+
+    expect(isEmpty(await getFeed(url.replace(/[\w-]+\.ics$/, `${"x".repeat(32)}.ics`)))).toBe(true);
+    expect((await getFeed(url.replace(/[\w-]+\.ics$/, "short.ics"))).status).toBe(400);
+
+    // creating again hands back the same link, so a stale page cannot cut it off
+    expect((await setFeed(fx, "POST")).body.url).toBe(url);
+
+    const rotated = await rotateFeed(fx);
+    expect(rotated.body.url).not.toBe(url);
+    expect(isEmpty(await getFeed(url))).toBe(true);
+    expect((await getFeed(rotated.body.url ?? "")).body).toContain("BEGIN:VEVENT");
+
+    // the booking is cancelled: its meeting leaves the feed before the outbox cancels it
+    await api(
+      t,
+      "POST",
+      `${base(fx)}/bookings/${bookingId}/actions`,
+      { action: "cancel" },
+      fx.session,
+    );
+    expect(isEmpty(await getFeed(rotated.body.url ?? ""))).toBe(true);
+
+    const disabled = await setFeed(fx, "DELETE");
+    expect(disabled.body.url).toBeNull();
+    expect(isEmpty(await getFeed(rotated.body.url ?? ""))).toBe(true);
+  });
+
+  it("is a valid calendar even with no meetings", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const url = (await setFeed(fx, "POST")).body.url ?? "";
+    const { body } = await getFeed(url);
+    expect(body).not.toContain("BEGIN:VEVENT");
+    expect(body).toContain("BEGIN:VTIMEZONE"); // RFC 5545 wants one component
+  });
+
+  it("cannot rotate a link that does not exist", async () => {
+    const fx = await createFixture(t);
+    expect((await rotateFeed(fx)).status).toBe(404);
+  });
+
+  it("keeps booking notes out and guest input cannot add lines", async () => {
+    const fx = await createFixture(t);
+    await setUp(fx);
+    const url = (await setFeed(fx, "POST")).body.url ?? "";
+    const bookingId = await groupBooking(fx);
+    await schedule(fx, bookingId, "15:30");
+    const hostile = "Laura\rEND:VEVENT\rBEGIN:VEVENT\rSUMMARY:fake";
+    await t.ctx.db.update(customer).set({ name: hostile });
+    await t.ctx.db
+      .update(booking)
+      .set({ notes: "allergia alle noci" })
+      .where(eq(booking.id, bookingId));
+    const { body } = await getFeed(url);
+    expect(body).not.toContain("noci");
+    expect(body.replace(/\r\n/g, "")).not.toContain("\r");
+    expect(body.match(/^BEGIN:VEVENT/gm)).toHaveLength(1);
+  });
+
+  it("is only for those who manage the settings", async () => {
+    const fx = await createFixture(t);
+    const staff = await addMember(t, fx, "staff");
+    expect((await setFeed(fx, "POST", staff)).status).toBe(403);
+    expect((await rotateFeed(fx, staff)).status).toBe(403);
+    expect((await setFeed(fx, "DELETE", staff)).status).toBe(403);
   });
 });

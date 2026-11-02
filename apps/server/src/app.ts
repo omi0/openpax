@@ -17,6 +17,9 @@ export interface CreateAppOptions {
   static?: StaticDirs;
 }
 
+/** The host's calendar link is a secret: every log line goes through this. */
+const safePath = (path: string) => path.replace(/(\/meetings\/feed\/)[^/]+/, "$1[secret]");
+
 export function createApp(
   ctx: AppContext,
   modules: OpenPaxModule[],
@@ -32,7 +35,7 @@ export function createApp(
     ctx.logger.debug(
       {
         method: c.req.method,
-        path: c.req.path,
+        path: safePath(c.req.path),
         status: c.res.status,
         ms: Date.now() - start,
         requestId: c.get("requestId"),
@@ -161,7 +164,7 @@ export function createApp(
       return c.json({ code: error.code, message: error.message, ...(error.details ?? {}) }, status);
     }
     ctx.logger.error(
-      { err: error, path: c.req.path, requestId: c.get("requestId") },
+      { err: error, path: safePath(c.req.path), requestId: c.get("requestId") },
       "unhandled error",
     );
     const detail =

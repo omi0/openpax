@@ -15,6 +15,7 @@ import type {
   FeedbackSummaryDto,
   MeetingDaysDto,
   MeetingDto,
+  MeetingFeedDto,
   MeetingListItemDto,
   MeetingSlotsDto,
   NotificationChannel,
@@ -382,6 +383,12 @@ export const meetingsQuery = (id: string, from: string, to: string) =>
     queryKey: ["restaurant", id, "meetings", "list", from, to],
     queryFn: () =>
       api.get<MeetingListItemDto[]>(`/api/v1/restaurants/${id}/meetings`, { from, to }),
+  });
+
+export const meetingFeedQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["restaurant", id, "meetings", "feed"],
+    queryFn: () => api.get<MeetingFeedDto>(`/api/v1/restaurants/${id}/meetings/feed`),
   });
 
 export const operatorsQuery = (id: string) =>

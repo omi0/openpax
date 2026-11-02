@@ -12,59 +12,14 @@ import { defineJob } from "../../jobs/queue.js";
 import type { NotificationProvider } from "../../notifications/provider.js";
 import { parseAddress } from "../../notifications/providers/address.js";
 import { resolveProvider } from "../notifications/index.js";
+import { meetingEvent } from "./event.js";
 import { buildIcs, googleCalendarLink, type IcsEvent } from "./ics.js";
 import { cancelMeetingOfBooking, refreshMeetingOfBooking } from "./service.js";
 
 type Kind = "scheduled" | "cancelled";
 
-const COPY = {
-  it: {
-    summary: (name: string, party: number) => `Appuntamento con ${name} · evento ${party} persone`,
-    subject: { scheduled: "Nuovo appuntamento", cancelled: "Appuntamento annullato" },
-    intro: {
-      scheduled: "Hai un appuntamento per organizzare un evento.",
-      cancelled: "Questo appuntamento è stato annullato.",
-    },
-    when: "Appuntamento",
-    guest: "Cliente",
-    phone: "Telefono",
-    event: "Evento",
-    people: (n: number) => `${n} persone`,
-    notes: "Note",
-    code: "Codice prenotazione",
-    add: "Aggiungi a Google Calendar",
-  },
-  en: {
-    summary: (name: string, party: number) => `Meeting with ${name} · event for ${party}`,
-    subject: { scheduled: "New meeting", cancelled: "Meeting cancelled" },
-    intro: {
-      scheduled: "You have a meeting to plan an event.",
-      cancelled: "This meeting was cancelled.",
-    },
-    when: "Meeting",
-    guest: "Guest",
-    phone: "Phone",
-    event: "Event",
-    people: (n: number) => `${n} guests`,
-    notes: "Notes",
-    code: "Booking code",
-    add: "Add to Google Calendar",
-  },
-};
-
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-const formatWhen = (d: Date, timeZone: string, locale: string) =>
-  new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZone,
-  }).format(d);
 
 export const meetingEventHandlers = [
   defineEventHandler({
@@ -165,31 +120,11 @@ export const meetingEmailJob = defineJob<{
       return;
     }
 
-    const locale = row.restaurant.locale === "it" ? "it" : "en";
-    const c = COPY[locale];
-    const tz = row.restaurant.timezone;
     const hostName = row.policy.meetingHostName ?? undefined;
-    const details: Array<[string, string]> = [
-      [c.when, formatWhen(row.meeting.startsAt, tz, locale)],
-      [c.guest, row.customer.name],
-      ...(row.customer.phone ? ([[c.phone, row.customer.phone]] as Array<[string, string]>) : []),
-      [
-        c.event,
-        `${formatWhen(row.booking.startsAt, tz, locale)} · ${c.people(row.booking.partySize)}`,
-      ],
-      ...(row.booking.notes ? ([[c.notes, row.booking.notes]] as Array<[string, string]>) : []),
-      [c.code, row.booking.confirmationCode],
-    ];
+    const { copy: c, details, event } = meetingEvent(row, ctx.now());
     const ics: IcsEvent = {
-      uid: `${row.meeting.id}@openpax`,
+      ...event,
       method: kind === "scheduled" ? "REQUEST" : "CANCEL",
-      sequence: row.meeting.sequence,
-      startsAt: row.meeting.startsAt,
-      endsAt: row.meeting.endsAt,
-      stamp: ctx.now(),
-      summary: c.summary(row.customer.name, row.booking.partySize),
-      description: details.map(([k, v]) => `${k}: ${v}`).join("\n"),
-      location: [row.restaurant.name, row.restaurant.address].filter(Boolean).join(", "),
       organizer: parseAddress(String(resolved.config.from ?? hostEmail)),
       attendee: { email: hostEmail, ...(hostName ? { name: hostName } : {}) },
     };

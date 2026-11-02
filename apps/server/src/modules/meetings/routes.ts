@@ -5,6 +5,7 @@ import {
   meetingDaysDtoSchema,
   meetingDaysQuerySchema,
   meetingDtoSchema,
+  meetingFeedDtoSchema,
   meetingListItemDtoSchema,
   meetingSlotsDtoSchema,
   meetingSlotsQuerySchema,
@@ -13,10 +14,12 @@ import {
 import { requireRestaurant } from "../../auth/middleware.js";
 import type { AppContext, AppEnv } from "../../context.js";
 import { jsonBody, jsonResponse, noContentResponse, restaurantIdParam } from "../../lib/openapi.js";
+import * as feed from "./feed.js";
 import * as svc from "./service.js";
 
 const bookingIdParam = restaurantIdParam.extend({ bookingId: z.uuid() });
 const tags = ["Meetings"];
+const feedFileParam = z.object({ file: z.string().regex(/^[\w-]{32}\.ics$/) });
 
 export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
   const base = "/api/v1/restaurants/{restaurantId}/meetings";
@@ -60,6 +63,81 @@ export function meetingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
     }),
     async (c) =>
       c.json(await svc.listMeetings(ctx, c.get("restaurant"), c.req.valid("query")), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: `${base}/feed`,
+      tags,
+      summary: "The host's calendar subscription link, or null when off",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam },
+      responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
+    }),
+    async (c) => c.json(await feed.getMeetingFeed(ctx, c.get("restaurant")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: `${base}/feed`,
+      tags,
+      summary: "The host's calendar subscription link, created if there is none",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam },
+      responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
+    }),
+    async (c) =>
+      c.json(await feed.createMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: `${base}/feed/rotate`,
+      tags,
+      summary: "A new calendar subscription link for the host; the old one stops working",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam },
+      responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
+    }),
+    async (c) =>
+      c.json(await feed.rotateMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "delete",
+      path: `${base}/feed`,
+      tags,
+      summary: "Turn the host's calendar subscription off",
+      middleware: [requireRestaurant(ctx, { settings: ["update"] })] as const,
+      request: { params: restaurantIdParam },
+      responses: { 200: jsonResponse(meetingFeedDtoSchema, "Link") },
+    }),
+    async (c) =>
+      c.json(await feed.disableMeetingFeed(ctx, c.get("restaurant"), c.get("actor")), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/public/v1/meetings/feed/{file}",
+      tags,
+      summary:
+        "The host's meetings as an iCalendar subscription; an unknown link gets an empty one",
+      request: { params: feedFileParam },
+      responses: {
+        200: {
+          description: "iCalendar",
+          content: { "text/calendar": { schema: z.string() } },
+        },
+      },
+    }),
+    async (c) => {
+      const token = c.req.valid("param").file.slice(0, -".ics".length);
+      return c.body(await feed.meetingFeed(ctx, token), 200, {
+        "content-type": "text/calendar; charset=utf-8",
+        "cache-control": "no-store",
+      });
+    },
   );
 
   const one = "/api/v1/restaurants/{restaurantId}/bookings/{bookingId}/meeting";

@@ -1,14 +1,23 @@
-import type { BookingPolicyDto, UpdateBookingPolicyInput } from "@openpax/shared";
+import type { BookingPolicyDto, MeetingFeedDto, UpdateBookingPolicyInput } from "@openpax/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChefHat } from "lucide-react";
+import { CalendarPlus, ChefHat, Copy, RefreshCw } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WeeklyHoursEditor } from "@/components/service-form";
-import { Alert, Button, Card, Field, Input, useToast } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  Field,
+  IconButton,
+  Input,
+  useConfirm,
+  useToast,
+} from "@/components/ui";
 import { ApiClientError, api } from "@/lib/api";
-import { policyQuery } from "@/lib/queries";
+import { meetingFeedQuery, policyQuery } from "@/lib/queries";
 
-/** Who meets large groups (the chef), their address for invites, and when they are free. */
+/** Who meets large groups (the chef), when they are free, and the link to their calendar. */
 export function MeetingSettingsCard({
   restaurantId,
   canManage,
@@ -22,7 +31,6 @@ export function MeetingSettingsCard({
   const policy = useQuery(policyQuery(restaurantId));
   const [minParty, setMinParty] = useState("");
   const [hostName, setHostName] = useState("");
-  const [hostEmail, setHostEmail] = useState("");
   const [hours, setHours] = useState<BookingPolicyDto["meetingHours"]>({});
   const [error, setError] = useState<string | null>(null);
   // unsaved edits win over cache updates (the operators card saves the same policy)
@@ -38,7 +46,6 @@ export function MeetingSettingsCard({
     if (!p || dirty) return;
     setMinParty(p.meetingMinPartySize === null ? "" : String(p.meetingMinPartySize));
     setHostName(p.meetingHostName ?? "");
-    setHostEmail(p.meetingHostEmail ?? "");
     setHours(p.meetingHours);
   }, [policy.data, dirty]);
 
@@ -59,7 +66,6 @@ export function MeetingSettingsCard({
     save.mutate({
       meetingMinPartySize: minParty === "" ? null : Number(minParty),
       meetingHostName: hostName.trim() || null,
-      meetingHostEmail: hostEmail.trim() || null,
       meetingHours: hours,
     });
   };
@@ -74,7 +80,7 @@ export function MeetingSettingsCard({
       description={t("meetings.settingsHint")}
     >
       <form onSubmit={submit} className="space-y-4">
-        <fieldset disabled={!canManage} className="grid gap-4 sm:grid-cols-3">
+        <fieldset disabled={!canManage} className="grid gap-4 sm:grid-cols-2">
           <Field label={t("meetings.minParty")} hint={t("meetings.minPartyHint")}>
             <Input
               type="number"
@@ -91,14 +97,7 @@ export function MeetingSettingsCard({
               onChange={(e) => edit(setHostName)(e.target.value)}
             />
           </Field>
-          <Field label={t("meetings.hostEmail")} hint={t("meetings.hostEmailHint")}>
-            <Input
-              type="email"
-              value={hostEmail}
-              onChange={(e) => edit(setHostEmail)(e.target.value)}
-            />
-          </Field>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <p className="mb-1.5 text-sm font-medium text-stone-700">{t("meetings.hours")}</p>
             <p className="mb-2 text-[13px] text-stone-500">{t("meetings.hoursHint")}</p>
             <WeeklyHoursEditor value={hours} onChange={edit(setHours)} />
@@ -111,6 +110,117 @@ export function MeetingSettingsCard({
           </Button>
         ) : null}
       </form>
+      {canManage ? <MeetingFeedSection restaurantId={restaurantId} /> : null}
     </Card>
+  );
+}
+
+/** A secret link the chef adds once to Google Calendar: every meeting shows up there, no email needed. */
+function MeetingFeedSection({ restaurantId }: { restaurantId: string }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const path = `/api/v1/restaurants/${restaurantId}/meetings/feed`;
+  const feed = useQuery(meetingFeedQuery(restaurantId));
+  const change = useMutation({
+    mutationFn: (action: "create" | "rotate" | "off") =>
+      action === "off"
+        ? api.delete<MeetingFeedDto>(path)
+        : api.post<MeetingFeedDto>(action === "rotate" ? `${path}/rotate` : path, {}),
+    onSuccess: (updated) =>
+      queryClient.setQueryData(meetingFeedQuery(restaurantId).queryKey, updated),
+    onError: (e) => toast.error(e instanceof ApiClientError ? e.message : t("app.error")),
+  });
+  const url = feed.data?.url ?? null;
+  const copy = async (text: string) => {
+    try {
+      // no clipboard API on plain http
+      await navigator.clipboard.writeText(text);
+      toast.success(t("app.copied"));
+    } catch {
+      toast.error(t("app.error"));
+    }
+  };
+
+  return (
+    <div className="mt-6 space-y-3 border-t border-stone-200 pt-5">
+      <div>
+        <p className="text-sm font-medium text-stone-700">{t("meetings.feedTitle")}</p>
+        <p className="mt-1 text-[13px] text-stone-500">{t("meetings.feedHint")}</p>
+      </div>
+      {feed.isError ? (
+        <Alert>{t("app.error")}</Alert>
+      ) : url ? (
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={url}
+              readOnly
+              aria-label={t("meetings.feedLink")}
+              className="bg-stone-50 font-mono text-[13px] text-stone-600"
+            />
+            <IconButton label={t("app.copy")} variant="outline" onClick={() => void copy(url)}>
+              <Copy />
+            </IconButton>
+          </div>
+          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-stone-600">
+            <li>{t("meetings.feedStep1")}</li>
+            <li>{t("meetings.feedStep2")}</li>
+            <li>{t("meetings.feedStep3")}</li>
+          </ol>
+          <p className="text-[13px] text-stone-500">{t("meetings.feedDelay")}</p>
+          <Alert tone="warning">{t("meetings.feedPrivate")}</Alert>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              icon={<RefreshCw />}
+              disabled={change.isPending}
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: t("meetings.feedRotate"),
+                    description: t("meetings.feedRotateConfirm"),
+                    confirmLabel: t("meetings.feedRotate"),
+                  })
+                )
+                  change.mutate("rotate");
+              }}
+            >
+              {t("meetings.feedRotate")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-stone-500 hover:text-red-700"
+              disabled={change.isPending}
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: t("meetings.feedOff"),
+                    description: t("meetings.feedOffConfirm"),
+                    confirmLabel: t("meetings.feedOff"),
+                  })
+                )
+                  change.mutate("off");
+              }}
+            >
+              {t("meetings.feedOff")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          variant="outline"
+          icon={<CalendarPlus />}
+          loading={change.isPending}
+          disabled={feed.isPending}
+          onClick={() => change.mutate("create")}
+        >
+          {t("meetings.feedCreate")}
+        </Button>
+      )}
+    </div>
   );
 }
