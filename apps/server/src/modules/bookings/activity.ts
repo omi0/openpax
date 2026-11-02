@@ -69,13 +69,24 @@ export interface ActivityItem {
 // Taking a booking credits the name on the booking, which managers may have
 // corrected (or cleared) since; online bookings were taken by the guest.
 // A cancellation from before the operator was logged (no key at all) can only
-// borrow the name kept on the booking.
+// borrow the name kept on the booking, and only while that name is still its
+// own: the booking is still cancelled and was not reopened or cancelled again
+// since (reopening clears the name, a new cancellation replaces it).
 const operatorOf = sql<string | null>`case
   when ${auditLog.action} = 'booking.created'
     then case when ${auditLog.actorType} <> 'guest' then ${booking.operatorName} end
   when ${auditLog.data}->'operator' is not null then ${auditLog.data}->>'operator'
   when ${auditLog.action} = 'booking.cancel' and ${auditLog.actorType} = 'user'
     and ${auditLog.data}->>'via' is null
+    and ${booking.status} = 'cancelled'
+    and not exists (
+      select 1 from audit_log later
+      where later.restaurant_id = ${auditLog.restaurantId}
+        and later.entity_type = 'booking'
+        and later.entity_id = ${auditLog.entityId}
+        and later.action in ('booking.cancel', 'booking.reopen')
+        and later.created_at > ${auditLog.createdAt}
+    )
     then ${booking.cancelledByOperatorName}
 end`;
 
@@ -126,7 +137,10 @@ export async function listActivity(
     })
     .from(auditLog)
     // the log keeps entity ids as text
-    .innerJoin(booking, sql`${booking.id}::text = ${auditLog.entityId}`)
+    .innerJoin(
+      booking,
+      and(eq(booking.restaurantId, r.id), sql`${booking.id}::text = ${auditLog.entityId}`),
+    )
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .where(and(...where))
     .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
