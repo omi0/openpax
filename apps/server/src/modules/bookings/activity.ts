@@ -1,15 +1,22 @@
 import { addDaysToLocalDate, localToInstant } from "@openpax/core";
 import { area, auditLog, booking, customer, service } from "@openpax/db";
-import { and, asc, eq, gte, ilike, inArray, lt, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, lt, type SQL, sql } from "drizzle-orm";
 import type { AppContext, RestaurantRow } from "../../context.js";
 
 /**
  * Who did what to the bookings, read back from the audit log: taking,
- * changing, cancelling and marking no-shows. Entries written before the
- * operator was recorded in the log fall back to the names kept on the booking.
+ * changing, cancelling, marking no-shows and reopening. Every entry since the
+ * log records the operator has an `operator` key (null when nobody was asked);
+ * older cancellations fall back to the name kept on the booking.
  */
 
-export const ACTIVITY_ACTIONS = ["created", "modified", "cancelled", "no_show"] as const;
+export const ACTIVITY_ACTIONS = [
+  "created",
+  "modified",
+  "cancelled",
+  "no_show",
+  "reopened",
+] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
 const AUDIT_ACTION: Record<ActivityAction, string> = {
@@ -17,6 +24,7 @@ const AUDIT_ACTION: Record<ActivityAction, string> = {
   modified: "booking.modified",
   cancelled: "booking.cancel",
   no_show: "booking.no_show",
+  reopened: "booking.reopen",
 };
 const ACTION_OF = new Map(Object.entries(AUDIT_ACTION).map(([k, v]) => [v, k as ActivityAction]));
 
@@ -59,12 +67,15 @@ export interface ActivityItem {
 }
 
 // Taking a booking credits the name on the booking, which managers may have
-// corrected since; old cancellations predate the operator in the log.
+// corrected (or cleared) since; online bookings were taken by the guest.
+// A cancellation from before the operator was logged (no key at all) can only
+// borrow the name kept on the booking.
 const operatorOf = sql<string | null>`case
   when ${auditLog.action} = 'booking.created'
-    then coalesce(${booking.operatorName}, ${auditLog.data}->>'operator')
-  when ${auditLog.data}->>'operator' is not null then ${auditLog.data}->>'operator'
+    then case when ${auditLog.actorType} <> 'guest' then ${booking.operatorName} end
+  when ${auditLog.data}->'operator' is not null then ${auditLog.data}->>'operator'
   when ${auditLog.action} = 'booking.cancel' and ${auditLog.actorType} = 'user'
+    and ${auditLog.data}->>'via' is null
     then ${booking.cancelledByOperatorName}
 end`;
 
@@ -97,12 +108,13 @@ export async function listActivity(
   if (q.from) where.push(gte(auditLog.createdAt, localToInstant(q.from, 0, r.timezone)));
   if (q.to)
     where.push(lt(auditLog.createdAt, localToInstant(addDaysToLocalDate(q.to, 1), 0, r.timezone)));
-  if (q.bookingId) where.push(eq(auditLog.entityId, q.bookingId));
+  if (q.bookingId) where.push(eq(auditLog.entityId, q.bookingId), eq(booking.id, q.bookingId));
   if (q.operator) where.push(ilike(operatorOf, `%${escapeLike(q.operator)}%`));
   if (q.by === "online") where.push(eq(auditLog.actorType, "guest"));
   if (q.by === "assistant") where.push(sql`${auditLog.data}->>'via' = 'assistant'`);
 
-  const rows = await ctx.db
+  // newest first, so a long period loses its oldest entries rather than today's
+  const query = ctx.db
     .select({
       at: auditLog.createdAt,
       action: auditLog.action,
@@ -117,10 +129,11 @@ export async function listActivity(
     .innerJoin(booking, sql`${booking.id}::text = ${auditLog.entityId}`)
     .innerJoin(customer, eq(customer.id, booking.customerId))
     .where(and(...where))
-    .orderBy(asc(auditLog.createdAt), asc(auditLog.id))
+    .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
     .limit(q.limit + 1);
 
-  const [services, areas] = await Promise.all([
+  const [rows, services, areas] = await Promise.all([
+    query,
     ctx.db
       .select({ id: service.id, name: service.name })
       .from(service)
@@ -130,35 +143,38 @@ export async function listActivity(
   const names = new Map([...services, ...areas].map((x) => [x.id, x.name]));
   const named = (v: unknown) => (typeof v === "string" ? (names.get(v) ?? v) : v);
 
-  const items = rows.slice(0, q.limit).map((x): ActivityItem => {
-    const action = ACTION_OF.get(x.action) ?? "modified";
-    const data = x.data as Data;
-    const item: ActivityItem = {
-      at: x.at,
-      action,
-      operator: x.operator,
-      actor: actorOf(x.actorType, data, x.operator),
-      booking: {
-        id: x.booking.id,
-        guest: x.guest,
-        serviceDate: x.booking.serviceDate,
-        startsAt: x.booking.startsAt,
-        partySize: x.booking.partySize,
-        status: x.booking.status,
-      },
-    };
-    if (action === "modified" && Array.isArray(data?.changes)) {
-      const before = (data.before ?? {}) as Record<string, unknown>;
-      const after = (data.after ?? {}) as Record<string, unknown>;
-      item.changes = (data.changes as string[]).map((field) =>
-        field in before || field in after
-          ? { field, from: named(before[field]), to: named(after[field]) }
-          : { field },
-      );
-    }
-    if (action === "cancelled" && typeof data?.reason === "string") item.reason = data.reason;
-    if (action === "created" && data?.imported) item.imported = true;
-    return item;
-  });
+  const items = rows
+    .slice(0, q.limit)
+    .reverse()
+    .map((x): ActivityItem => {
+      const action = ACTION_OF.get(x.action) ?? "modified";
+      const data = x.data as Data;
+      const item: ActivityItem = {
+        at: x.at,
+        action,
+        operator: x.operator,
+        actor: actorOf(x.actorType, data, x.operator),
+        booking: {
+          id: x.booking.id,
+          guest: x.guest,
+          serviceDate: x.booking.serviceDate,
+          startsAt: x.booking.startsAt,
+          partySize: x.booking.partySize,
+          status: x.booking.status,
+        },
+      };
+      if (action === "modified" && Array.isArray(data?.changes)) {
+        const before = (data.before ?? {}) as Record<string, unknown>;
+        const after = (data.after ?? {}) as Record<string, unknown>;
+        item.changes = (data.changes as string[]).map((field) =>
+          field in before || field in after
+            ? { field, from: named(before[field]), to: named(after[field]) }
+            : { field },
+        );
+      }
+      if (action === "cancelled" && typeof data?.reason === "string") item.reason = data.reason;
+      if (action === "created" && data?.imported) item.imported = true;
+      return item;
+    });
   return { items, more: rows.length > q.limit };
 }

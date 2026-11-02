@@ -607,6 +607,8 @@ describe("who did what", () => {
       owner.session,
     );
     expect(noShow.status, JSON.stringify(noShow.body)).toBe(200);
+    const reopened = await api(t, "POST", `${one}/actions`, { action: "reopen" }, owner.session);
+    expect(reopened.status, JSON.stringify(reopened.body)).toBe(200);
 
     const tokens = await connectAssistant(owner.session, {
       clientId: await registerClient("Activity"),
@@ -628,6 +630,7 @@ describe("who did what", () => {
       ["created", "Marco"],
       ["modified", "Giulia Rossi"],
       ["no_show", "Giulia Rossi"],
+      ["reopened", "dashboard, no operator recorded"],
     ]);
     expect(history.data.events[1]?.changes).toEqual([
       { field: "date and time", from: `${FRIDAY} (fri) 20:00`, to: `${FRIDAY} (fri) 21:00` },

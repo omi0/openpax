@@ -692,7 +692,7 @@ async function insertBookingLocked(
       startsAt: row.startsAt.toISOString(),
       ignoreCapacity: p.ignoreCapacity ?? false,
       ...(p.imported ? { imported: true } : {}),
-      ...(p.operatorName ? { operator: p.operatorName } : {}),
+      operator: p.operatorName ?? null,
     },
   });
   if (p.onCreated) await p.onCreated(tx, { id: row.id, startsAt: row.startsAt });
@@ -855,7 +855,7 @@ export async function applyBookingAction(
         from: row.status,
         to: next,
         reason: p.reason ?? null,
-        ...(p.operatorName ? { operator: p.operatorName } : {}),
+        operator: p.operatorName ?? null,
       },
     });
   });
@@ -1048,7 +1048,7 @@ export async function updateBooking(
           areaId,
           operatorName: input.operatorName !== undefined ? input.operatorName : row.operatorName,
         }),
-        ...(modifiedBy ? { operator: modifiedBy } : {}),
+        operator: modifiedBy ?? null,
       },
     });
   });

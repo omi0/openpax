@@ -406,7 +406,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     name: "list_activity",
     title: "Who did what",
     description:
-      "Who took, changed, cancelled or marked as no-show which bookings, and when: staff operators by name, guests online, or the assistant. Filter by operator (part of the name is enough), by who (online guests, the assistant) or by booking (its whole history). Defaults to the last 7 days. Changes show old and new values. Older changes and no-shows may have no operator recorded.",
+      "Who took, changed, cancelled, marked as no-show or reopened which bookings, and when: staff operators by name, guests online, or the assistant. Filter by operator (part of the name is enough), by who (online guests, the assistant) or by booking (its whole history). Defaults to the last 7 days. Changes show old and new values. Older changes and no-shows may have no operator recorded.",
     input: {
       ...restaurantArg,
       from: dateArg
@@ -419,7 +419,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
         .optional()
         .describe("Only guests online, or only the assistant"),
       bookingId: z.uuid().optional().describe("One booking; without dates, its whole history"),
-      actions: z.array(z.enum(ACTIVITY_ACTIONS)).optional().describe("Default: all four"),
+      actions: z.array(z.enum(ACTIVITY_ACTIONS)).optional().describe("Default: all of them"),
       limit: limitArg(500, 200),
     },
     scope: "read",
@@ -430,7 +430,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       const whole = bookingId !== undefined && !from && !to;
       const end = whole ? undefined : (to ?? todayIn(row.timezone, tc.ctx.now()));
       const start = end && (from ?? addDaysToLocalDate(end, -6));
-      if (start && end && end < start) throw new ToolError("`to` must not be before `from`.");
+      if (start && end && end < start)
+        throw new ToolError(to ? "`to` must not be before `from`." : "`from` is after today.");
       if (start && end && end > addDaysToLocalDate(start, 366))
         throw new ToolError("Ask for at most a year at a time.");
       const page = await listActivity(tc.ctx, row, {
@@ -449,7 +450,9 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       return {
         ...(start ? { from: dateLabel(start), to: dateLabel(end as string) } : {}),
         events: page.items.map((x) => activityBrief(x, row.timezone)),
-        ...(page.more ? { more: "There is more: narrow the period or raise limit." } : {}),
+        ...(page.more
+          ? { more: "Older events were left out: narrow the period or raise limit." }
+          : {}),
         ...(known ? { operators: known } : {}),
       };
     },

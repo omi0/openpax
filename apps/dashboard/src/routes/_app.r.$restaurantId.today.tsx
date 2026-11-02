@@ -207,6 +207,13 @@ function TodayPage() {
       toast.error(askAgain ? t("operators.askAgain") : t("app.error"));
     },
   });
+  const askFirst = (b: BookingDto, action: "seat" | "complete" | "reopen" | "no_show") =>
+    confirm({
+      title: t(`today.ask.${action}`, { name: b.customer.name }),
+      confirmLabel: t("app.yes"),
+      cancelLabel: t("app.no"),
+      tone: "primary",
+    });
   const askOperator = async (b: BookingDto, action: OperatorAction) => {
     setGateBlocked(null);
     setCancelOperator(null);
@@ -214,20 +221,16 @@ function TodayPage() {
     const list = await operators.refetch();
     if (list.isError) return setGateBlocked({ booking: b, action });
     const needed = (list.data?.length ?? 0) > 0;
-    if (action === "no_show") return needed ? setNoShowGate(b) : act.mutate({ id: b.id, action });
-    return needed ? setCancelGate(b) : setCancelling(b);
+    if (action === "cancel") return needed ? setCancelGate(b) : setCancelling(b);
+    if (needed) return setNoShowGate(b);
+    if (await askFirst(b, action)) act.mutate({ id: b.id, action });
   };
   const run = async (b: BookingDto, action: BookingAction) => {
     if (action === "cancel" || action === "no_show") return askOperator(b, action);
     // a stray tap on "seat" or "complete" is easy during service: ask first
     if (
       (action === "seat" || action === "complete" || action === "reopen") &&
-      !(await confirm({
-        title: t(`today.ask.${action}`, { name: b.customer.name }),
-        confirmLabel: t("app.yes"),
-        cancelLabel: t("app.no"),
-        tone: "primary",
-      }))
+      !(await askFirst(b, action))
     )
       return;
     act.mutate({ id: b.id, action });

@@ -242,7 +242,8 @@
     "ask": {
       "seat": "Confermi? {{name}} al tavolo",
       "complete": "Confermi? Concludere il tavolo di {{name}}",
-      "reopen": "Confermi? Riaprire la prenotazione di {{name}}"
+      "reopen": "Confermi? Riaprire la prenotazione di {{name}}",
+      "no_show": "Confermi? {{name}} non si è presentato"
     },
     "modifiedBy": "Modificata da",
     "cancelledBy": "Annullata da",

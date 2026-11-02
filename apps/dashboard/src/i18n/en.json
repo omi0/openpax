@@ -242,7 +242,8 @@
     "ask": {
       "seat": "Confirm? Seat {{name}}",
       "complete": "Confirm? Close {{name}}'s table",
-      "reopen": "Confirm? Reopen {{name}}'s booking"
+      "reopen": "Confirm? Reopen {{name}}'s booking",
+      "no_show": "Confirm? {{name}} did not show up"
     },
     "modifiedBy": "Changed by",
     "cancelledBy": "Cancelled by",
