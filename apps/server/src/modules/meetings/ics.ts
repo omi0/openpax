@@ -1,5 +1,7 @@
 /** Just enough RFC 5545 for a one-off meeting invite and its cancellation. */
 
+import { instantToLocal, localToInstant } from "@openpax/core";
+
 export interface IcsEvent {
   uid: string;
   method: "REQUEST" | "CANCEL";
@@ -69,15 +71,16 @@ const alarm = [
 
 export type FeedEvent = Omit<IcsEvent, "method" | "organizer" | "attendee">;
 
-/** Minutes ahead of UTC in `timeZone` at that instant. */
+const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/** Minutes ahead of UTC in `timeZone` at that instant, from the core's zone conversion. */
 function offsetMinutes(at: Date, timeZone: string): number {
-  const name =
-    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
-      .formatToParts(at)
-      .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
-  const m = /([+-])(\d{2}):?(\d{2})?/.exec(name);
-  if (!m) return 0;
-  return (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
+  const { date, minutesOfDay } = instantToLocal(at, timeZone);
+  const wall =
+    Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))) +
+    minutesOfDay * MINUTE_MS;
+  return Math.round((wall - Math.floor(at.getTime() / MINUTE_MS) * MINUTE_MS) / MINUTE_MS);
 }
 
 const offsetText = (minutes: number) => {
@@ -89,10 +92,42 @@ const offsetText = (minutes: number) => {
 
 /** Wall-clock time as iCalendar writes it, at a fixed offset from UTC. */
 const wallClock = (at: Date, offset: number) =>
-  utc(new Date(at.getTime() + offset * 60_000)).slice(0, -1);
+  utc(new Date(at.getTime() + offset * MINUTE_MS)).slice(0, -1);
 
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
+interface ZoneChange {
+  at: Date;
+  from: number;
+  to: number;
+}
+
+/** Every feed request needs the same few years: scan each zone-year once. */
+const changesCache = new Map<string, ZoneChange[]>();
+
+function changesIn(timeZone: string, year: number): ZoneChange[] {
+  const key = `${timeZone}|${year}`;
+  const cached = changesCache.get(key);
+  if (cached) return cached;
+  const changes: ZoneChange[] = [];
+  const end = Date.UTC(year + 1, 0, 1);
+  let t = Date.UTC(year, 0, 1);
+  let previous = offsetMinutes(new Date(t), timeZone);
+  for (t += DAY_MS; t <= end; t += DAY_MS) {
+    const now = offsetMinutes(new Date(t), timeZone);
+    if (now === previous) continue;
+    // the change happened in the last day: narrow it to the minute
+    let lo = t - DAY_MS;
+    let hi = t;
+    while (hi - lo > MINUTE_MS) {
+      const mid = lo + Math.floor((hi - lo) / (2 * MINUTE_MS)) * MINUTE_MS;
+      if (offsetMinutes(new Date(mid), timeZone) === previous) lo = mid;
+      else hi = mid;
+    }
+    changes.push({ at: new Date(hi), from: previous, to: now });
+    previous = now;
+  }
+  changesCache.set(key, changes);
+  return changes;
+}
 
 /**
  * The time zone's offsets around the meetings, a year either side, read from
@@ -100,24 +135,11 @@ const DAY_MS = 24 * HOUR_MS;
  * meeting after the clocks change still shows at its own wall-clock time.
  */
 function vtimezone(timeZone: string, from: Date, to: Date): string[] {
-  const start = new Date(from.getTime() - 366 * DAY_MS);
-  const end = new Date(to.getTime() + 366 * DAY_MS);
-  const changes: Array<{ at: Date; from: number; to: number }> = [];
-  let previous = offsetMinutes(start, timeZone);
-  for (let t = start.getTime() + DAY_MS; t <= end.getTime(); t += DAY_MS) {
-    const now = offsetMinutes(new Date(t), timeZone);
-    if (now === previous) continue;
-    // the change happened in the last day: narrow it to the minute
-    let lo = t - DAY_MS;
-    let hi = t;
-    while (hi - lo > 60_000) {
-      const mid = lo + Math.floor((hi - lo) / 120_000) * 60_000;
-      if (offsetMinutes(new Date(mid), timeZone) === previous) lo = mid;
-      else hi = mid;
-    }
-    changes.push({ at: new Date(hi), from: previous, to: now });
-    previous = now;
-  }
+  const firstYear = from.getUTCFullYear() - 1;
+  const lastYear = to.getUTCFullYear() + 1;
+  const start = new Date(Date.UTC(firstYear, 0, 1));
+  const changes: ZoneChange[] = [];
+  for (let year = firstYear; year <= lastYear; year++) changes.push(...changesIn(timeZone, year));
   const first = offsetMinutes(start, timeZone);
   const lowest = Math.min(first, ...changes.map((c) => c.to));
   const block = (at: Date, offsetFrom: number, offsetTo: number) => {
@@ -139,11 +161,19 @@ function vtimezone(timeZone: string, from: Date, to: Date): string[] {
   ];
 }
 
-/** `DTSTART:…Z` in UTC, or the wall-clock time in `timeZone` when given. */
-const when = (name: string, at: Date, timeZone?: string) =>
-  timeZone
-    ? `${name};TZID=${timeZone}:${wallClock(at, offsetMinutes(at, timeZone))}`
-    : `${name}:${utc(at)}`;
+/**
+ * `DTSTART:…Z` in UTC, or the wall-clock time in `timeZone` when given. The
+ * hour the clocks go back happens twice: a time in it stays in UTC, since the
+ * wall clock alone would name the first of the two.
+ */
+function when(name: string, at: Date, timeZone?: string): string {
+  if (timeZone) {
+    const local = instantToLocal(at, timeZone);
+    if (localToInstant(local.date, local.minutesOfDay, timeZone).getTime() === at.getTime())
+      return `${name};TZID=${timeZone}:${wallClock(at, offsetMinutes(at, timeZone))}`;
+  }
+  return `${name}:${utc(at)}`;
+}
 
 function veventLines(
   e: FeedEvent,

@@ -450,6 +450,30 @@ describe("meetings with the chef", () => {
     );
     expect(slots.data.free).toEqual(["15:00", "15:30", "16:00", "16:30", "17:00"]);
 
+    // for a booking, only the times over before its event
+    const early = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant(FRIDAY, "16:30"),
+        partySize: 22,
+        customer: { name: "Paolo Verdi", phone: "+39 340 3333333" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      owner.session,
+    );
+    const forEarly = parse<{ free: string[] }>(
+      await client.callTool({
+        name: "get_meeting_slots",
+        arguments: { date: FRIDAY, bookingId: early.body.id },
+      }),
+    );
+    expect(forEarly.data.free).toEqual(["15:00", "15:30", "16:00"]);
+
     const wrong = parse(
       await client.callTool({
         name: "schedule_meeting",
@@ -468,13 +492,16 @@ describe("meetings with the chef", () => {
     expect(booked.isError, booked.text).toBe(false);
     expect(booked.data.meeting).toMatchObject({ time: "15:30", until: "16:00" });
 
-    const moved = parse<{ meeting: { time: string; movedFrom: string } }>(
+    const moved = parse<{ meeting: { time: string; movedFrom: { date: string; time: string } } }>(
       await client.callTool({
         name: "schedule_meeting",
         arguments: { bookingId, date: FRIDAY, time: "16:00" },
       }),
     );
-    expect(moved.data.meeting).toMatchObject({ time: "16:00", movedFrom: "15:30" });
+    expect(moved.data.meeting).toMatchObject({
+      time: "16:00",
+      movedFrom: { date: `${FRIDAY} (fri)`, time: "15:30" },
+    });
 
     const list = parse<{ meetings: Array<Record<string, unknown>> }>(
       await client.callTool({ name: "list_meetings", arguments: { from: FRIDAY, to: FRIDAY } }),
@@ -485,7 +512,7 @@ describe("meetings with the chef", () => {
         time: "16:00",
         guest: "Laura Neri",
         partySize: 25,
-        event: "2026-06-19 20:00",
+        event: { date: "2026-06-19 (fri)", time: "20:00" },
         bookingId,
       }),
     ]);

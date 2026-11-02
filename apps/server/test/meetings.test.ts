@@ -1,6 +1,7 @@
 import { booking, customer } from "@openpax/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { buildFeed } from "../src/modules/meetings/ics.js";
 import { refreshMeetingOfBooking } from "../src/modules/meetings/service.js";
 import {
   addMember,
@@ -596,5 +597,33 @@ describe("host calendar subscription", () => {
     expect((await setFeed(fx, "POST", staff)).status).toBe(403);
     expect((await rotateFeed(fx, staff)).status).toBe(403);
     expect((await setFeed(fx, "DELETE", staff)).status).toBe(403);
+  });
+});
+
+describe("feed times", () => {
+  const at = (iso: string) => ({
+    uid: iso,
+    sequence: 0,
+    startsAt: new Date(iso),
+    endsAt: new Date(new Date(iso).getTime() + 30 * 60_000),
+    stamp: new Date("2026-06-10T10:00:00Z"),
+    summary: "Meeting",
+    description: "",
+    location: null,
+  });
+
+  it("writes Rome wall-clock times, winter and summer, and UTC for the hour that repeats", () => {
+    const ics = buildFeed(
+      [at("2026-11-03T14:00:00Z"), at("2026-06-12T13:30:00Z"), at("2026-10-25T01:30:00Z")],
+      "Meetings",
+      "Europe/Rome",
+    );
+    expect(ics).toContain("DTSTART;TZID=Europe/Rome:20261103T150000");
+    expect(ics).toContain("DTSTART;TZID=Europe/Rome:20260612T153000");
+    // 02:30 on 25 October happens twice; this is the second one
+    expect(ics).toContain("DTSTART:20261025T013000Z");
+    expect(ics).toMatch(
+      /BEGIN:DAYLIGHT\r\nDTSTART:20260329T020000\r\nTZOFFSETFROM:\+0100\r\nTZOFFSETTO:\+0200/,
+    );
   });
 });
