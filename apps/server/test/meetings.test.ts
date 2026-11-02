@@ -520,7 +520,14 @@ describe("host calendar subscription", () => {
     const ics = await res.text();
     expect(ics).toContain("METHOD:PUBLISH");
     expect(ics).toContain(`UID:${meeting.body.id}@openpax`);
-    expect(ics).toContain("DTSTART:20260612T133000Z");
+    // Rome wall-clock time with the zone named, or Google shows it in UTC
+    expect(ics).toContain("X-WR-TIMEZONE:Europe/Rome");
+    expect(ics).toContain("TZID:Europe/Rome");
+    expect(ics).toContain("DTSTART;TZID=Europe/Rome:20260612T153000");
+    // summer time now, winter time from the last Sunday of October
+    expect(ics).toMatch(
+      /BEGIN:STANDARD\r\nDTSTART:20261025T030000\r\nTZOFFSETFROM:\+0200\r\nTZOFFSETTO:\+0100/,
+    );
     expect(ics).toContain("SUMMARY:Appuntamento con Laura Neri");
     expect(ics).not.toContain("ATTENDEE");
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1); // the cancelled one is gone

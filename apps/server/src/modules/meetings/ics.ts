@@ -69,13 +69,94 @@ const alarm = [
 
 export type FeedEvent = Omit<IcsEvent, "method" | "organizer" | "attendee">;
 
-function veventLines(e: FeedEvent, cancelled: boolean, people: string[]): string[] {
+/** Minutes ahead of UTC in `timeZone` at that instant. */
+function offsetMinutes(at: Date, timeZone: string): number {
+  const name =
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
+      .formatToParts(at)
+      .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+  const m = /([+-])(\d{2}):?(\d{2})?/.exec(name);
+  if (!m) return 0;
+  return (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
+}
+
+const offsetText = (minutes: number) => {
+  const abs = Math.abs(minutes);
+  const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+  const mm = String(abs % 60).padStart(2, "0");
+  return `${minutes < 0 ? "-" : "+"}${hh}${mm}`;
+};
+
+/** Wall-clock time as iCalendar writes it, at a fixed offset from UTC. */
+const wallClock = (at: Date, offset: number) =>
+  utc(new Date(at.getTime() + offset * 60_000)).slice(0, -1);
+
+const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * The time zone's offsets around the meetings, a year either side, read from
+ * the platform's zone data. Calendar apps take the rules from here, so a
+ * meeting after the clocks change still shows at its own wall-clock time.
+ */
+function vtimezone(timeZone: string, from: Date, to: Date): string[] {
+  const start = new Date(from.getTime() - 366 * DAY_MS);
+  const end = new Date(to.getTime() + 366 * DAY_MS);
+  const changes: Array<{ at: Date; from: number; to: number }> = [];
+  let previous = offsetMinutes(start, timeZone);
+  for (let t = start.getTime() + DAY_MS; t <= end.getTime(); t += DAY_MS) {
+    const now = offsetMinutes(new Date(t), timeZone);
+    if (now === previous) continue;
+    // the change happened in the last day: narrow it to the minute
+    let lo = t - DAY_MS;
+    let hi = t;
+    while (hi - lo > 60_000) {
+      const mid = lo + Math.floor((hi - lo) / 120_000) * 60_000;
+      if (offsetMinutes(new Date(mid), timeZone) === previous) lo = mid;
+      else hi = mid;
+    }
+    changes.push({ at: new Date(hi), from: previous, to: now });
+    previous = now;
+  }
+  const first = offsetMinutes(start, timeZone);
+  const lowest = Math.min(first, ...changes.map((c) => c.to));
+  const block = (at: Date, offsetFrom: number, offsetTo: number) => {
+    const kind = offsetTo > lowest ? "DAYLIGHT" : "STANDARD";
+    return [
+      `BEGIN:${kind}`,
+      `DTSTART:${wallClock(at, offsetFrom)}`,
+      `TZOFFSETFROM:${offsetText(offsetFrom)}`,
+      `TZOFFSETTO:${offsetText(offsetTo)}`,
+      `END:${kind}`,
+    ];
+  };
+  return [
+    "BEGIN:VTIMEZONE",
+    `TZID:${timeZone}`,
+    ...block(start, first, first),
+    ...changes.flatMap((c) => block(c.at, c.from, c.to)),
+    "END:VTIMEZONE",
+  ];
+}
+
+/** `DTSTART:…Z` in UTC, or the wall-clock time in `timeZone` when given. */
+const when = (name: string, at: Date, timeZone?: string) =>
+  timeZone
+    ? `${name};TZID=${timeZone}:${wallClock(at, offsetMinutes(at, timeZone))}`
+    : `${name}:${utc(at)}`;
+
+function veventLines(
+  e: FeedEvent,
+  cancelled: boolean,
+  people: string[],
+  timeZone?: string,
+): string[] {
   return [
     "BEGIN:VEVENT",
     `UID:${e.uid}`,
     `DTSTAMP:${utc(e.stamp)}`,
-    `DTSTART:${utc(e.startsAt)}`,
-    `DTEND:${utc(e.endsAt)}`,
+    when("DTSTART", e.startsAt, timeZone),
+    when("DTEND", e.endsAt, timeZone),
     `SEQUENCE:${e.sequence}`,
     `STATUS:${cancelled ? "CANCELLED" : "CONFIRMED"}`,
     `SUMMARY:${escapeText(e.summary)}`,
@@ -131,14 +212,32 @@ const noEvents = [
 
 /**
  * The host's subscription calendar: every live meeting, read by the calendar
- * app on its own schedule. Same UIDs as the email invites.
+ * app on its own schedule. Same UIDs as the email invites. Times are written
+ * in the restaurant's zone and the calendar names it: without that, Google
+ * gives a subscribed calendar UTC and shows every meeting an hour or two early.
  */
-export function buildFeed(events: FeedEvent[], name: string): string {
-  const body = events.length > 0 ? events.map((e) => veventLines(e, false, [])) : [noEvents];
+export function buildFeed(events: FeedEvent[], name: string, timeZone?: string): string {
+  const zoned = timeZone !== undefined && events.length > 0;
+  const body =
+    events.length === 0
+      ? [noEvents]
+      : [
+          ...(zoned
+            ? [
+                vtimezone(
+                  timeZone,
+                  new Date(Math.min(...events.map((e) => e.startsAt.getTime()))),
+                  new Date(Math.max(...events.map((e) => e.endsAt.getTime()))),
+                ),
+              ]
+            : []),
+          ...events.map((e) => veventLines(e, false, [], zoned ? timeZone : undefined)),
+        ];
   return calendar(
     [
       "METHOD:PUBLISH",
       `X-WR-CALNAME:${escapeText(name)}`,
+      ...(timeZone ? [`X-WR-TIMEZONE:${timeZone}`] : []),
       "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
       "X-PUBLISHED-TTL:PT1H",
     ],
