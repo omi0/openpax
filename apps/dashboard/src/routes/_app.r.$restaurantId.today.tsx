@@ -91,6 +91,9 @@ import {
   todayLocal,
 } from "@/lib/utils";
 
+/** Actions that say which operator did them. */
+type OperatorAction = "cancel" | "no_show";
+
 export const Route = createFileRoute("/_app/r/$restaurantId/today")({
   validateSearch: (search: Record<string, unknown>): { date?: string } =>
     typeof search.date === "string" ? { date: search.date } : {},
@@ -118,8 +121,13 @@ function TodayPage() {
   // with operators, cancelling asks who is doing it (name + code) before the reason
   const [cancelGate, setCancelGate] = useState<BookingDto | null>(null);
   const [cancelOperator, setCancelOperator] = useState<VerifiedOperator | null>(null);
-  // the staff list did not load: cancelling waits for it instead of guessing
-  const [cancelBlocked, setCancelBlocked] = useState<BookingDto | null>(null);
+  // marking a no-show asks the same, then goes straight through
+  const [noShowGate, setNoShowGate] = useState<BookingDto | null>(null);
+  // the staff list did not load: cancelling or the no-show waits for it instead of guessing
+  const [gateBlocked, setGateBlocked] = useState<{
+    booking: BookingDto;
+    action: OperatorAction;
+  } | null>(null);
   const operators = useQuery(operatorsQuery(restaurantId));
   const [reason, setReason] = useState("");
   const [assigning, setAssigning] = useState<BookingDto | null>(null);
@@ -177,7 +185,17 @@ function TodayPage() {
       const askAgain =
         e instanceof ApiClientError &&
         ["wrong_pin", "unknown_operator", "operator_locked", "operator_required"].includes(e.code);
-      if (askAgain && vars.action === "cancel" && cancelling) {
+      const noShow =
+        askAgain && vars.action === "no_show"
+          ? bookings.data?.items.find((b) => b.id === vars.id)
+          : undefined;
+      if (noShow) {
+        // ask who it is again
+        await queryClient.invalidateQueries({
+          queryKey: ["restaurant", restaurantId, "operators"],
+        });
+        setNoShowGate(noShow);
+      } else if (askAgain && vars.action === "cancel" && cancelling) {
         // the code changed or an operator was added meanwhile: ask who it is, the reason stays
         await queryClient.invalidateQueries({
           queryKey: ["restaurant", restaurantId, "operators"],
@@ -189,25 +207,30 @@ function TodayPage() {
       toast.error(askAgain ? t("operators.askAgain") : t("app.error"));
     },
   });
-  const askCancel = async (b: BookingDto) => {
-    setCancelBlocked(null);
+  const askFirst = (b: BookingDto, action: "seat" | "complete" | "reopen" | "no_show") =>
+    confirm({
+      title: t(`today.ask.${action}`, { name: b.customer.name }),
+      confirmLabel: t("app.yes"),
+      cancelLabel: t("app.no"),
+      tone: "primary",
+    });
+  const askOperator = async (b: BookingDto, action: OperatorAction) => {
+    setGateBlocked(null);
     setCancelOperator(null);
     // fresh list: whether a code is needed must not depend on what is cached
     const list = await operators.refetch();
-    if (list.isError) return setCancelBlocked(b);
-    return (list.data?.length ?? 0) > 0 ? setCancelGate(b) : setCancelling(b);
+    if (list.isError) return setGateBlocked({ booking: b, action });
+    const needed = (list.data?.length ?? 0) > 0;
+    if (action === "cancel") return needed ? setCancelGate(b) : setCancelling(b);
+    if (needed) return setNoShowGate(b);
+    if (await askFirst(b, action)) act.mutate({ id: b.id, action });
   };
   const run = async (b: BookingDto, action: BookingAction) => {
-    if (action === "cancel") return askCancel(b);
+    if (action === "cancel" || action === "no_show") return askOperator(b, action);
     // a stray tap on "seat" or "complete" is easy during service: ask first
     if (
       (action === "seat" || action === "complete" || action === "reopen") &&
-      !(await confirm({
-        title: t(`today.ask.${action}`, { name: b.customer.name }),
-        confirmLabel: t("app.yes"),
-        cancelLabel: t("app.no"),
-        tone: "primary",
-      }))
+      !(await askFirst(b, action))
     )
       return;
     act.mutate({ id: b.id, action });
@@ -534,10 +557,10 @@ function TodayPage() {
         canOverride={role !== "staff"}
       />
       <OperatorsLoadError
-        open={cancelBlocked !== null}
+        open={gateBlocked !== null}
         retrying={operators.isFetching}
-        onRetry={() => cancelBlocked && void askCancel(cancelBlocked)}
-        onCancel={() => setCancelBlocked(null)}
+        onRetry={() => gateBlocked && void askOperator(gateBlocked.booking, gateBlocked.action)}
+        onCancel={() => setGateBlocked(null)}
       />
       <OperatorGate
         restaurantId={restaurantId}
@@ -549,6 +572,17 @@ function TodayPage() {
           setCancelOperator(op);
           setCancelling(cancelGate);
           setCancelGate(null);
+        }}
+      />
+      <OperatorGate
+        restaurantId={restaurantId}
+        operators={operators.data ?? []}
+        open={noShowGate !== null}
+        title={t("operators.whoIsNoShow")}
+        onCancel={() => setNoShowGate(null)}
+        onVerified={(op) => {
+          if (noShowGate) act.mutate({ id: noShowGate.id, action: "no_show", operator: op });
+          setNoShowGate(null);
         }}
       />
       <Dialog

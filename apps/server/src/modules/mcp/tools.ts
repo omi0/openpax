@@ -24,9 +24,12 @@ import { ApiError } from "../../lib/errors.js";
 import { getAnalytics } from "../analytics/index.js";
 import { getAvailability } from "../availability/index.js";
 import {
+  ACTIVITY_ACTIONS,
+  type ActivityItem,
   applyBookingAction,
   createBooking,
   getBookingWithRelations,
+  listActivity,
   listBookings,
   toBookingDto,
   updateBooking,
@@ -40,6 +43,7 @@ import {
   meetingSlots,
   scheduleMeeting,
 } from "../meetings/index.js";
+import { listOperators } from "../operators/index.js";
 import {
   createException,
   getPolicy,
@@ -176,6 +180,62 @@ function bookingKey(clientId: string, parts: Array<string | number | null | unde
 function localWhen(instant: string | Date, timeZone: string) {
   const local = instantToLocal(new Date(instant), timeZone);
   return { date: dateLabel(local.date), time: formatMinutesOfDay(local.minutesOfDay) };
+}
+
+const ACTOR_LABEL: Record<ActivityItem["actor"], string> = {
+  operator: "staff",
+  assistant: "assistant",
+  guest: "guest, online",
+  api: "API",
+  system: "OpenPax",
+  dashboard: "dashboard, no operator recorded",
+};
+const FIELD_LABEL: Record<string, string> = {
+  startsAt: "date and time",
+  partySize: "party size",
+  serviceId: "service",
+  areaId: "room",
+  operatorName: "taken by",
+};
+
+/** One history entry as the model reads it, times in the restaurant's clock. */
+function activityBrief(x: ActivityItem, timeZone: string) {
+  const value = (field: string, v: unknown) => {
+    if (v === null) return "none";
+    if (field === "startsAt" && typeof v === "string") {
+      const when = localWhen(v, timeZone);
+      return `${when.date} ${when.time}`;
+    }
+    return v;
+  };
+  return {
+    ...localWhen(x.at, timeZone),
+    action: x.action,
+    by: x.operator ?? ACTOR_LABEL[x.actor],
+    booking: {
+      id: x.booking.id,
+      guest: x.booking.guest,
+      date: dateLabel(x.booking.serviceDate),
+      time: clock(x.booking.startsAt, timeZone),
+      partySize: x.booking.partySize,
+      status: x.booking.status,
+    },
+    ...(x.changes
+      ? {
+          changes: x.changes.map((c) =>
+            "from" in c
+              ? {
+                  field: FIELD_LABEL[c.field] ?? c.field,
+                  from: value(c.field, c.from),
+                  to: value(c.field, c.to),
+                }
+              : { field: FIELD_LABEL[c.field] ?? c.field },
+          ),
+        }
+      : {}),
+    ...(x.reason ? { reason: x.reason } : {}),
+    ...(x.imported ? { imported: true } : {}),
+  };
 }
 
 /**
@@ -338,6 +398,62 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       return {
         total: page.total,
         bookings: page.items.map((b) => bookingBrief(b, row.timezone)),
+      };
+    },
+  }),
+
+  define({
+    name: "list_activity",
+    title: "Who did what",
+    description:
+      "Who took, changed, cancelled, marked as no-show or reopened which bookings, and when: staff operators by name, guests online, or the assistant. Filter by operator (part of the name is enough), by who (online guests, the assistant) or by booking (its whole history). Defaults to the last 7 days. Changes show old and new values. Older changes and no-shows may have no operator recorded.",
+    input: {
+      ...restaurantArg,
+      from: dateArg
+        .optional()
+        .describe("First day the action happened (default: 6 days before to)"),
+      to: dateArg.optional().describe("Last day the action happened (default today)"),
+      operator: z.string().trim().min(1).max(60).optional().describe("Staff operator's name"),
+      by: z
+        .enum(["online", "assistant"])
+        .optional()
+        .describe("Only guests online, or only the assistant"),
+      bookingId: z.uuid().optional().describe("One booking; without dates, its whole history"),
+      actions: z.array(z.enum(ACTIVITY_ACTIONS)).optional().describe("Default: all of them"),
+      limit: limitArg(500, 200),
+    },
+    scope: "read",
+    permissions: { booking: ["read"] },
+    annotations: READ,
+    run: async ({ restaurantId, from, to, operator, by, bookingId, actions, limit }, tc) => {
+      const { row } = await tc.restaurant(restaurantId, { booking: ["read"] });
+      const whole = bookingId !== undefined && !from && !to;
+      const end = whole ? undefined : (to ?? todayIn(row.timezone, tc.ctx.now()));
+      const start = end && (from ?? addDaysToLocalDate(end, -6));
+      if (start && end && end < start)
+        throw new ToolError(to ? "`to` must not be before `from`." : "`from` is after today.");
+      if (start && end && end > addDaysToLocalDate(start, 366))
+        throw new ToolError("Ask for at most a year at a time.");
+      const page = await listActivity(tc.ctx, row, {
+        from: start,
+        to: end,
+        bookingId,
+        operator,
+        by,
+        actions,
+        limit,
+      });
+      const known =
+        operator && page.items.length === 0
+          ? (await listOperators(tc.ctx, row)).map((o) => o.name)
+          : undefined;
+      return {
+        ...(start ? { from: dateLabel(start), to: dateLabel(end as string) } : {}),
+        events: page.items.map((x) => activityBrief(x, row.timezone)),
+        ...(page.more
+          ? { more: "Older events were left out: narrow the period or raise limit." }
+          : {}),
+        ...(known ? { operators: known } : {}),
       };
     },
   }),

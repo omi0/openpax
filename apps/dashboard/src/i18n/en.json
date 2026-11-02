@@ -242,7 +242,8 @@
     "ask": {
       "seat": "Confirm? Seat {{name}}",
       "complete": "Confirm? Close {{name}}'s table",
-      "reopen": "Confirm? Reopen {{name}}'s booking"
+      "reopen": "Confirm? Reopen {{name}}'s booking",
+      "no_show": "Confirm? {{name}} did not show up"
     },
     "modifiedBy": "Changed by",
     "cancelledBy": "Cancelled by",
@@ -1158,6 +1159,7 @@
     "whoIsTaking": "Who is taking the booking?",
     "whoIsChanging": "Who is changing the booking?",
     "whoIsCancelling": "Who is cancelling the booking?",
+    "whoIsNoShow": "Who is marking the no-show?",
     "typeCode": "{{name}}, type your code",
     "code": "Code",
     "back": "Back to names",

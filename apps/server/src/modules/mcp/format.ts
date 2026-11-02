@@ -63,6 +63,9 @@ export function bookingBrief(b: BookingDto, timeZone: string) {
     notes: b.notes,
     tables: b.tables.map((t) => t.name),
     source: b.source,
+    takenBy: b.operatorName,
+    lastChangedBy: b.modifiedByOperatorName,
+    cancelledBy: b.cancelledByOperatorName,
     payment: b.payment ? b.payment.status : undefined,
   });
 }

@@ -6,6 +6,11 @@ export const bookingsModule = defineModule({
   routes: bookingRoutes,
 });
 
+export {
+  ACTIVITY_ACTIONS,
+  type ActivityItem,
+  listActivity,
+} from "./activity.js";
 /**
  * Public API of the module for features that create or change bookings on a
  * guest's behalf (waitlist offers, deposits, table assignment). Everything

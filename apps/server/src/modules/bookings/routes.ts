@@ -273,9 +273,9 @@ export function bookingRoutes(app: OpenAPIHono<AppEnv>, ctx: AppContext) {
     async (c) => {
       const body = c.req.valid("json");
       const r = c.get("restaurant");
-      // cancelling from the dashboard says who did it, like taking a booking
+      // cancelling or marking a no-show from the dashboard says who did it, like taking a booking
       const operator =
-        body.action === "cancel"
+        body.action === "cancel" || body.action === "no_show"
           ? await requireOperator(ctx, r, c.get("actor"), body.operator)
           : null;
       const result = await svc.applyBookingAction(ctx, r, {
