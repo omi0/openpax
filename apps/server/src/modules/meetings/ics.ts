@@ -1,6 +1,6 @@
 /** Just enough RFC 5545 for a one-off meeting invite and its cancellation. */
 
-import { instantToLocal, localToInstant } from "@openpax/core";
+import { instantToLocal } from "@openpax/core";
 
 export interface IcsEvent {
   uid: string;
@@ -167,12 +167,26 @@ function vtimezone(timeZone: string, from: Date, to: Date): string[] {
  * wall clock alone would name the first of the two.
  */
 function when(name: string, at: Date, timeZone?: string): string {
-  if (timeZone) {
-    const local = instantToLocal(at, timeZone);
-    if (localToInstant(local.date, local.minutesOfDay, timeZone).getTime() === at.getTime())
-      return `${name};TZID=${timeZone}:${wallClock(at, offsetMinutes(at, timeZone))}`;
-  }
+  if (timeZone && !repeatedWallClock(at, timeZone))
+    return `${name};TZID=${timeZone}:${wallClock(at, offsetMinutes(at, timeZone))}`;
   return `${name}:${utc(at)}`;
+}
+
+/**
+ * Another instant shows the same wall clock: the one an offset change away,
+ * the only candidates being the offsets in force a few hours either side.
+ */
+function repeatedWallClock(at: Date, timeZone: string): boolean {
+  const offset = offsetMinutes(at, timeZone);
+  const wall = at.getTime() + offset * MINUTE_MS;
+  const near = [-3, 3].map((h) =>
+    offsetMinutes(new Date(at.getTime() + h * 60 * MINUTE_MS), timeZone),
+  );
+  return near.some((other) => {
+    if (other === offset) return false;
+    const candidate = new Date(wall - other * MINUTE_MS);
+    return offsetMinutes(candidate, timeZone) === other;
+  });
 }
 
 function veventLines(
