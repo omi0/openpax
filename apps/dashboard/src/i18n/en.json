@@ -1158,6 +1158,7 @@
     "whoIsTaking": "Who is taking the booking?",
     "whoIsChanging": "Who is changing the booking?",
     "whoIsCancelling": "Who is cancelling the booking?",
+    "whoIsNoShow": "Who is marking the no-show?",
     "typeCode": "{{name}}, type your code",
     "code": "Code",
     "back": "Back to names",

@@ -1158,6 +1158,7 @@
     "whoIsTaking": "Chi prende la prenotazione?",
     "whoIsChanging": "Chi modifica la prenotazione?",
     "whoIsCancelling": "Chi annulla la prenotazione?",
+    "whoIsNoShow": "Chi segna il no-show?",
     "typeCode": "{{name}}, scrivi il tuo codice",
     "code": "Codice",
     "back": "Torna ai nomi",

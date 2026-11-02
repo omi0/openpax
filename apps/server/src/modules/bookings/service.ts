@@ -692,6 +692,7 @@ async function insertBookingLocked(
       startsAt: row.startsAt.toISOString(),
       ignoreCapacity: p.ignoreCapacity ?? false,
       ...(p.imported ? { imported: true } : {}),
+      ...(p.operatorName ? { operator: p.operatorName } : {}),
     },
   });
   if (p.onCreated) await p.onCreated(tx, { id: row.id, startsAt: row.startsAt });
@@ -705,7 +706,7 @@ export interface ApplyActionParams {
   action: BookingAction;
   actor: Actor;
   reason?: string | null;
-  /** Operator who cancelled (checked by the caller). */
+  /** Operator who cancelled or marked the no-show (checked by the caller). */
   operatorName?: string | null;
 }
 
@@ -850,7 +851,12 @@ export async function applyBookingAction(
       action: `booking.${p.action}`,
       entityType: "booking",
       entityId: row.id,
-      data: { from: row.status, to: next, reason: p.reason ?? null },
+      data: {
+        from: row.status,
+        to: next,
+        reason: p.reason ?? null,
+        ...(p.operatorName ? { operator: p.operatorName } : {}),
+      },
     });
   });
   return getBookingWithRelations(ctx.db, r.id, p.bookingId);
@@ -887,6 +893,25 @@ export async function cancelByGuest(
 }
 
 // ---------- modification
+
+type ChangedFields = {
+  startsAt: Date;
+  partySize: number;
+  serviceId: string;
+  areaId: string | null;
+  operatorName: string | null;
+};
+
+/** The values behind `changes` worth showing; notes and tables are only named. */
+function changedValues(changes: string[], v: ChangedFields): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const c of changes) {
+    if (c === "startsAt") out.startsAt = v.startsAt.toISOString();
+    else if (c === "partySize" || c === "serviceId" || c === "areaId" || c === "operatorName")
+      out[c] = v[c];
+  }
+  return out;
+}
 
 export async function updateBooking(
   ctx: AppContext,
@@ -1012,7 +1037,19 @@ export async function updateBooking(
       action: "booking.modified",
       entityType: "booking",
       entityId: row.id,
-      data: { changes },
+      data: {
+        changes,
+        // old and new values, so the history can say "20:00 → 21:00"
+        before: changedValues(changes, row),
+        after: changedValues(changes, {
+          startsAt,
+          partySize,
+          serviceId,
+          areaId,
+          operatorName: input.operatorName !== undefined ? input.operatorName : row.operatorName,
+        }),
+        ...(modifiedBy ? { operator: modifiedBy } : {}),
+      },
     });
   });
   return getBookingWithRelations(ctx.db, r.id, bookingId);
