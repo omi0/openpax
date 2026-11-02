@@ -975,10 +975,19 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           !["meeting_not_a_slot", "meeting_slot_taken"].includes(error.code)
         )
           throw error;
-        const day = await chefSlots(tc, row, date, bookingId);
+        // the early hours of `date` may belong to the previous evening's window
+        const [previous, day] = await Promise.all([
+          chefSlots(tc, row, addDaysToLocalDate(date, -1), bookingId),
+          chefSlots(tc, row, date, bookingId),
+        ]);
+        const onDate = ` on ${date}`;
+        const free = [
+          ...previous.free.filter((s) => s.endsWith(onDate)).map((s) => s.slice(0, -onDate.length)),
+          ...day.free,
+        ];
         throw new ToolError(
-          day.free.length
-            ? `The chef has no free meeting at ${time} on ${date}. Free times: ${day.free.join(", ")}.`
+          free.length
+            ? `The chef has no free meeting at ${time} on ${date}. Free times: ${free.join(", ")}.`
             : `The chef has no free meeting on ${date}${day.closed ? " (closed)" : ""}.`,
         );
       }

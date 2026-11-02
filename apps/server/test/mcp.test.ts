@@ -538,6 +538,48 @@ describe("meetings with the chef", () => {
     expect(readNames).not.toContain("cancel_meeting");
     await readClient.close();
   });
+
+  it("suggests the early hours a late window of the day before leaves free", async () => {
+    const owner = await createFixture(t);
+    const base = `/api/v1/restaurants/${owner.restaurantId}`;
+    await api(
+      t,
+      "PUT",
+      `${base}/policy`,
+      { meetingMinPartySize: 21, meetingHours: { thu: [{ start: "23:00", end: "00:30" }] } },
+      owner.session,
+    );
+    const group = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant("2026-06-19", "20:00"),
+        partySize: 25,
+        customer: { name: "Laura Neri", phone: "+39 340 2222222" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      owner.session,
+    );
+    expect(group.status, JSON.stringify(group.body)).toBe(201);
+    const tokens = await connectAssistant(owner.session, {
+      clientId: await registerClient("Late meetings"),
+    });
+    const client = await mcpClient(tokens.access_token);
+    // 00:00 on Friday is the last slot of Thursday's 23:00-00:30 window
+    const wrong = parse(
+      await client.callTool({
+        name: "schedule_meeting",
+        arguments: { bookingId: group.body.id, date: FRIDAY, time: "01:00" },
+      }),
+    );
+    expect(wrong.isError).toBe(true);
+    expect(wrong.text).toContain("Free times: 00:00.");
+    await client.close();
+  });
 });
 
 describe("settings", () => {
