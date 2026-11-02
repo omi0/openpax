@@ -66,7 +66,7 @@ function instructions(
           .join("; ")}.`,
     "Dates are YYYY-MM-DD and times HH:MM on the 24-hour clock in the restaurant's time zone (8pm is 20:00). Party size means number of guests (covers).",
     canWrite
-      ? "You may create and change bookings, add guest notes, close days and offer waitlist spots. You may also book, move and cancel the chef's planning meetings with large groups (list_meetings, get_meeting_slots). Before cancelling a booking or a meeting, marking a no-show or closing days, make sure the user really asked for it. Bookings you create are recorded as made by the assistant; the guest gets the usual confirmation unless notifyGuest is false."
+      ? "You may create and change bookings, add guest notes, close days and offer waitlist spots. You may also book, move and cancel the chef's planning meetings with large groups (schedule_meeting, cancel_meeting; get_meeting_slots for the free times). Before cancelling a booking or a meeting, marking a no-show or closing days, make sure the user really asked for it. Bookings you create are recorded as made by the assistant; the guest gets the usual confirmation unless notifyGuest is false."
       : "This connection is read-only: you can look things up but not change them. To allow changes, the owner reconnects the assistant from Settings → Assistants and keeps 'allow changes' on.",
     "When a slot is not available the answer says why (full, closed, no table, outside hours). Suggest the nearest free times from check_availability instead of guessing.",
   ];
