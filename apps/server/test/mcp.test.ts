@@ -12,6 +12,7 @@ import {
   type Fixture,
   FRIDAY,
   PUBLIC_URL,
+  romeInstant,
   type Session,
   type TestApp,
 } from "./helpers.js";
@@ -398,6 +399,186 @@ describe("tools", () => {
     expect(staffTools).toContain("create_booking");
     expect(staffTools).not.toContain("close_days");
     await staffClient.close();
+  });
+});
+
+describe("meetings with the chef", () => {
+  it("shows the chef's free times, books, moves, lists and cancels a meeting", async () => {
+    const owner = await createFixture(t);
+    const base = `/api/v1/restaurants/${owner.restaurantId}`;
+    await api(
+      t,
+      "PUT",
+      `${base}/policy`,
+      { meetingMinPartySize: 21, meetingHours: { fri: [{ start: "15:00", end: "17:30" }] } },
+      owner.session,
+    );
+    const group = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant("2026-06-19", "20:00"),
+        partySize: 25,
+        customer: { name: "Laura Neri", phone: "+39 340 2222222" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      owner.session,
+    );
+    expect(group.status, JSON.stringify(group.body)).toBe(201);
+    const bookingId = group.body.id;
+
+    const tokens = await connectAssistant(owner.session, {
+      clientId: await registerClient("Meetings"),
+    });
+    const client = await mcpClient(tokens.access_token);
+    const names = (await client.listTools()).tools.map((x) => x.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "list_meetings",
+        "get_meeting_slots",
+        "schedule_meeting",
+        "cancel_meeting",
+      ]),
+    );
+
+    const slots = parse<{ free: string[] }>(
+      await client.callTool({ name: "get_meeting_slots", arguments: { date: FRIDAY } }),
+    );
+    expect(slots.data.free).toEqual(["15:00", "15:30", "16:00", "16:30", "17:00"]);
+
+    // for a booking, only the times over before its event
+    const early = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant(FRIDAY, "16:30"),
+        partySize: 22,
+        customer: { name: "Paolo Verdi", phone: "+39 340 3333333" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      owner.session,
+    );
+    const forEarly = parse<{ free: string[] }>(
+      await client.callTool({
+        name: "get_meeting_slots",
+        arguments: { date: FRIDAY, bookingId: early.body.id },
+      }),
+    );
+    expect(forEarly.data.free).toEqual(["15:00", "15:30", "16:00"]);
+
+    const wrong = parse(
+      await client.callTool({
+        name: "schedule_meeting",
+        arguments: { bookingId, date: FRIDAY, time: "18:00" },
+      }),
+    );
+    expect(wrong.isError).toBe(true);
+    expect(wrong.text).toContain("Free times: 15:00, 15:30");
+
+    const booked = parse<{ meeting: { time: string; until: string } }>(
+      await client.callTool({
+        name: "schedule_meeting",
+        arguments: { bookingId, date: FRIDAY, time: "15:30" },
+      }),
+    );
+    expect(booked.isError, booked.text).toBe(false);
+    expect(booked.data.meeting).toMatchObject({ time: "15:30", until: "16:00" });
+
+    const moved = parse<{ meeting: { time: string; movedFrom: { date: string; time: string } } }>(
+      await client.callTool({
+        name: "schedule_meeting",
+        arguments: { bookingId, date: FRIDAY, time: "16:00" },
+      }),
+    );
+    expect(moved.data.meeting).toMatchObject({
+      time: "16:00",
+      movedFrom: { date: `${FRIDAY} (fri)`, time: "15:30" },
+    });
+
+    const list = parse<{ meetings: Array<Record<string, unknown>> }>(
+      await client.callTool({ name: "list_meetings", arguments: { from: FRIDAY, to: FRIDAY } }),
+    );
+    expect(list.data.meetings).toEqual([
+      expect.objectContaining({
+        date: `${FRIDAY} (fri)`,
+        time: "16:00",
+        guest: "Laura Neri",
+        partySize: 25,
+        event: { date: "2026-06-19 (fri)", time: "20:00" },
+        bookingId,
+      }),
+    ]);
+
+    const cancelled = parse(
+      await client.callTool({ name: "cancel_meeting", arguments: { bookingId } }),
+    );
+    expect(cancelled.isError, cancelled.text).toBe(false);
+    const after = parse<{ meetings: unknown[] }>(
+      await client.callTool({ name: "list_meetings", arguments: { from: FRIDAY, to: FRIDAY } }),
+    );
+    expect(after.data.meetings).toEqual([]);
+    await client.close();
+
+    const readOnly = await connectAssistant(owner.session, {
+      acceptScope: "read offline_access",
+      clientId: await registerClient("Meetings read-only"),
+    });
+    const readClient = await mcpClient(readOnly.access_token);
+    const readNames = (await readClient.listTools()).tools.map((x) => x.name);
+    expect(readNames).toContain("list_meetings");
+    expect(readNames).not.toContain("schedule_meeting");
+    expect(readNames).not.toContain("cancel_meeting");
+    await readClient.close();
+  });
+
+  it("suggests the early hours a late window of the day before leaves free", async () => {
+    const owner = await createFixture(t);
+    const base = `/api/v1/restaurants/${owner.restaurantId}`;
+    await api(
+      t,
+      "PUT",
+      `${base}/policy`,
+      { meetingMinPartySize: 21, meetingHours: { thu: [{ start: "23:00", end: "00:30" }] } },
+      owner.session,
+    );
+    const group = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant("2026-06-19", "20:00"),
+        partySize: 25,
+        customer: { name: "Laura Neri", phone: "+39 340 2222222" },
+        source: "phone",
+        ignoreCapacity: true,
+        notifyGuest: false,
+      },
+      owner.session,
+    );
+    expect(group.status, JSON.stringify(group.body)).toBe(201);
+    const tokens = await connectAssistant(owner.session, {
+      clientId: await registerClient("Late meetings"),
+    });
+    const client = await mcpClient(tokens.access_token);
+    // 00:00 on Friday is the last slot of Thursday's 23:00-00:30 window
+    const wrong = parse(
+      await client.callTool({
+        name: "schedule_meeting",
+        arguments: { bookingId: group.body.id, date: FRIDAY, time: "01:00" },
+      }),
+    );
+    expect(wrong.isError).toBe(true);
+    expect(wrong.text).toContain("Free times: 00:00.");
+    await client.close();
   });
 });
 

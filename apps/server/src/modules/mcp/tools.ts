@@ -4,6 +4,8 @@ import {
   addDaysToLocalDate,
   BOOKING_ACTIONS,
   BOOKING_STATUSES,
+  formatMinutesOfDay,
+  instantToLocal,
   todayIn,
   WEEKDAYS,
   weekdayOf,
@@ -12,11 +14,13 @@ import {
   type BookingDto,
   localDateSchema,
   localTimeSchema,
+  MEETING_MINUTES,
   partySizeSchema,
 } from "@openpax/shared";
 import { z } from "zod";
 import type { Permissions } from "../../auth/access.js";
 import { writeAudit } from "../../lib/audit.js";
+import { ApiError } from "../../lib/errors.js";
 import { getAnalytics } from "../analytics/index.js";
 import { getAvailability } from "../availability/index.js";
 import {
@@ -29,6 +33,13 @@ import {
 } from "../bookings/index.js";
 import { getCustomer, listCustomers, toCustomerDto, updateCustomer } from "../customers/index.js";
 import { listFeedback } from "../feedback/index.js";
+import {
+  cancelMeeting,
+  getBookingMeeting,
+  listMeetings,
+  meetingSlots,
+  scheduleMeeting,
+} from "../meetings/index.js";
 import {
   createException,
   getPolicy,
@@ -159,6 +170,46 @@ function bookingKey(clientId: string, parts: Array<string | number | null | unde
     .digest("hex")
     .slice(0, 40);
   return `assistant:${digest}`;
+}
+
+/** Date (with weekday) and time of an instant in the restaurant's time zone. */
+function localWhen(instant: string | Date, timeZone: string) {
+  const local = instantToLocal(new Date(instant), timeZone);
+  return { date: dateLabel(local.date), time: formatMinutesOfDay(local.minutesOfDay) };
+}
+
+/**
+ * The chef's times on a date. For a booking, only those over before its event,
+ * its own meeting counted as free. A late window can run past midnight: those
+ * times say which date they fall on, since that is the date to book them with.
+ */
+async function chefSlots(
+  tc: ToolContext,
+  row: Parameters<typeof meetingSlots>[2],
+  date: string,
+  bookingId?: string,
+) {
+  let ignore: string | undefined;
+  let before = Number.POSITIVE_INFINITY;
+  if (bookingId) {
+    const b = toBookingDto(await getBookingWithRelations(tc.ctx.db, row.id, bookingId));
+    before = new Date(b.startsAt).getTime();
+    ignore = (await getBookingMeeting(tc.ctx, row, bookingId))?.id;
+  }
+  const day = await meetingSlots(tc.ctx, tc.ctx.db, row, date, ignore);
+  const label = (startsAt: string) => {
+    const local = instantToLocal(new Date(startsAt), row.timezone);
+    const time = formatMinutesOfDay(local.minutesOfDay);
+    return local.date === date ? time : `${time} on ${local.date}`;
+  };
+  const fits = day.slots.filter(
+    (s) => new Date(s.startsAt).getTime() + MEETING_MINUTES * 60_000 <= before,
+  );
+  return {
+    closed: day.closed,
+    free: fits.filter((s) => s.available).map((s) => label(s.startsAt)),
+    taken: fits.filter((s) => !s.available).map((s) => label(s.startsAt)),
+  };
 }
 
 const ACTIVE_STATUSES = ["pending", "confirmed", "seated"] as const;
@@ -837,6 +888,134 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       const { row, actor } = await tc.restaurant(restaurantId, { booking: ["cancel"] });
       const removed = await cancelEntry(tc.ctx, row, entryId, actor);
       return { entry: waitlistBrief(toEntryDto(removed), row.timezone) };
+    },
+  }),
+
+  define({
+    name: "list_meetings",
+    title: "Meetings with the chef",
+    description:
+      "The chef's planning meetings with large groups over a period: when, the guest and phone, the party size and when their event is. Defaults to the next 60 days.",
+    input: {
+      ...restaurantArg,
+      from: dateArg.optional().describe("First day (default today)"),
+      to: dateArg.optional().describe("Last day (default: 60 days after from, at most a year)"),
+    },
+    scope: "read",
+    permissions: { booking: ["read"] },
+    annotations: READ,
+    run: async ({ restaurantId, from, to }, tc) => {
+      const { row } = await tc.restaurant(restaurantId, { booking: ["read"] });
+      const start = from ?? todayIn(row.timezone, tc.ctx.now());
+      const end = to ?? addDaysToLocalDate(start, 60);
+      if (end < start) throw new ToolError("`to` must not be before `from`.");
+      if (end > addDaysToLocalDate(start, 366))
+        throw new ToolError("Ask for at most a year of meetings at a time.");
+      const meetings = await listMeetings(tc.ctx, row, { from: start, to: end });
+      return {
+        meetings: meetings.map((m) => ({
+          ...localWhen(m.startsAt, row.timezone),
+          until: clock(m.endsAt, row.timezone),
+          guest: m.customerName,
+          phone: m.customerPhone ?? undefined,
+          partySize: m.partySize,
+          event: localWhen(m.bookingStartsAt, row.timezone),
+          bookingId: m.bookingId,
+          bookingStatus: m.bookingStatus,
+        })),
+      };
+    },
+  }),
+
+  define({
+    name: "get_meeting_slots",
+    title: "The chef's free times",
+    description:
+      "The chef's meeting times on a date, free or taken, or that the day is closed. Large groups book one 30-minute slot. Pass bookingId to see only the times that work for that booking (over before its event, its own meeting counted as free).",
+    input: { ...restaurantArg, date: dateArg, bookingId: z.uuid().optional() },
+    scope: "read",
+    permissions: { booking: ["read"] },
+    annotations: READ,
+    run: async ({ restaurantId, date, bookingId }, tc) => {
+      const { row } = await tc.restaurant(restaurantId, { booking: ["read"] });
+      const day = await chefSlots(tc, row, date, bookingId);
+      return {
+        date: dateLabel(date),
+        ...(day.closed ? { closed: true } : {}),
+        free: day.free,
+        taken: day.taken,
+      };
+    },
+  }),
+
+  define({
+    name: "schedule_meeting",
+    title: "Book a meeting with the chef",
+    description:
+      'Book the chef\'s planning meeting for a large-group booking on a free slot, or move the one it has. Use get_meeting_slots with the bookingId for the free times; a slot shown as "00:30 on <date>" is booked with that date.',
+    input: { ...restaurantArg, bookingId: z.uuid(), date: dateArg, time: timeArg },
+    scope: "write",
+    permissions: { booking: ["update"] },
+    annotations: WRITE,
+    run: async ({ restaurantId, bookingId, date, time }, tc) => {
+      const { row, actor } = await tc.restaurant(restaurantId, { booking: ["update"] });
+      const current = await getBookingMeeting(tc.ctx, row, bookingId);
+      let meeting: Awaited<ReturnType<typeof scheduleMeeting>>;
+      try {
+        meeting = await scheduleMeeting(
+          tc.ctx,
+          row,
+          bookingId,
+          { startsAt: instantOf(date, time, row.timezone).toISOString() },
+          actor,
+        );
+      } catch (error) {
+        if (
+          !(error instanceof ApiError) ||
+          !["meeting_not_a_slot", "meeting_slot_taken"].includes(error.code)
+        )
+          throw error;
+        // the early hours of `date` may belong to the previous evening's window
+        const [previous, day] = await Promise.all([
+          chefSlots(tc, row, addDaysToLocalDate(date, -1), bookingId),
+          chefSlots(tc, row, date, bookingId),
+        ]);
+        const onDate = ` on ${date}`;
+        const free = [
+          ...previous.free.filter((s) => s.endsWith(onDate)).map((s) => s.slice(0, -onDate.length)),
+          ...day.free,
+        ];
+        throw new ToolError(
+          free.length
+            ? `The chef has no free meeting at ${time} on ${date}. Free times: ${free.join(", ")}.`
+            : `The chef has no free meeting on ${date}${day.closed ? " (closed)" : ""}.`,
+        );
+      }
+      const moved = current && current.startsAt !== meeting.startsAt;
+      return {
+        meeting: {
+          ...localWhen(meeting.startsAt, row.timezone),
+          until: clock(meeting.endsAt, row.timezone),
+          bookingId,
+          ...(moved ? { movedFrom: localWhen(current.startsAt, row.timezone) } : {}),
+        },
+      };
+    },
+  }),
+
+  define({
+    name: "cancel_meeting",
+    title: "Cancel a meeting with the chef",
+    description:
+      "Cancel the chef's planning meeting of a booking. The booking itself stays as it is.",
+    input: { ...restaurantArg, bookingId: z.uuid() },
+    scope: "write",
+    permissions: { booking: ["update"] },
+    annotations: DESTRUCTIVE,
+    run: async ({ restaurantId, bookingId }, tc) => {
+      const { row, actor } = await tc.restaurant(restaurantId, { booking: ["update"] });
+      await cancelMeeting(tc.ctx, row, bookingId, actor);
+      return { cancelled: true, bookingId };
     },
   }),
 ];

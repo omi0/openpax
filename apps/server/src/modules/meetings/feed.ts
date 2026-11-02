@@ -142,5 +142,6 @@ export async function meetingFeed(ctx: AppContext, token: string): Promise<strin
       (x) => meetingEvent({ ...x, restaurant: found.restaurant }, now, { notes: false }).event,
     ),
     feedName(found.restaurant),
+    found.restaurant.timezone,
   );
 }
