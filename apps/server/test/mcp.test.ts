@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { addDaysToLocalDate } from "@openpax/core";
 import { auditLog, booking } from "@openpax/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addMember,
@@ -578,6 +579,189 @@ describe("meetings with the chef", () => {
     );
     expect(wrong.isError).toBe(true);
     expect(wrong.text).toContain("Free times: 00:00.");
+    await client.close();
+  });
+});
+
+describe("who did what", () => {
+  it("lists who took, changed and marked a no-show, with the old and new values", async () => {
+    const owner = await createFixture(t);
+    const base = `/api/v1/restaurants/${owner.restaurantId}`;
+    const operator = async (name: string, pin: string) => {
+      const res = await api<{ id: string }>(
+        t,
+        "POST",
+        `${base}/operators`,
+        { name, pin },
+        owner.session,
+      );
+      expect(res.status).toBe(201);
+      return { id: res.body.id, pin };
+    };
+    const marco = await operator("Marco", "123456");
+    const giulia = await operator("Giulia Rossi", "654321");
+
+    const created = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 2,
+        customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+        source: "phone",
+        notifyGuest: false,
+        operator: marco,
+      },
+      owner.session,
+    );
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const one = `${base}/bookings/${created.body.id}`;
+    const changed = await api(
+      t,
+      "PATCH",
+      one,
+      {
+        startsAt: romeInstant(FRIDAY, "21:00"),
+        partySize: 3,
+        ignoreCapacity: true,
+        notifyGuest: false,
+        operator: giulia,
+      },
+      owner.session,
+    );
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200);
+    // a no-show says who marked it, like a cancellation
+    const anonymous = await api<{ code: string }>(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "no_show" },
+      owner.session,
+    );
+    expect(anonymous.body.code).toBe("operator_required");
+    const noShow = await api(
+      t,
+      "POST",
+      `${one}/actions`,
+      { action: "no_show", operator: giulia },
+      owner.session,
+    );
+    expect(noShow.status, JSON.stringify(noShow.body)).toBe(200);
+    const reopened = await api(t, "POST", `${one}/actions`, { action: "reopen" }, owner.session);
+    expect(reopened.status, JSON.stringify(reopened.body)).toBe(200);
+
+    const tokens = await connectAssistant(owner.session, {
+      clientId: await registerClient("Activity"),
+    });
+    const client = await mcpClient(tokens.access_token);
+    type Activity = {
+      events: Array<{
+        action: string;
+        by: string;
+        booking: { guest: string };
+        changes?: Array<{ field: string; from?: unknown; to?: unknown }>;
+      }>;
+      operators?: string[];
+    };
+    const history = parse<Activity>(
+      await client.callTool({ name: "list_activity", arguments: { bookingId: created.body.id } }),
+    );
+    expect(history.data.events.map((e) => [e.action, e.by])).toEqual([
+      ["created", "Marco"],
+      ["modified", "Giulia Rossi"],
+      ["no_show", "Giulia Rossi"],
+      ["reopened", "dashboard, no operator recorded"],
+    ]);
+    expect(history.data.events[1]?.changes).toEqual([
+      { field: "date and time", from: `${FRIDAY} (fri) 20:00`, to: `${FRIDAY} (fri) 21:00` },
+      { field: "party size", from: 2, to: 3 },
+    ]);
+
+    // the log is stamped by the database clock, not the test's
+    const today = new Date().toISOString().slice(0, 10);
+    const around = { from: addDaysToLocalDate(today, -1), to: addDaysToLocalDate(today, 1) };
+    const hers = parse<Activity>(
+      await client.callTool({
+        name: "list_activity",
+        arguments: { ...around, operator: "giulia" },
+      }),
+    );
+    expect(hers.data.events.map((e) => e.action)).toEqual(["modified", "no_show"]);
+    const nobody = parse<Activity>(
+      await client.callTool({ name: "list_activity", arguments: { ...around, operator: "Luca" } }),
+    );
+    expect(nobody.data).toMatchObject({ events: [], operators: ["Giulia Rossi", "Marco"] });
+
+    const day = parse<{ bookings: Array<{ takenBy?: string; lastChangedBy?: string }> }>(
+      await client.callTool({ name: "list_bookings", arguments: { from: FRIDAY, to: FRIDAY } }),
+    );
+    expect(day.data.bookings[0]).toMatchObject({ takenBy: "Marco", lastChangedBy: "Giulia Rossi" });
+  });
+
+  it("credits an old cancellation to the name on the booking only while it is still its own", async () => {
+    const owner = await createFixture(t);
+    const base = `/api/v1/restaurants/${owner.restaurantId}`;
+    const operator = async (name: string, pin: string) => {
+      const res = await api<{ id: string }>(
+        t,
+        "POST",
+        `${base}/operators`,
+        { name, pin },
+        owner.session,
+      );
+      expect(res.status).toBe(201);
+      return { id: res.body.id, pin };
+    };
+    const marco = await operator("Marco", "123456");
+    const giulia = await operator("Giulia Rossi", "654321");
+    const created = await api<{ id: string }>(
+      t,
+      "POST",
+      `${base}/bookings`,
+      {
+        serviceId: owner.serviceId,
+        startsAt: romeInstant(FRIDAY, "20:00"),
+        partySize: 2,
+        customer: { name: "Anna Verdi", phone: "+39 340 1111111" },
+        source: "phone",
+        notifyGuest: false,
+        operator: marco,
+      },
+      owner.session,
+    );
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const id = created.body.id;
+    const action = async (body: Record<string, unknown>) => {
+      const res = await api(t, "POST", `${base}/bookings/${id}/actions`, body, owner.session);
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+    };
+    // a cancellation logged before the operator was: no `operator` key
+    await action({ action: "cancel", operator: marco });
+    await t.ctx.db
+      .update(auditLog)
+      .set({ data: sql`${auditLog.data} - 'operator'` })
+      .where(and(eq(auditLog.entityId, id), eq(auditLog.action, "booking.cancel")));
+
+    const tokens = await connectAssistant(owner.session, {
+      clientId: await registerClient("Old cancellations"),
+    });
+    const client = await mcpClient(tokens.access_token);
+    const cancels = async () =>
+      parse<{ events: Array<{ by: string }> }>(
+        await client.callTool({
+          name: "list_activity",
+          arguments: { bookingId: id, actions: ["cancelled"] },
+        }),
+      ).data.events.map((e) => e.by);
+
+    expect(await cancels()).toEqual(["Marco"]);
+    // reopened then cancelled by someone else: the name on the booking is no longer Marco's
+    await action({ action: "reopen" });
+    expect(await cancels()).toEqual(["dashboard, no operator recorded"]);
+    await action({ action: "cancel", operator: giulia });
+    expect(await cancels()).toEqual(["dashboard, no operator recorded", "Giulia Rossi"]);
     await client.close();
   });
 });
